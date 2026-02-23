@@ -1,0 +1,265 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <style>
+        :root { --primary: #0056b3; --bg: #f8f9fa; --success: #28a745; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; }
+        .navbar { background: var(--primary); padding: 0 20px; display: flex; align-items: center; height: 60px; color: white; }
+        .dropdown { position: relative; display: inline-block; margin-right: 20px; }
+        .dropbtn { background: none; border: none; color: white; padding: 20px; font-size: 16px; font-weight: bold; cursor: pointer; }
+        .dropdown-content { display: none; position: absolute; background-color: white; min-width: 250px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; }
+        .dropdown-content a { color: #333; padding: 12px 16px; text-decoration: none; display: block; border-bottom: 1px solid #eee; }
+        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .dropdown:hover .dropdown-content { display: block; }
+
+        .container { padding: 20px; max-width: 1600px; margin: auto; }
+        .header-info { margin-bottom: 15px; border-left: 5px solid var(--primary); padding-left: 15px; }
+        
+        .filter-section { 
+            background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;
+            display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr; gap: 10px; align-items: end;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+        }
+        .filter-group { display: flex; flex-direction: column; gap: 5px; }
+        .filter-group label { font-size: 12px; font-weight: bold; color: #555; }
+        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: auto; max-height: 650px; }
+        table { width: 100%; border-collapse: collapse; min-width: 1200px; }
+        th { background: #f2f2f2; color: #333; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; }
+        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; }
+        
+        .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 12px; }
+        .badge-type { background: #e7f3ff; color: #007bff; border: 1px solid #b3d7ff; }
+        .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
+        .btn:hover { opacity: 0.8; }
+        
+        /* Hiệu ứng loading */
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); }
+    </style>
+</head>
+<body>
+
+<div id="loading" class="loading-overlay">ĐANG XỬ LÝ DỮ LIỆU...</div>
+
+<nav class="navbar">
+    <div style="font-size: 18px; font-weight: bold; margin-right: 30px;">🏥 BV ĐK KHÁNH HÒA</div>
+    <div class="dropdown">
+        <button class="dropbtn">QUY TRÌNH KỸ THUẬT ▼</button>
+        <div class="dropdown-content">
+            <a href="#" onclick="switchTab('PL1')">Phụ lục 1 (Đến 30/6/2026)</a>
+            <a href="#" onclick="switchTab('PL2')">Phụ lục 2 (Từ 1/7/2026)</a>
+        </div>
+    </div>
+</nav>
+
+<div class="container">
+    <div class="header-info">
+        <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
+        <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật</small>
+    </div>
+
+    <div class="filter-section">
+        <div class="filter-group">
+            <label>TÌM KIẾM CHUNG</label>
+            <input type="text" id="searchBox" placeholder="Mã kỹ thuật, tên quy trình..." onkeyup="apDungLoc()">
+        </div>
+        <div class="filter-group">
+            <label>PHÂN LOẠI (PT/TT)</label>
+            <select id="filterLoai" onchange="apDungLoc()">
+                <option value="">-- Tất cả loại --</option>
+                <option value="LDB">Đặc biệt (PĐB/TĐB)</option>
+                <option value="L1">Loại 1 (P1/T1)</option>
+                <option value="L2">Loại 2 (P2/T2)</option>
+                <option value="L3">Loại 3 (P3/T3)</option>
+                <option value="KPL">Không phân loại (KPL)</option>
+            </select>
+        </div>
+        <div class="filter-group">
+            <label>QUYẾT ĐỊNH PHÊ DUYỆT</label>
+            <select id="filterQuyetDinh" onchange="apDungLoc()">
+                <option value="">-- Tất cả quyết định --</option>
+            </select>
+        </div>
+        <div class="filter-group" style="flex-direction: row; gap: 5px;">
+            <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất</button>
+            <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập</button>
+            <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()">
+        </div>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead id="tableHead"></thead>
+            <tbody id="dataBody"></tbody>
+        </table>
+    </div>
+</div>
+
+<script>
+    let currentTab = 'PL1';
+    let database = { PL1: [], PL2: [] };
+
+    // 1. TẢI DỮ LIỆU TỪ SERVER KHI MỞ TRANG
+    async function layDuLieu() {
+        showLoading(true);
+        try {
+            const response = await fetch('/api/data');
+            database = await response.json();
+            renderTable();
+        } catch (error) {
+            console.error("Lỗi tải dữ liệu:", error);
+            alert("Không thể kết nối tới Server!");
+        }
+        showLoading(false);
+    }
+
+    // 2. LƯU DỮ LIỆU LÊN SERVER
+    async function luuDuLieu() {
+        showLoading(true);
+        try {
+            const response = await fetch('/api/data', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(database)
+            });
+            const result = await response.json();
+            console.log(result.message);
+        } catch (error) {
+            alert("Lỗi khi lưu dữ liệu lên Server!");
+        }
+        showLoading(false);
+    }
+
+    const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\(.*\)/g,"").trim() : "";
+
+    function renderTable(data = null) {
+        const list = data || database[currentTab];
+        const thead = document.getElementById('tableHead');
+        const tbody = document.getElementById('dataBody');
+        
+        if (currentTab === 'PL1') {
+            thead.innerHTML = `<tr><th>STT</th><th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định phê duyệt</th></tr>`;
+        } else {
+            thead.innerHTML = `<tr><th>STT</th><th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định phê duyệt</th></tr>`;
+        }
+
+        tbody.innerHTML = '';
+        list.forEach((item, index) => {
+            const row = tbody.insertRow();
+            let html = `<td>${index + 1}</td>`;
+            if (currentTab === 'PL1') {
+                html += `<td><b>${item.ma || ''}</b></td><td>${item.chuong || ''}</td><td>${item.ten || ''}</td>`;
+            } else {
+                html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${item.ten || ''}</td>`;
+            }
+            html += `<td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
+            row.innerHTML = html;
+        });
+        capNhatDanhSachQuyetDinh();
+    }
+
+    function apDungLoc() {
+        const search = document.getElementById('searchBox').value.toLowerCase();
+        const loaiSelect = document.getElementById('filterLoai').value;
+        const qd = document.getElementById('filterQuyetDinh').value;
+
+        const filtered = database[currentTab].filter(item => {
+            const matchSearch = (item.ma?.toLowerCase().includes(search) || item.ten?.toLowerCase().includes(search));
+            const matchQD = qd === "" || item.quyetDinh === qd;
+            
+            let matchLoai = true;
+            if (loaiSelect !== "") {
+                const val = item.phanLoai ? item.phanLoai.toUpperCase().trim() : "";
+                if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1");
+                else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2");
+                else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3");
+                else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB");
+                else if (loaiSelect === "KPL") matchLoai = (val === "KPL");
+            }
+            return matchSearch && matchLoai && matchQD;
+        });
+        renderTable(filtered);
+    }
+
+    function capNhatDanhSachQuyetDinh() {
+        const select = document.getElementById('filterQuyetDinh');
+        const currentVal = select.value;
+        const dsQD = [...new Set(database[currentTab].map(item => item.quyetDinh).filter(i => i))];
+        select.innerHTML = '<option value="">-- Tất cả quyết định --</option>';
+        dsQD.sort().forEach(qd => {
+            const opt = document.createElement('option');
+            opt.value = qd; opt.innerText = qd;
+            if(qd === currentVal) opt.selected = true;
+            select.appendChild(opt);
+        });
+    }
+
+    async function importFromExcel() {
+        const file = document.getElementById('fileExcel').files[0];
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            showLoading(true);
+            const data = new Uint8Array(e.target.result);
+            const workbook = XLSX.read(data, { type: 'array' });
+            const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+
+            database[currentTab] = jsonData.map(row => {
+                let item = {};
+                Object.keys(row).forEach(key => {
+                    let k = normalize(key);
+                    let v = row[key];
+                    if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v;
+                    if (k.includes("stt của chương") || k === "machuong") item.maChuong = v;
+                    if (k.includes("tên chương") || k === "chuong") item.chuong = v;
+                    if (k.includes("mã liên kết") || k === "malienket") item.maLienKet = v;
+                    if (k.includes("tên kỹ thuật") || k === "ten") item.ten = v;
+                    if (k.includes("phân loại") || k === "phanloai") item.phanLoai = v;
+                    if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v;
+                });
+                return item;
+            });
+
+            await luuDuLieu(); // Gửi lên server ngay sau khi import
+            renderTable();
+            alert("Đã tải lên và lưu vào Server thành công!");
+            showLoading(false);
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        document.getElementById('tabTitle').innerText = tab === 'PL1' ? "DANH MỤC PHỤ LỤC 1" : "DANH MỤC PHỤ LỤC 2";
+        document.getElementById('searchBox').value = '';
+        document.getElementById('filterLoai').value = '';
+        document.getElementById('filterQuyetDinh').value = '';
+        renderTable();
+    }
+
+    function jumpToPL1(ma) {
+        if(!ma) return;
+        currentTab = 'PL1';
+        switchTab('PL1');
+        document.getElementById('searchBox').value = ma;
+        apDungLoc();
+    }
+
+    function exportToExcel() {
+        const ws = XLSX.utils.json_to_sheet(database[currentTab]);
+        const wb = XLSX.utils.book_new();
+        XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc");
+        XLSX.writeFile(wb, `DanhMuc_${currentTab}_Xuat.xlsx`);
+    }
+
+    function showLoading(status) {
+        document.getElementById('loading').style.display = status ? 'flex' : 'none';
+    }
+
+    window.onload = layDuLieu;
+</script>
+</body>
+</html>
