@@ -1,72 +1,71 @@
 const express = require('express');
 const path = require('path');
 const fs = require('fs');
+const multer = require('multer');
+const mongoose = require('mongoose');
 const app = express();
 
-// Thiết lập cổng: Ưu tiên cổng của hệ thống (khi deploy) hoặc cổng 3000 (chạy local)
 const PORT = process.env.PORT || 3000;
+// Lấy mã kết nối từ cấu hình Render
+const MONGO_URI = process.env.MONGO_URI; 
 
-// Cấu hình Middleware
-// Cho phép nhận dữ liệu JSON với dung lượng lớn (lên tới 50MB)
-app.use(express.json({ limit: '50mb' }));
-// Cấu hình phục vụ các file tĩnh (html, js, css) trong thư mục hiện tại
+// --- KẾT NỐI MONGODB ATLAS ---
+mongoose.connect(MONGO_URI)
+    .then(() => console.log("✅ Đã kết nối MongoDB Atlas vĩnh viễn"))
+    .catch(err => console.error("❌ Lỗi kết nối MongoDB:", err));
+
+// Định nghĩa cấu trúc lưu trữ trên Cloud
+const DataSchema = new mongoose.Schema({
+    id: { type: String, default: "hospital_main_db" },
+    currentData: Object // Lưu toàn bộ mảng PL1 và PL2
+});
+const DataModel = mongoose.model('HospitalData', DataSchema);
+
+// --- CẤU HÌNH LƯU FILE EXCEL GỐC (Tạm thời trên Server) ---
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => {
+        const uploadPath = path.join(__dirname, 'uploads');
+        if (!fs.existsSync(uploadPath)) fs.mkdirSync(uploadPath, { recursive: true });
+        cb(null, uploadPath);
+    },
+    filename: (req, file, cb) => { cb(null, Date.now() + '-' + file.originalname); }
+});
+const upload = multer({ 
+    storage: storage, 
+    limits: { fieldSize: 100 * 1024 * 1024 } 
+});
+
+app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// Đường dẫn đến file cơ sở dữ liệu
-const DB_FILE = path.join(__dirname, 'database.json');
-
-/**
- * API 1: Lấy dữ liệu từ Server
- * Trình duyệt sẽ gọi máy chủ này khi vừa mở trang index.html
- */
-app.get('/api/data', (req, res) => {
+// 1. Lấy dữ liệu từ Cloud khi mở trang
+app.get('/api/data', async (req, res) => {
     try {
-        // Kiểm tra nếu file chưa tồn tại thì tạo mới với cấu trúc rỗng
-        if (!fs.existsSync(DB_FILE)) {
-            const initialData = { PL1: [], PL2: [] };
-            fs.writeFileSync(DB_FILE, JSON.stringify(initialData, null, 2));
-            return res.json(initialData);
-        }
-        
-        // Đọc dữ liệu từ file và gửi về trình duyệt
-        const rawData = fs.readFileSync(DB_FILE, 'utf8');
-        res.json(JSON.parse(rawData));
+        const result = await DataModel.findOne({ id: "hospital_main_db" });
+        res.json(result ? result.currentData : { PL1: [], PL2: [] });
     } catch (error) {
-        console.error("Lỗi khi đọc file:", error);
-        res.status(500).json({ message: "Không thể đọc dữ liệu từ Server" });
+        res.status(500).json({ message: "Lỗi tải dữ liệu" });
     }
 });
 
-/**
- * API 2: Lưu dữ liệu xuống Server
- * Trình duyệt sẽ gọi máy chủ này sau khi bạn Import file Excel thành công
- */
-app.post('/api/data', (req, res) => {
+// 2. Lưu file gốc và đẩy dữ liệu lên Cloud
+app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) => {
     try {
-        const data = req.body;
-        // Ghi dữ liệu vào file database.json với định dạng dễ đọc (indent 2)
-        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2), 'utf8');
+        const processedData = JSON.parse(req.body.database);
         
-        console.log(`[${new Date().toLocaleTimeString()}] Đã cập nhật database.json`);
-        res.json({ message: "Dữ liệu đã được lưu an toàn trên Server!" });
+        // Lưu/Cập nhật vào MongoDB
+        await DataModel.findOneAndUpdate(
+            { id: "hospital_main_db" },
+            { currentData: processedData },
+            { upsert: true, new: true }
+        );
+
+        res.json({ message: "Dữ liệu đã được bảo vệ vĩnh viễn trên MongoDB Atlas!" });
     } catch (error) {
-        console.error("Lỗi khi ghi file:", error);
-        res.status(500).json({ message: "Lỗi hệ thống: Không thể lưu file" });
+        res.status(500).json({ message: "Lỗi lưu trữ: " + error.message });
     }
 });
 
-/**
- * Điều hướng trang chính
- */
-app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'index.html'));
-});
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
-// Khởi động máy chủ
-app.listen(PORT, () => {
-    console.log("==================================================");
-    console.log("🚀 SERVER BV ĐK KHÁNH HÒA ĐANG VẬN HÀNH");
-    console.log(`📡 Local: http://localhost:${PORT}`);
-    console.log(`📁 File lưu trữ: ${DB_FILE}`);
-    console.log("==================================================");
-});
+app.listen(PORT, () => console.log(`🚀 Hệ thống đang chạy tại cổng: ${PORT}`));
