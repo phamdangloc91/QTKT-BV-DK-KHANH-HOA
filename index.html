@@ -87,7 +87,7 @@
         <div class="filter-group" style="flex-direction: row; gap: 5px;">
             <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất</button>
             <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập</button>
-            <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()">
+            <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
     </div>
 
@@ -112,24 +112,7 @@
             renderTable();
         } catch (error) {
             console.error("Lỗi tải dữ liệu:", error);
-            alert("Không thể kết nối tới Server!");
-        }
-        showLoading(false);
-    }
-
-    // 2. LƯU DỮ LIỆU LÊN SERVER
-    async function luuDuLieu() {
-        showLoading(true);
-        try {
-            const response = await fetch('/api/data', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(database)
-            });
-            const result = await response.json();
-            console.log(result.message);
-        } catch (error) {
-            alert("Lỗi khi lưu dữ liệu lên Server!");
+            alert("Không thể kết nối tới Server để tải dữ liệu!");
         }
         showLoading(false);
     }
@@ -199,51 +182,58 @@
     }
 
     async function importFromExcel() {
-    const fileInput = document.getElementById('fileExcel');
-    const file = fileInput.files[0];
-    if (!file) return;
+        const fileInput = document.getElementById('fileExcel');
+        const file = fileInput.files[0];
+        if (!file) return;
 
-    showLoading(true);
-    const reader = new FileReader();
-    reader.onload = async function(e) {
-        // --- PHẦN XỬ LÝ DỮ LIỆU ĐỂ HIỂN THỊ ---
-        const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
-        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
+        showLoading(true);
+        const reader = new FileReader();
+        reader.onload = async function(e) {
+            try {
+                // --- XỬ LÝ DỮ LIỆU ĐỂ HIỂN THỊ ---
+                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
-        database[currentTab] = jsonData.map(row => {
-            let item = {};
-            Object.keys(row).forEach(key => {
-                let k = normalize(key), v = row[key];
-                if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v;
-                if (k.includes("stt của chương") || k === "machuong") item.maChuong = v;
-                if (k.includes("tên chương") || k === "chuong") item.chuong = v;
-                if (k.includes("mã liên kết") || k === "malienket") item.maLienKet = v;
-                if (k.includes("tên kỹ thuật") || k === "ten") item.ten = v;
-                if (k.includes("phân loại") || k === "phanloai") item.phanLoai = v;
-                if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v;
-            });
-            return item;
-        });
+                database[currentTab] = jsonData.map(row => {
+                    let item = {};
+                    Object.keys(row).forEach(key => {
+                        let k = normalize(key), v = row[key];
+                        if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v;
+                        if (k.includes("stt của chương") || k === "machuong") item.maChuong = v;
+                        if (k.includes("tên chương") || k === "chuong") item.chuong = v;
+                        if (k.includes("mã liên kết") || k === "malienket") item.maLienKet = v;
+                        if (k.includes("tên kỹ thuật") || k === "ten") item.ten = v;
+                        if (k.includes("phân loại") || k === "phanloai") item.phanLoai = v;
+                        if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v;
+                    });
+                    return item;
+                });
 
-   const formData = new FormData();
-        formData.append('fileExcel', file); // Gửi file gốc
-        formData.append('database', JSON.stringify(database)); // Gửi dữ liệu đã xử lý
+                // --- GỬI FILE VÀ DỮ LIỆU LÊN SERVER ---
+                const formData = new FormData();
+                formData.append('fileExcel', file); 
+                formData.append('database', JSON.stringify(database)); 
 
-        try {
-            const response = await fetch('/api/upload-and-save', {
-                method: 'POST',
-                body: formData // Sử dụng FormData để gửi file
-            });
-            const result = await response.json();
-            alert(result.message);
-            renderTable();
-        } catch (error) {
-            alert("Lỗi kết nối Server khi lưu trữ file!");
-        }
-        showLoading(false);
-    };
-    reader.readAsArrayBuffer(file);
-}
+                const response = await fetch('/api/upload-and-save', {
+                    method: 'POST',
+                    body: formData 
+                });
+                
+                const result = await response.json();
+                alert(result.message);
+                renderTable();
+
+            } catch (error) {
+                console.error("Lỗi:", error);
+                alert("Đã xảy ra lỗi trong quá trình xử lý hoặc kết nối Server!");
+            } finally {
+                // Đảm bảo nút Input File được làm mới sau mỗi lần tải
+                fileInput.value = ''; 
+                showLoading(false);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
 
     function switchTab(tab) {
         currentTab = tab;
