@@ -37,13 +37,12 @@
         .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
         .btn:hover { opacity: 0.8; }
         
-        /* Hiệu ứng loading */
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); }
     </style>
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">ĐANG XỬ LÝ DỮ LIỆU...</div>
+<div id="loading" class="loading-overlay">ĐANG XỬ LÝ DỮ LIỆU... VUI LÒNG ĐỢI</div>
 
 <nav class="navbar">
     <div style="font-size: 18px; font-weight: bold; margin-right: 30px;">🏥 BV ĐK KHÁNH HÒA</div>
@@ -85,8 +84,8 @@
             </select>
         </div>
         <div class="filter-group" style="flex-direction: row; gap: 5px;">
-            <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất</button>
-            <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập</button>
+            <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất Excel</button>
+            <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
     </div>
@@ -103,7 +102,6 @@
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [] };
 
-    // 1. TẢI DỮ LIỆU TỪ SERVER KHI MỞ TRANG
     async function layDuLieu() {
         showLoading(true);
         try {
@@ -112,7 +110,6 @@
             renderTable();
         } catch (error) {
             console.error("Lỗi tải dữ liệu:", error);
-            alert("Không thể kết nối tới Server để tải dữ liệu!");
         }
         showLoading(false);
     }
@@ -227,7 +224,6 @@
                 console.error("Lỗi:", error);
                 alert("Đã xảy ra lỗi trong quá trình xử lý hoặc kết nối Server!");
             } finally {
-                // Đảm bảo nút Input File được làm mới sau mỗi lần tải
                 fileInput.value = ''; 
                 showLoading(false);
             }
