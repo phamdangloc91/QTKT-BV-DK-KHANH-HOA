@@ -146,6 +146,27 @@ app.put('/api/users/password', async (req, res) => {
         res.json({ message: "Cập nhật mật khẩu thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống!" }); }
 });
+// 🟢 API: Admin sửa Tên đăng nhập / Mật khẩu của Khoa
+app.put('/api/users/admin-update', async (req, res) => {
+    try {
+        const { id, newUsername, newPassword } = req.body;
+        
+        // Kiểm tra xem tên đăng nhập mới có bị trùng với khoa khác không
+        const exists = await UserModel.findOne({ username: newUsername, _id: { $ne: id } });
+        if (exists) return res.status(400).json({ message: "Tên đăng nhập này đã có người sử dụng!" });
+
+        await UserModel.findByIdAndUpdate(id, { username: newUsername, password: newPassword });
+        res.json({ message: "Đã cập nhật tài khoản thành công!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
+
+// 🟢 API: Admin Xóa tài khoản của Khoa
+app.delete('/api/users/:id', async (req, res) => {
+    try {
+        await UserModel.findByIdAndDelete(req.params.id);
+        res.json({ message: "Đã xóa tài khoản thành công! (Dữ liệu của khoa vẫn được giữ nguyên an toàn)" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
 
 // --- 5. API DỮ LIỆU KHOA (Chuẩn bị cho bước sau) ---
 app.get('/api/dept-data', async (req, res) => {
