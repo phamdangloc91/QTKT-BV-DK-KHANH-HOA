@@ -36,10 +36,10 @@
         
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); }
 
-        /* --- CSS MODAL (HỘP THOẠI) --- */
+        /* --- CSS MODAL --- */
         .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
-        .modal-content { background-color: white; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
-        .modal-content.large { width: 700px; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 8px; width: 400px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal-content.large { width: 800px; max-width: 95%; } 
         .modal h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .modal input { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; margin-top: -5px; }
@@ -47,10 +47,9 @@
         
         .action-bar { display: flex; gap: 5px; justify-content: flex-end; }
         
-        /* Bảng hiển thị user cho Admin */
-        .user-table { width: 100%; margin-top: 15px; border-collapse: collapse; }
-        .user-table th, .user-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
-        .user-table th { background-color: #f2f2f2; }
+        .user-table { width: 100%; border-collapse: collapse; min-width: 500px; }
+        .user-table th, .user-table td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 14px; }
+        .user-table th { background-color: #f2f2f2; position: sticky; top: 0; }
     </style>
 </head>
 <body>
@@ -76,7 +75,7 @@
 <div class="container">
     <div class="header-info">
         <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
-        <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật (Chế độ Xem)</small>
+        <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật (Chế độ Khách)</small>
     </div>
 
     <div class="filter-section">
@@ -101,9 +100,11 @@
                 <option value="">-- Tất cả quyết định --</option>
             </select>
         </div>
-        <div class="action-bar" id="adminActionBar" style="display:none;">
+        
+        <div class="action-bar" id="userActionBar" style="display:none;">
             <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất Excel</button>
-            <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
+            
+            <button id="btnNhapExcel" class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
     </div>
@@ -132,10 +133,18 @@
 <div id="pwdModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('pwdModal')">&times;</span>
-        <h3>Đổi Mật Khẩu</h3>
+        <h3>Đổi Mật Khẩu Cá Nhân</h3>
+        
+        <label>Mật khẩu cũ:</label>
+        <input type="password" id="oldPwd" placeholder="Nhập mật khẩu hiện tại của bạn">
+        
         <label>Mật khẩu mới:</label>
-        <input type="text" id="newPwd" placeholder="Nhập mật khẩu mới">
-        <button class="btn" style="width:100%; background:var(--warning); color:#333;" onclick="xuLyDoiMatKhau()">Cập nhật</button>
+        <input type="password" id="newPwd" placeholder="Tạo mật khẩu mới">
+        
+        <label>Xác nhận mật khẩu mới:</label>
+        <input type="password" id="confirmPwd" placeholder="Nhập lại mật khẩu mới để xác nhận">
+        
+        <button class="btn" style="width:100%; background:var(--primary); color:white; margin-top:10px;" onclick="xuLyDoiMatKhau()">Lưu Mật Khẩu</button>
     </div>
 </div>
 
@@ -143,24 +152,24 @@
     <div class="modal-content large">
         <span class="close-btn" onclick="dongModal('adminModal')">&times;</span>
         <h3>Quản Lý Tài Khoản Các Khoa</h3>
-        
         <div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;">
             <b>+ Cấp tài khoản mới</b>
-            <div style="display:flex; gap:10px; margin-top:10px;">
-                <input type="text" id="newUsername" placeholder="Tên đăng nhập (VD: khoangoai)" style="margin:0;">
-                <input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0;">
-                <input type="text" id="newTenKhoa" placeholder="Tên hiển thị (VD: Khoa Ngoại)" style="margin:0;">
-                <button class="btn" style="background:var(--success); white-space:nowrap;" onclick="taoTaiKhoan()">Tạo</button>
+            <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
+                <input type="text" id="newUsername" placeholder="Tên đăng nhập (VD: khoangoai)" style="margin:0; flex:1; min-width:0;">
+                <input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0; flex:1; min-width:0;">
+                <input type="text" id="newTenKhoa" placeholder="Tên hiển thị (VD: Khoa Ngoại)" style="margin:0; flex:1; min-width:0;">
+                <button class="btn" style="background:var(--success); white-space:nowrap; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button>
             </div>
         </div>
-
-        <b>Danh sách tài khoản (Admin nắm mật khẩu gốc):</b>
-        <table class="user-table">
-            <thead>
-                <tr><th>STT</th><th>Tên Khoa</th><th>Tên đăng nhập</th><th>Mật khẩu</th></tr>
-            </thead>
-            <tbody id="userListBody"></tbody>
-        </table>
+        <b>Danh sách tài khoản:</b>
+        <div style="overflow-x: auto; margin-top: 10px; border: 1px solid #ddd; border-radius: 5px; max-height: 350px;">
+            <table class="user-table">
+                <thead>
+                    <tr><th>STT</th><th>Tên Khoa</th><th>Tên đăng nhập</th><th>Mật khẩu (Admin)</th></tr>
+                </thead>
+                <tbody id="userListBody"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
@@ -169,21 +178,18 @@
     let database = { PL1: [], PL2: [] };
     let currentUser = null; 
 
-    // --- KHỞI ĐỘNG TRANG ---
     window.onload = function() {
         const savedUser = localStorage.getItem('hospital_user');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
             capNhatGiaoDienSauDangNhap();
         }
-        layDuLieu(); // Khách hay chủ đều được xem dữ liệu
+        layDuLieu(); 
     };
 
-    // --- HÀM ĐÓNG MỞ MODAL ---
     function moModal(id) { document.getElementById(id).style.display = 'flex'; }
     function dongModal(id) { document.getElementById(id).style.display = 'none'; }
 
-    // --- XỬ LÝ ĐĂNG NHẬP ---
     async function xuLyDangNhap() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
@@ -202,6 +208,12 @@
                 currentUser = { token: data.token, role: data.role, tenKhoa: data.tenKhoa, username: data.username };
                 localStorage.setItem('hospital_user', JSON.stringify(currentUser));
                 dongModal('loginModal');
+                
+                // Clear form đăng nhập
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                errTag.style.display = 'none';
+
                 capNhatGiaoDienSauDangNhap();
             } else {
                 errTag.innerText = data.message; errTag.style.display = 'block';
@@ -209,45 +221,79 @@
         } catch (error) { errTag.innerText = "Lỗi kết nối máy chủ!"; errTag.style.display = 'block'; }
     }
 
-    // --- CẬP NHẬT GIAO DIỆN THEO QUYỀN ---
+    // HÀM QUAN TRỌNG: PHÂN QUYỀN GIAO DIỆN
     function capNhatGiaoDienSauDangNhap() {
         let navHtml = `👤 <b>${currentUser.tenKhoa}</b>`;
         
+        // 1. Mở khóa thanh công cụ (Cả Khoa và Admin đều sẽ thấy nút Xuất Excel)
+        document.getElementById('userActionBar').style.display = 'flex'; 
+
+        // 2. Kiểm tra chi tiết quyền hạn
         if (currentUser.role === 'admin') {
-            document.getElementById('adminActionBar').style.display = 'flex'; // Hiện nút Nhập/Xuất Excel
-            document.getElementById('tabDesc').innerText = "Hệ thống tra cứu quy trình (Chế độ Quản Trị Viên)";
-            navHtml += ` | <a href="#" onclick="moQuanLyTaiKhoan()" style="color:#fff;">Quản lý TK</a>`;
+            document.getElementById('btnNhapExcel').style.display = 'inline-block'; // Mở nút Nhập
+            document.getElementById('tabDesc').innerText = "Hệ thống tra cứu quy trình (Quyền Quản Trị Viên)";
+            navHtml += ` | <a href="#" onclick="moQuanLyTaiKhoan()" style="color:#fff; text-decoration:none;">Quản lý TK</a>`;
         } else {
-            document.getElementById('adminActionBar').style.display = 'none'; // Giấu nút đi
-            document.getElementById('tabDesc').innerText = "Hệ thống tra cứu quy trình (Chế độ Khoa Phòng)";
+            document.getElementById('btnNhapExcel').style.display = 'none'; // Giấu nút Nhập
+            document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình (${currentUser.tenKhoa})`;
         }
         
-        navHtml += ` | <a href="#" onclick="moModal('pwdModal')" style="color:#fff;">Đổi MK</a>`;
-        navHtml += ` | <a href="#" onclick="dangXuat()" style="color:#ffcccc;">[Đăng xuất]</a>`;
+        navHtml += ` | <a href="#" onclick="moModal('pwdModal')" style="color:#fff; text-decoration:none;">Đổi MK</a>`;
+        navHtml += ` | <a href="#" onclick="dangXuat()" style="color:#ffcccc; text-decoration:none;">[Đăng xuất]</a>`;
         
         document.getElementById('navAuthArea').innerHTML = navHtml;
     }
 
     function dangXuat() {
         localStorage.removeItem('hospital_user');
-        location.reload(); 
+        location.reload(); // Tải lại trang sẽ tự động đưa về chế độ Khách
     }
 
-    // --- ĐỔI MẬT KHẨU ---
+    // HÀM QUAN TRỌNG: XỬ LÝ ĐỔI MẬT KHẨU CÓ XÁC NHẬN
     async function xuLyDoiMatKhau() {
+        const oldPwd = document.getElementById('oldPwd').value;
         const newPwd = document.getElementById('newPwd').value;
-        if(!newPwd) return alert("Vui lòng nhập mật khẩu mới!");
+        const confirmPwd = document.getElementById('confirmPwd').value;
+
+        // Bắt lỗi cơ bản
+        if(!oldPwd || !newPwd || !confirmPwd) {
+            return alert("Vui lòng điền đầy đủ 3 ô thông tin!");
+        }
+        if(newPwd !== confirmPwd) {
+            return alert("Mật khẩu mới và phần xác nhận không trùng khớp nhau!");
+        }
+
+        showLoading(true);
         try {
             const res = await fetch('/api/users/password', {
-                method: 'PUT', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: currentUser.username, newPassword: newPwd })
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ 
+                    username: currentUser.username, 
+                    oldPassword: oldPwd,
+                    newPassword: newPwd 
+                })
             });
-            if(res.ok) { alert("Đổi mật khẩu thành công!"); dongModal('pwdModal'); }
-            else alert("Đổi mật khẩu thất bại!");
-        } catch(e) { alert("Lỗi mạng!"); }
+            
+            const data = await res.json();
+            
+            if(res.ok) { 
+                alert("Thành công: " + data.message); 
+                dongModal('pwdModal'); 
+                // Xóa trắng form sau khi đổi xong
+                document.getElementById('oldPwd').value = '';
+                document.getElementById('newPwd').value = '';
+                document.getElementById('confirmPwd').value = '';
+            } else {
+                alert("Lỗi: " + data.message); // Báo lỗi sai mật khẩu cũ từ Server
+            }
+        } catch(e) { 
+            alert("Lỗi mạng! Không thể kết nối tới máy chủ."); 
+        }
+        showLoading(false);
     }
 
-    // --- ADMIN QUẢN LÝ TÀI KHOẢN ---
+    // Các hàm xử lý bảng và dữ liệu giữ nguyên
     async function moQuanLyTaiKhoan() {
         moModal('adminModal');
         try {
@@ -256,7 +302,7 @@
             const tbody = document.getElementById('userListBody');
             tbody.innerHTML = '';
             users.forEach((u, i) => {
-                tbody.innerHTML += `<tr><td>${i+1}</td><td><b>${u.tenKhoa}</b></td><td>${u.username}</td><td><code style="color:red">${u.password}</code></td></tr>`;
+                tbody.innerHTML += `<tr><td>${i+1}</td><td><b>${u.tenKhoa}</b></td><td>${u.username}</td><td><code style="color:red; font-weight:bold;">${u.password}</code></td></tr>`;
             });
         } catch(e) { console.log(e); }
     }
@@ -274,11 +320,15 @@
             });
             const data = await res.json();
             alert(data.message);
-            if(res.ok) moQuanLyTaiKhoan(); // Tải lại danh sách
+            if(res.ok) {
+                document.getElementById('newUsername').value = '';
+                document.getElementById('newPassword').value = '';
+                document.getElementById('newTenKhoa').value = '';
+                moQuanLyTaiKhoan(); 
+            }
         } catch(e) { alert("Lỗi mạng!"); }
     }
 
-    // --- CÁC HÀM DỮ LIỆU CŨ (Giữ nguyên) ---
     async function layDuLieu() {
         showLoading(true);
         try {

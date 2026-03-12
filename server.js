@@ -111,13 +111,25 @@ app.post('/api/users', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Lỗi tạo tài khoản" }); }
 });
 
-// Khoa (hoặc Admin) đổi mật khẩu
+// Khoa (hoặc Admin) đổi mật khẩu cá nhân
 app.put('/api/users/password', async (req, res) => {
     try {
-        const { username, newPassword } = req.body;
-        await UserModel.findOneAndUpdate({ username }, { password: newPassword });
+        const { username, oldPassword, newPassword } = req.body;
+        
+        // 1. Kiểm tra xem mật khẩu cũ có khớp với Database không
+        const user = await UserModel.findOne({ username: username, password: oldPassword });
+        if (!user) {
+            return res.status(400).json({ message: "Mật khẩu cũ không chính xác!" });
+        }
+
+        // 2. Nếu khớp, tiến hành lưu mật khẩu mới
+        user.password = newPassword;
+        await user.save();
+        
         res.json({ message: "Cập nhật mật khẩu thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi cập nhật" }); }
+    } catch (error) { 
+        res.status(500).json({ message: "Lỗi cập nhật hệ thống!" }); 
+    }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
