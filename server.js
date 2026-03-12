@@ -180,7 +180,13 @@ app.post('/api/dept-data/add', async (req, res) => {
         const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
         if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
 
-        const daCo = dept.danhMucQTKT.find(qt => qt.ma === quyTrinh.ma || qt.maLienKet === quyTrinh.maLienKet);
+        // 🟢 ĐÃ SỬA LỖI: Chỉ so sánh khi mã có dữ liệu, tránh lỗi "Trống = Trống", kết hợp so sánh Tên
+        const daCo = dept.danhMucQTKT.find(qt => 
+            (quyTrinh.ma && qt.ma === quyTrinh.ma) || 
+            (quyTrinh.maLienKet && qt.maLienKet === quyTrinh.maLienKet) ||
+            (quyTrinh.ten && qt.ten === quyTrinh.ten)
+        );
+
         if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục!" });
 
         dept.danhMucQTKT.push(quyTrinh);

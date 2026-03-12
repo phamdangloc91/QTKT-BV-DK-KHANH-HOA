@@ -328,9 +328,16 @@
     async function layDuLieu() {
         showLoading(true);
         try {
-            const resData = await fetch('/api/data'); const mainData = await resData.json(); database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || [];
-            const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
-            renderTable();
+            const resData = await fetch('/api/data'); 
+            const mainData = await resData.json(); 
+            database.PL1 = mainData.PL1 || []; 
+            database.PL2 = mainData.PL2 || [];
+            
+            const resDepts = await fetch('/api/dept-data'); 
+            database.depts = await resDepts.json();
+            
+            // 🟢 ĐÃ SỬA LỖI: Dùng apDungLoc() để giữ nguyên chữ đang gõ trong ô tìm kiếm
+            apDungLoc();
         } catch (error) { console.log(error); }
         showLoading(false);
     }
