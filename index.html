@@ -5,7 +5,7 @@
     <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
-        :root { --primary: #0056b3; --bg: #f8f9fa; --success: #28a745; }
+        :root { --primary: #0056b3; --bg: #f8f9fa; --success: #28a745; --danger: #dc3545; --warning: #ffc107; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; }
         .navbar { background: var(--primary); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 60px; color: white; }
         .navbar-left { display: flex; align-items: center; }
@@ -16,10 +16,10 @@
         .dropdown-content a:hover { background-color: #f1f1f1; }
         .dropdown:hover .dropdown-content { display: block; }
 
-        .container { padding: 20px; max-width: 1600px; margin: auto; display: none; /* Ẩn nội dung khi chưa đăng nhập */ }
+        .container { padding: 20px; max-width: 1600px; margin: auto; }
         .header-info { margin-bottom: 15px; border-left: 5px solid var(--primary); padding-left: 15px; }
         
-        .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr; gap: 10px; align-items: end; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 12px; font-weight: bold; color: #555; }
         select, input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
@@ -36,28 +36,26 @@
         
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); }
 
-        /* --- CSS MÀN HÌNH ĐĂNG NHẬP --- */
-        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; justify-content: center; align-items: center; }
-        .login-box { background: white; padding: 40px; border-radius: 10px; width: 350px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
-        .login-box h2 { color: var(--primary); margin-top: 0; margin-bottom: 20px; }
-        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
-        .login-box button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; transition: 0.2s; }
-        .login-box button:hover { background: #004494; }
+        /* --- CSS MODAL (HỘP THOẠI) --- */
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.5); align-items: center; justify-content: center; }
+        .modal-content { background-color: white; padding: 25px; border-radius: 8px; width: 400px; box-shadow: 0 4px 20px rgba(0,0,0,0.2); }
+        .modal-content.large { width: 700px; }
+        .modal h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
+        .modal input { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; margin-top: -5px; }
+        .close-btn:hover { color: black; }
+        
+        .action-bar { display: flex; gap: 5px; justify-content: flex-end; }
+        
+        /* Bảng hiển thị user cho Admin */
+        .user-table { width: 100%; margin-top: 15px; border-collapse: collapse; }
+        .user-table th, .user-table td { border: 1px solid #ddd; padding: 8px; text-align: center; }
+        .user-table th { background-color: #f2f2f2; }
     </style>
 </head>
 <body>
 
-<div id="loginOverlay">
-    <div class="login-box">
-        <h2>🏥 ĐĂNG NHẬP</h2>
-        <input type="text" id="username" placeholder="Tên đăng nhập (VD: admin hoặc khoamat)">
-        <input type="password" id="password" placeholder="Mật khẩu (VD: 123)">
-        <button onclick="xuLyDangNhap()">ĐĂNG NHẬP</button>
-        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:15px; font-weight:bold;"></p>
-    </div>
-</div>
-
-<div id="loading" class="loading-overlay">ĐANG XỬ LÝ DỮ LIỆU... VUI LÒNG ĐỢI</div>
+<div id="loading" class="loading-overlay">ĐANG XỬ LÝ...</div>
 
 <nav class="navbar">
     <div class="navbar-left">
@@ -70,13 +68,15 @@
             </div>
         </div>
     </div>
-    <div id="navUserInfo" style="font-size: 14px;"></div>
+    <div id="navAuthArea" style="font-size: 14px;">
+        <button class="btn" style="background: white; color: var(--primary); padding: 5px 15px;" onclick="moModal('loginModal')">Đăng nhập</button>
+    </div>
 </nav>
 
-<div class="container" id="mainContainer">
+<div class="container">
     <div class="header-info">
         <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
-        <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật</small>
+        <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật (Chế độ Xem)</small>
     </div>
 
     <div class="filter-section">
@@ -85,27 +85,25 @@
             <input type="text" id="searchBox" placeholder="Mã kỹ thuật, tên quy trình..." onkeyup="apDungLoc()">
         </div>
         <div class="filter-group">
-            <label>PHÂN LOẠI (PT/TT)</label>
+            <label>PHÂN LOẠI</label>
             <select id="filterLoai" onchange="apDungLoc()">
                 <option value="">-- Tất cả loại --</option>
-                <option value="LDB">Đặc biệt (PĐB/TĐB)</option>
-                <option value="L1">Loại 1 (P1/T1)</option>
-                <option value="L2">Loại 2 (P2/T2)</option>
-                <option value="L3">Loại 3 (P3/T3)</option>
-                <option value="KPL">Không phân loại (KPL)</option>
+                <option value="LDB">Đặc biệt</option>
+                <option value="L1">Loại 1</option>
+                <option value="L2">Loại 2</option>
+                <option value="L3">Loại 3</option>
+                <option value="KPL">KPL</option>
             </select>
         </div>
         <div class="filter-group">
-            <label>QUYẾT ĐỊNH PHÊ DUYỆT</label>
+            <label>QUYẾT ĐỊNH</label>
             <select id="filterQuyetDinh" onchange="apDungLoc()">
                 <option value="">-- Tất cả quyết định --</option>
             </select>
         </div>
-        <div class="filter-group" style="flex-direction: row; gap: 5px;">
+        <div class="action-bar" id="adminActionBar" style="display:none;">
             <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất Excel</button>
-            
-            <button id="btnNhapExcel" class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
-            
+            <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
     </div>
@@ -118,96 +116,178 @@
     </div>
 </div>
 
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
+        <h3>Đăng Nhập Hệ Thống</h3>
+        <label>Tên đăng nhập:</label>
+        <input type="text" id="username" placeholder="VD: admin hoặc khoamat">
+        <label>Mật khẩu:</label>
+        <input type="password" id="password">
+        <button class="btn" style="width:100%; background:var(--primary)" onclick="xuLyDangNhap()">Đăng Nhập</button>
+        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:10px; text-align:center;"></p>
+    </div>
+</div>
+
+<div id="pwdModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('pwdModal')">&times;</span>
+        <h3>Đổi Mật Khẩu</h3>
+        <label>Mật khẩu mới:</label>
+        <input type="text" id="newPwd" placeholder="Nhập mật khẩu mới">
+        <button class="btn" style="width:100%; background:var(--warning); color:#333;" onclick="xuLyDoiMatKhau()">Cập nhật</button>
+    </div>
+</div>
+
+<div id="adminModal" class="modal">
+    <div class="modal-content large">
+        <span class="close-btn" onclick="dongModal('adminModal')">&times;</span>
+        <h3>Quản Lý Tài Khoản Các Khoa</h3>
+        
+        <div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;">
+            <b>+ Cấp tài khoản mới</b>
+            <div style="display:flex; gap:10px; margin-top:10px;">
+                <input type="text" id="newUsername" placeholder="Tên đăng nhập (VD: khoangoai)" style="margin:0;">
+                <input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0;">
+                <input type="text" id="newTenKhoa" placeholder="Tên hiển thị (VD: Khoa Ngoại)" style="margin:0;">
+                <button class="btn" style="background:var(--success); white-space:nowrap;" onclick="taoTaiKhoan()">Tạo</button>
+            </div>
+        </div>
+
+        <b>Danh sách tài khoản (Admin nắm mật khẩu gốc):</b>
+        <table class="user-table">
+            <thead>
+                <tr><th>STT</th><th>Tên Khoa</th><th>Tên đăng nhập</th><th>Mật khẩu</th></tr>
+            </thead>
+            <tbody id="userListBody"></tbody>
+        </table>
+    </div>
+</div>
+
 <script>
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [] };
-    let currentUser = null; // Biến lưu người dùng đang đăng nhập
+    let currentUser = null; 
 
-    // --- 1. XỬ LÝ ĐĂNG NHẬP & PHÂN QUYỀN ---
-    
-    // Kiểm tra thẻ bài (Token) ngay khi vừa mở web
+    // --- KHỞI ĐỘNG TRANG ---
     window.onload = function() {
         const savedUser = localStorage.getItem('hospital_user');
         if (savedUser) {
             currentUser = JSON.parse(savedUser);
-            vaoHeThong(); // Nếu có thẻ bài rồi thì cho vào luôn
+            capNhatGiaoDienSauDangNhap();
         }
+        layDuLieu(); // Khách hay chủ đều được xem dữ liệu
     };
 
-    // Hàm gửi tài khoản/mật khẩu lên Server
+    // --- HÀM ĐÓNG MỞ MODAL ---
+    function moModal(id) { document.getElementById(id).style.display = 'flex'; }
+    function dongModal(id) { document.getElementById(id).style.display = 'none'; }
+
+    // --- XỬ LÝ ĐĂNG NHẬP ---
     async function xuLyDangNhap() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
         const errTag = document.getElementById('loginError');
 
-        if(!u || !p) {
-            errTag.innerText = "Vui lòng nhập đủ thông tin!";
-            errTag.style.display = 'block';
-            return;
-        }
+        if(!u || !p) { errTag.innerText = "Vui lòng nhập đủ thông tin!"; errTag.style.display = 'block'; return; }
 
         try {
             const response = await fetch('/api/login', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: u, password: p })
             });
             const data = await response.json();
 
             if (response.ok) {
-                // Đăng nhập đúng: Lưu thẻ bài vào trình duyệt
-                currentUser = { token: data.token, role: data.role, tenKhoa: data.tenKhoa };
+                currentUser = { token: data.token, role: data.role, tenKhoa: data.tenKhoa, username: data.username };
                 localStorage.setItem('hospital_user', JSON.stringify(currentUser));
-                vaoHeThong();
+                dongModal('loginModal');
+                capNhatGiaoDienSauDangNhap();
             } else {
-                // Sai pass hoặc sai tên
-                errTag.innerText = data.message;
-                errTag.style.display = 'block';
+                errTag.innerText = data.message; errTag.style.display = 'block';
             }
-        } catch (error) {
-            errTag.innerText = "Lỗi kết nối máy chủ!";
-            errTag.style.display = 'block';
-        }
+        } catch (error) { errTag.innerText = "Lỗi kết nối máy chủ!"; errTag.style.display = 'block'; }
     }
 
-    // Hàm thực thi khi vào hệ thống thành công
-    function vaoHeThong() {
-        document.getElementById('loginOverlay').style.display = 'none'; // Ẩn màn hình đen
-        document.getElementById('mainContainer').style.display = 'block'; // Hiện nội dung web
+    // --- CẬP NHẬT GIAO DIỆN THEO QUYỀN ---
+    function capNhatGiaoDienSauDangNhap() {
+        let navHtml = `👤 <b>${currentUser.tenKhoa}</b>`;
         
-        // Hiển thị tên Khoa trên góc phải màn hình
-        document.getElementById('navUserInfo').innerHTML = `
-            👤 <b>${currentUser.tenKhoa}</b> 
-            <a href="#" onclick="dangXuat()" style="color:#ffcccc; margin-left:15px; text-decoration:none;">[Đăng xuất]</a>
-        `;
-
-        // 🚨 PHÂN QUYỀN Ở ĐÂY: Nếu không phải Admin thì giấu nút Nhập Excel đi
-        if (currentUser.role !== 'admin') {
-            document.getElementById('btnNhapExcel').style.display = 'none';
+        if (currentUser.role === 'admin') {
+            document.getElementById('adminActionBar').style.display = 'flex'; // Hiện nút Nhập/Xuất Excel
+            document.getElementById('tabDesc').innerText = "Hệ thống tra cứu quy trình (Chế độ Quản Trị Viên)";
+            navHtml += ` | <a href="#" onclick="moQuanLyTaiKhoan()" style="color:#fff;">Quản lý TK</a>`;
         } else {
-            document.getElementById('btnNhapExcel').style.display = 'inline-block';
+            document.getElementById('adminActionBar').style.display = 'none'; // Giấu nút đi
+            document.getElementById('tabDesc').innerText = "Hệ thống tra cứu quy trình (Chế độ Khoa Phòng)";
         }
-
-        layDuLieu(); // Bắt đầu tải dữ liệu bảng
+        
+        navHtml += ` | <a href="#" onclick="moModal('pwdModal')" style="color:#fff;">Đổi MK</a>`;
+        navHtml += ` | <a href="#" onclick="dangXuat()" style="color:#ffcccc;">[Đăng xuất]</a>`;
+        
+        document.getElementById('navAuthArea').innerHTML = navHtml;
     }
 
-    // Hàm Đăng xuất
     function dangXuat() {
-        localStorage.removeItem('hospital_user'); // Xé bỏ thẻ bài
-        location.reload(); // Tải lại trang web
+        localStorage.removeItem('hospital_user');
+        location.reload(); 
     }
 
-    // --- 2. CÁC HÀM XỬ LÝ DỮ LIỆU (Giữ nguyên như cũ) ---
+    // --- ĐỔI MẬT KHẨU ---
+    async function xuLyDoiMatKhau() {
+        const newPwd = document.getElementById('newPwd').value;
+        if(!newPwd) return alert("Vui lòng nhập mật khẩu mới!");
+        try {
+            const res = await fetch('/api/users/password', {
+                method: 'PUT', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: currentUser.username, newPassword: newPwd })
+            });
+            if(res.ok) { alert("Đổi mật khẩu thành công!"); dongModal('pwdModal'); }
+            else alert("Đổi mật khẩu thất bại!");
+        } catch(e) { alert("Lỗi mạng!"); }
+    }
+
+    // --- ADMIN QUẢN LÝ TÀI KHOẢN ---
+    async function moQuanLyTaiKhoan() {
+        moModal('adminModal');
+        try {
+            const res = await fetch('/api/users');
+            const users = await res.json();
+            const tbody = document.getElementById('userListBody');
+            tbody.innerHTML = '';
+            users.forEach((u, i) => {
+                tbody.innerHTML += `<tr><td>${i+1}</td><td><b>${u.tenKhoa}</b></td><td>${u.username}</td><td><code style="color:red">${u.password}</code></td></tr>`;
+            });
+        } catch(e) { console.log(e); }
+    }
+
+    async function taoTaiKhoan() {
+        const u = document.getElementById('newUsername').value;
+        const p = document.getElementById('newPassword').value;
+        const tk = document.getElementById('newTenKhoa').value;
+        if(!u || !p || !tk) return alert("Nhập đủ thông tin!");
+
+        try {
+            const res = await fetch('/api/users', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p, tenKhoa: tk })
+            });
+            const data = await res.json();
+            alert(data.message);
+            if(res.ok) moQuanLyTaiKhoan(); // Tải lại danh sách
+        } catch(e) { alert("Lỗi mạng!"); }
+    }
+
+    // --- CÁC HÀM DỮ LIỆU CŨ (Giữ nguyên) ---
     async function layDuLieu() {
         showLoading(true);
         try {
             const response = await fetch('/api/data');
             database = await response.json();
             renderTable();
-        } catch (error) { console.error("Lỗi:", error); }
+        } catch (error) {}
         showLoading(false);
     }
-
     const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function renderTable(data = null) {
@@ -225,11 +305,8 @@
         list.forEach((item, index) => {
             const row = tbody.insertRow();
             let html = `<td>${index + 1}</td>`;
-            if (currentTab === 'PL1') {
-                html += `<td><b>${item.ma || ''}</b></td><td>${item.chuong || ''}</td><td>${item.ten || ''}</td>`;
-            } else {
-                html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${item.ten || ''}</td>`;
-            }
+            if (currentTab === 'PL1') html += `<td><b>${item.ma || ''}</b></td><td>${item.chuong || ''}</td><td>${item.ten || ''}</td>`;
+            else html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${item.ten || ''}</td>`;
             html += `<td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
             row.innerHTML = html;
         });
@@ -244,7 +321,6 @@
         const filtered = database[currentTab].filter(item => {
             const matchSearch = (item.ma?.toLowerCase().includes(search) || item.ten?.toLowerCase().includes(search));
             const matchQD = qd === "" || item.quyetDinh === qd;
-            
             let matchLoai = true;
             if (loaiSelect !== "") {
                 const val = item.phanLoai ? item.phanLoai.toUpperCase().trim() : "";
@@ -276,14 +352,12 @@
         const fileInput = document.getElementById('fileExcel');
         const file = fileInput.files[0];
         if (!file) return;
-
         showLoading(true);
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                 const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
-
                 database[currentTab] = jsonData.map(row => {
                     let item = {};
                     Object.keys(row).forEach(key => {
@@ -298,21 +372,12 @@
                     });
                     return item;
                 });
-
                 const formData = new FormData();
-                formData.append('fileExcel', file); 
-                formData.append('database', JSON.stringify(database)); 
-
+                formData.append('fileExcel', file); formData.append('database', JSON.stringify(database)); 
                 const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData });
                 const result = await response.json();
-                alert(result.message);
-                renderTable();
-            } catch (error) {
-                alert("Đã xảy ra lỗi trong quá trình xử lý!");
-            } finally {
-                fileInput.value = ''; 
-                showLoading(false);
-            }
+                alert(result.message); renderTable();
+            } catch (error) { alert("Lỗi xử lý file!"); } finally { fileInput.value = ''; showLoading(false); }
         };
         reader.readAsArrayBuffer(file);
     }
@@ -320,28 +385,12 @@
     function switchTab(tab) {
         currentTab = tab;
         document.getElementById('tabTitle').innerText = tab === 'PL1' ? "DANH MỤC PHỤ LỤC 1" : "DANH MỤC PHỤ LỤC 2";
-        document.getElementById('searchBox').value = '';
-        renderTable();
+        document.getElementById('searchBox').value = ''; renderTable();
     }
 
-    function jumpToPL1(ma) {
-        if(!ma) return;
-        currentTab = 'PL1';
-        switchTab('PL1');
-        document.getElementById('searchBox').value = ma;
-        apDungLoc();
-    }
-
-    function exportToExcel() {
-        const ws = XLSX.utils.json_to_sheet(database[currentTab]);
-        const wb = XLSX.utils.book_new();
-        XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc");
-        XLSX.writeFile(wb, `DanhMuc_${currentTab}_Xuat.xlsx`);
-    }
-
-    function showLoading(status) {
-        document.getElementById('loading').style.display = status ? 'flex' : 'none';
-    }
+    function jumpToPL1(ma) { if(!ma) return; currentTab = 'PL1'; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
+    function exportToExcel() { const ws = XLSX.utils.json_to_sheet(database[currentTab]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); XLSX.writeFile(wb, `DanhMuc_${currentTab}_Xuat.xlsx`); }
+    function showLoading(status) { document.getElementById('loading').style.display = status ? 'flex' : 'none'; }
 </script>
 </body>
 </html>
