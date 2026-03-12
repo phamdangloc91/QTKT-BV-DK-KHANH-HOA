@@ -201,59 +201,95 @@ app.post('/api/dept-data/remove', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
-// 🟢 MỚI: API KHOA NỘP FILE QUY TRÌNH (BẢN NHÁP)
+// --- BỘ MÁY XỬ LÝ FILE VÀ TRẠNG THÁI (NÂNG CẤP) ---
+
+// Hàm hỗ trợ Up file lên Drive cho gọn code
+async function uploadToDrive(fileObj, prefixName) {
+    if (!fileObj) return null;
+    const fileMetadata = { name: `${prefixName}_${fileObj.originalname}`, parents: [DRIVE_FOLDER_ID] };
+    const media = { mimeType: fileObj.mimetype, body: fs.createReadStream(fileObj.path) };
+    const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
+    await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
+    fs.unlinkSync(fileObj.path);
+    return driveRes.data.webViewLink;
+}
+
+// 1. Khoa nộp file nháp -> CHO_DUYET
 app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
         if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
-
-        // 1. Up lên Drive
-        const fileMetadata = { name: `[NHÁP]_${tenKhoa}_${maQuyTrinh}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
-        const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
-        const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
+        const link = await uploadToDrive(req.file, `[NHÁP]_${tenKhoa}_${maQuyTrinh}`);
         
-        // Cấp quyền Public để click link là xem được
-        await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
-        fs.unlinkSync(req.file.path); 
-
-        // 2. Cập nhật trạng thái trong MongoDB
         const dept = await DeptDataModel.findOne({ tenKhoa });
         const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
-        
         dept.danhMucQTKT[qtIndex].trangThai = 'CHO_DUYET';
-        dept.danhMucQTKT[qtIndex].fileKhoa = driveRes.data.webViewLink;
-        dept.markModified('danhMucQTKT'); // Bắt buộc báo cho Mongo biết mảng bị thay đổi
-        await dept.save();
-
-        res.json({ message: "Nộp quy trình thành công! Trạng thái: Chờ duyệt." });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload: " + error.message }); }
+        dept.danhMucQTKT[qtIndex].fileKhoa = link;
+        dept.markModified('danhMucQTKT'); await dept.save();
+        res.json({ message: "Nộp quy trình thành công! Đang chờ P.KHTH duyệt." });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload" }); }
 });
 
-// 🟢 MỚI: API ADMIN DUYỆT VÀ CHỐT FILE (BẢN FINAL PDF/WORD)
+// 2. Admin duyệt và nộp HĐKHKT -> CHO_HDKHKT
 app.post('/api/upload/admin', upload.single('fileDuyet'), async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
-        if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
 
-        // 1. Up bản Final lên Drive
-        const fileMetadata = { name: `[FINAL]_${tenKhoa}_${maQuyTrinh}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
-        const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
-        const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
+        // Nếu Admin có chọn file mới thì up, không thì dùng lại file Khoa
+        if (req.file) {
+            const link = await uploadToDrive(req.file, `[TRÌNH_HĐ]_${tenKhoa}_${maQuyTrinh}`);
+            dept.danhMucQTKT[qtIndex].fileAdmin = link;
+        } else {
+            dept.danhMucQTKT[qtIndex].fileAdmin = dept.danhMucQTKT[qtIndex].fileKhoa; 
+        }
         
-        await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
-        fs.unlinkSync(req.file.path);
+        dept.danhMucQTKT[qtIndex].trangThai = 'CHO_HDKHKT';
+        dept.markModified('danhMucQTKT'); await dept.save();
+        res.json({ message: "Đã duyệt và chuyển sang Tab Hội đồng KHKT!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
 
-        // 2. Cập nhật trạng thái thành ĐÃ DUYỆT
+// 3. Admin up 3 File chính thức -> DA_PHE_DUYET
+const multiUpload = upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }, { name: 'fPdf', maxCount: 1 }]);
+app.post('/api/upload/final', multiUpload, async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh } = req.body;
+        const files = req.files;
+        
+        let linkQD = files['fQuyetDinh'] ? await uploadToDrive(files['fQuyetDinh'][0], `[QĐ]_${maQuyTrinh}`) : null;
+        let linkBB = files['fBienBan'] ? await uploadToDrive(files['fBienBan'][0], `[BB]_${maQuyTrinh}`) : null;
+        let linkPDF = files['fPdf'] ? await uploadToDrive(files['fPdf'][0], `[FINAL]_${maQuyTrinh}`) : null;
+
         const dept = await DeptDataModel.findOne({ tenKhoa });
         const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
         
-        dept.danhMucQTKT[qtIndex].trangThai = 'DA_DUYET';
-        dept.danhMucQTKT[qtIndex].fileAdmin = driveRes.data.webViewLink;
-        dept.markModified('danhMucQTKT');
-        await dept.save();
+        dept.danhMucQTKT[qtIndex].trangThai = 'DA_PHE_DUYET';
+        if(linkQD) dept.danhMucQTKT[qtIndex].fileQuyetDinh = linkQD;
+        if(linkBB) dept.danhMucQTKT[qtIndex].fileBienBan = linkBB;
+        if(linkPDF) dept.danhMucQTKT[qtIndex].filePdfChinhThuc = linkPDF;
 
-        res.json({ message: "Duyệt thành công! Đã gửi sang tab Hội đồng KHKT." });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload: " + error.message }); }
+        dept.markModified('danhMucQTKT'); await dept.save();
+        res.json({ message: "Đã nộp 3 file chính thức thành công! Quy trình hoàn tất." });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload file" }); }
+});
+
+// 4. Cập nhật Trạng thái (Hủy / Nộp lại)
+app.post('/api/dept-data/status', async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh, action } = req.body;
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
+        const qt = dept.danhMucQTKT[qtIndex];
+
+        if (action === 'REJECT_KHOA') qt.trangThai = 'KHONG_DUYET'; // KHTH trả về Khoa
+        else if (action === 'REVERT_HDKHKT') qt.trangThai = 'CHO_DUYET'; // Rút khỏi HĐKHKT
+        else if (action === 'RESUBMIT') qt.trangThai = 'CHUA_NOP'; // Khoa tạo lại trạng thái để nộp mới
+
+        dept.markModified('danhMucQTKT'); await dept.save();
+        res.json({ message: "Đã cập nhật trạng thái!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
