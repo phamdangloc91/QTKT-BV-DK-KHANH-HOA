@@ -169,6 +169,19 @@ app.post('/api/dept-data/add', async (req, res) => {
         res.json({ message: "Đã bóc quy trình về khoa thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
+// API: Xóa quy trình khỏi giỏ của khoa
+app.post('/api/dept-data/remove', async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh } = req.body;
+        const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
+        if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
 
+        // Lọc bỏ quy trình có mã trùng khớp
+        dept.danhMucQTKT = dept.danhMucQTKT.filter(qt => qt.ma !== maQuyTrinh && qt.maLienKet !== maQuyTrinh);
+        await dept.save();
+
+        res.json({ message: "Đã xóa quy trình khỏi danh mục của khoa!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(PORT, () => console.log(`📡 Server chạy tại cổng: ${PORT}`));

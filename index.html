@@ -11,9 +11,9 @@
         .navbar-left { display: flex; align-items: center; }
         .dropdown { position: relative; display: inline-block; margin-right: 20px; }
         .dropbtn { background: none; border: none; color: white; padding: 20px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .dropdown-content { display: none; position: absolute; background-color: white; min-width: 250px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; }
-        .dropdown-content a { color: #333; padding: 12px 16px; text-decoration: none; display: block; border-bottom: 1px solid #eee; }
-        .dropdown-content a:hover { background-color: #f1f1f1; }
+        .dropdown-content { display: none; position: absolute; background-color: white; min-width: 280px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; max-height: 500px; overflow-y: auto; }
+        .dropdown-content a { color: #333; padding: 10px 16px; text-decoration: none; display: block; border-bottom: 1px solid #eee; font-size: 14px; }
+        .dropdown-content a:hover { background-color: #e7f3ff; color: var(--primary); font-weight: bold; }
         .dropdown:hover .dropdown-content { display: block; }
 
         .container { padding: 20px; max-width: 1600px; margin: auto; }
@@ -34,6 +34,10 @@
         .btn { padding: 10px 15px; border: none; border-radius: 5px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; }
         .btn:hover { opacity: 0.8; }
         
+        /* Nút thao tác riêng biệt */
+        .btn-add { background: var(--success); padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+        .btn-remove { background: var(--danger); padding: 6px 12px; font-size: 12px; white-space: nowrap; }
+        
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); }
 
         /* --- CSS MODAL --- */
@@ -44,9 +48,7 @@
         .modal input { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
         .close-btn { color: #aaa; float: right; font-size: 28px; font-weight: bold; cursor: pointer; margin-top: -5px; }
         .close-btn:hover { color: black; }
-        
         .action-bar { display: flex; gap: 5px; justify-content: flex-end; }
-        
         .user-table { width: 100%; border-collapse: collapse; min-width: 500px; }
         .user-table th, .user-table td { border: 1px solid #ddd; padding: 10px; text-align: center; font-size: 14px; }
         .user-table th { background-color: #f2f2f2; position: sticky; top: 0; }
@@ -66,6 +68,12 @@
                 <a href="#" onclick="switchTab('PL2')">Phụ lục 2 (Từ 1/7/2026)</a>
             </div>
         </div>
+        
+        <div class="dropdown">
+            <button class="dropbtn" style="color: #ffeb3b;">QTKT CÁC KHOA ▼</button>
+            <div class="dropdown-content" id="menuCacKhoa">
+                </div>
+        </div>
     </div>
     <div id="navAuthArea" style="font-size: 14px;">
         <button class="btn" style="background: white; color: var(--primary); padding: 5px 15px;" onclick="moModal('loginModal')">Đăng nhập</button>
@@ -75,7 +83,7 @@
 <div class="container">
     <div class="header-info">
         <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
-        <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật (Chế độ Khách)</small>
+        <small id="tabDesc" style="font-size: 14px; color: #666;">Hệ thống tra cứu quy trình và phân loại kỹ thuật (Chế độ Khách)</small>
     </div>
 
     <div class="filter-section">
@@ -103,7 +111,6 @@
         
         <div class="action-bar" id="userActionBar" style="display:none;">
             <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất Excel</button>
-            
             <button id="btnNhapExcel" class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
@@ -134,16 +141,12 @@
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('pwdModal')">&times;</span>
         <h3>Đổi Mật Khẩu Cá Nhân</h3>
-        
         <label>Mật khẩu cũ:</label>
-        <input type="password" id="oldPwd" placeholder="Nhập mật khẩu hiện tại của bạn">
-        
+        <input type="password" id="oldPwd">
         <label>Mật khẩu mới:</label>
-        <input type="password" id="newPwd" placeholder="Tạo mật khẩu mới">
-        
+        <input type="password" id="newPwd">
         <label>Xác nhận mật khẩu mới:</label>
-        <input type="password" id="confirmPwd" placeholder="Nhập lại mật khẩu mới để xác nhận">
-        
+        <input type="password" id="confirmPwd">
         <button class="btn" style="width:100%; background:var(--primary); color:white; margin-top:10px;" onclick="xuLyDoiMatKhau()">Lưu Mật Khẩu</button>
     </div>
 </div>
@@ -155,22 +158,18 @@
         <div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;">
             <b>+ Cấp tài khoản mới</b>
             <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
-                <input type="text" id="newUsername" placeholder="Tên đăng nhập (VD: khoangoai)" style="margin:0; flex:1; min-width:0;">
+                <input type="text" id="newUsername" placeholder="Tên đăng nhập" style="margin:0; flex:1; min-width:0;">
                 <input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0; flex:1; min-width:0;">
-                
                 <select id="newTenKhoa" style="margin:0; flex:1.5; min-width:0; padding:10px; border:1px solid #ccc; border-radius:4px;">
                     <option value="">-- Chọn Khoa để liên kết --</option>
                 </select>
-                
                 <button class="btn" style="background:var(--success); white-space:nowrap; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button>
             </div>
         </div>
         <b>Danh sách tài khoản:</b>
         <div style="overflow-x: auto; margin-top: 10px; border: 1px solid #ddd; border-radius: 5px; max-height: 350px;">
             <table class="user-table">
-                <thead>
-                    <tr><th>STT</th><th>Tên Khoa</th><th>Tên đăng nhập</th><th>Mật khẩu (Admin)</th></tr>
-                </thead>
+                <thead><tr><th>STT</th><th>Tên Khoa</th><th>Tên đăng nhập</th><th>Mật khẩu (Admin)</th></tr></thead>
                 <tbody id="userListBody"></tbody>
             </table>
         </div>
@@ -179,31 +178,41 @@
 
 <script>
     let currentTab = 'PL1';
-    let database = { PL1: [], PL2: [] };
+    let database = { PL1: [], PL2: [], depts: [] }; // 🟢 MỚI: Thêm kho chứa data các khoa
     let currentUser = null;
-    // Danh sách 30 khoa để nhúng vào giao diện
+
     const DANH_SACH_KHOA = [
-    "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
-    "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
-    "Khoa Phẫu thuật - Gây mê Hồi sức", "Khoa Phụ Sản", "Khoa Tai Mũi Họng", "Khoa Mắt", "Khoa Răng Hàm Mặt",
-    "Khoa Vật lý Trị liệu - Phục hồi Chức năng", "Khoa Y học Cổ truyền", "Khoa Ngoại Tiết niệu", 
-    "Khoa Đột quỵ", "Khoa Huyết học - Truyền máu", "Khoa Hóa sinh", "Khoa Vi sinh - Ký sinh trùng", 
-    "Khoa Chẩn đoán Hình ảnh", "Khoa Giải phẫu bệnh", "Khoa Kiểm soát Nhiễm khuẩn", "Khoa Dược", 
-    "Khoa Dinh dưỡng", "Khoa Nội Tim mạch Lão học", "Khoa Tim mạch Can thiệp", "Khoa Ngoại Lồng ngực",
-    "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
+        "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
+        "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
+        "Khoa Phẫu thuật - Gây mê Hồi sức", "Khoa Phụ Sản", "Khoa Tai Mũi Họng", "Khoa Mắt", "Khoa Răng Hàm Mặt",
+        "Khoa Vật lý Trị liệu - Phục hồi Chức năng", "Khoa Y học Cổ truyền", "Khoa Ngoại Tiết niệu", 
+        "Khoa Đột quỵ", "Khoa Huyết học - Truyền máu", "Khoa Hóa sinh", "Khoa Vi sinh - Ký sinh trùng", 
+        "Khoa Chẩn đoán Hình ảnh", "Khoa Giải phẫu bệnh", "Khoa Kiểm soát Nhiễm khuẩn", "Khoa Dược", 
+        "Khoa Dinh dưỡng", "Khoa Nội Tim mạch Lão học", "Khoa Tim mạch Can thiệp", "Khoa Ngoại Lồng ngực",
+        "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
-    // Nạp danh sách Khoa vào Dropdown lúc vừa mở trang
+    // --- KHỞI ĐỘNG HỆ THỐNG ---
     window.addEventListener('DOMContentLoaded', () => {
+        // Nạp Dropdown Admin
         const selectKhoa = document.getElementById('newTenKhoa');
-        if(selectKhoa) {
-            DANH_SACH_KHOA.forEach(khoa => {
-                const option = document.createElement('option');
-                option.value = khoa;
-                option.textContent = khoa;
-                selectKhoa.appendChild(option);
-            });
-        }
+        const menuCacKhoa = document.getElementById('menuCacKhoa');
+        
+        DANH_SACH_KHOA.forEach(khoa => {
+            // Nạp Menu Navbar
+            const a = document.createElement('a');
+            a.href = "#";
+            a.innerText = khoa;
+            a.onclick = () => switchTab(khoa); // Bấm vào sẽ nhảy sang Tab Khoa
+            menuCacKhoa.appendChild(a);
+
+            // Nạp Admin Dropdown
+            if(selectKhoa) {
+                const opt = document.createElement('option');
+                opt.value = opt.textContent = khoa;
+                selectKhoa.appendChild(opt);
+            }
+        });
     }); 
 
     window.onload = function() {
@@ -218,185 +227,236 @@
     function moModal(id) { document.getElementById(id).style.display = 'flex'; }
     function dongModal(id) { document.getElementById(id).style.display = 'none'; }
 
+    // --- XỬ LÝ TÀI KHOẢN ---
     async function xuLyDangNhap() {
         const u = document.getElementById('username').value;
         const p = document.getElementById('password').value;
         const errTag = document.getElementById('loginError');
-
         if(!u || !p) { errTag.innerText = "Vui lòng nhập đủ thông tin!"; errTag.style.display = 'block'; return; }
-
         try {
             const response = await fetch('/api/login', {
                 method: 'POST', headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ username: u, password: p })
             });
             const data = await response.json();
-
             if (response.ok) {
                 currentUser = { token: data.token, role: data.role, tenKhoa: data.tenKhoa, username: data.username };
                 localStorage.setItem('hospital_user', JSON.stringify(currentUser));
                 dongModal('loginModal');
-                
-                // Clear form đăng nhập
                 document.getElementById('username').value = '';
                 document.getElementById('password').value = '';
                 errTag.style.display = 'none';
-
                 capNhatGiaoDienSauDangNhap();
-            } else {
-                errTag.innerText = data.message; errTag.style.display = 'block';
-            }
+                renderTable(); // Vẽ lại bảng để hiện cột Thao tác
+            } else { errTag.innerText = data.message; errTag.style.display = 'block'; }
         } catch (error) { errTag.innerText = "Lỗi kết nối máy chủ!"; errTag.style.display = 'block'; }
     }
 
-    // HÀM QUAN TRỌNG: PHÂN QUYỀN GIAO DIỆN
     function capNhatGiaoDienSauDangNhap() {
         let navHtml = `👤 <b>${currentUser.tenKhoa}</b>`;
-        
-        // 1. Mở khóa thanh công cụ (Cả Khoa và Admin đều sẽ thấy nút Xuất Excel)
         document.getElementById('userActionBar').style.display = 'flex'; 
-
-        // 2. Kiểm tra chi tiết quyền hạn
         if (currentUser.role === 'admin') {
-            document.getElementById('btnNhapExcel').style.display = 'inline-block'; // Mở nút Nhập
-            document.getElementById('tabDesc').innerText = "Hệ thống tra cứu quy trình (Quyền Quản Trị Viên)";
+            document.getElementById('btnNhapExcel').style.display = 'inline-block'; 
             navHtml += ` | <a href="#" onclick="moQuanLyTaiKhoan()" style="color:#fff; text-decoration:none;">Quản lý TK</a>`;
         } else {
-            document.getElementById('btnNhapExcel').style.display = 'none'; // Giấu nút Nhập
-            document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình (${currentUser.tenKhoa})`;
+            document.getElementById('btnNhapExcel').style.display = 'none'; 
         }
-        
         navHtml += ` | <a href="#" onclick="moModal('pwdModal')" style="color:#fff; text-decoration:none;">Đổi MK</a>`;
         navHtml += ` | <a href="#" onclick="dangXuat()" style="color:#ffcccc; text-decoration:none;">[Đăng xuất]</a>`;
-        
         document.getElementById('navAuthArea').innerHTML = navHtml;
+        capNhatTieuDe(); // Cập nhật lại màu sắc, tiêu đề
     }
 
-    function dangXuat() {
-        localStorage.removeItem('hospital_user');
-        location.reload(); // Tải lại trang sẽ tự động đưa về chế độ Khách
-    }
+    function dangXuat() { localStorage.removeItem('hospital_user'); location.reload(); }
 
-    // HÀM QUAN TRỌNG: XỬ LÝ ĐỔI MẬT KHẨU CÓ XÁC NHẬN
     async function xuLyDoiMatKhau() {
-        const oldPwd = document.getElementById('oldPwd').value;
-        const newPwd = document.getElementById('newPwd').value;
-        const confirmPwd = document.getElementById('confirmPwd').value;
-
-        // Bắt lỗi cơ bản
-        if(!oldPwd || !newPwd || !confirmPwd) {
-            return alert("Vui lòng điền đầy đủ 3 ô thông tin!");
-        }
-        if(newPwd !== confirmPwd) {
-            return alert("Mật khẩu mới và phần xác nhận không trùng khớp nhau!");
-        }
-
+        const o = document.getElementById('oldPwd').value, n = document.getElementById('newPwd').value, c = document.getElementById('confirmPwd').value;
+        if(!o || !n || !c) return alert("Vui lòng điền đủ 3 ô!");
+        if(n !== c) return alert("Mật khẩu mới không khớp!");
         showLoading(true);
         try {
-            const res = await fetch('/api/users/password', {
-                method: 'PUT', 
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ 
-                    username: currentUser.username, 
-                    oldPassword: oldPwd,
-                    newPassword: newPwd 
-                })
-            });
-            
+            const res = await fetch('/api/users/password', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, oldPassword: o, newPassword: n }) });
             const data = await res.json();
-            
-            if(res.ok) { 
-                alert("Thành công: " + data.message); 
-                dongModal('pwdModal'); 
-                // Xóa trắng form sau khi đổi xong
-                document.getElementById('oldPwd').value = '';
-                document.getElementById('newPwd').value = '';
-                document.getElementById('confirmPwd').value = '';
-            } else {
-                alert("Lỗi: " + data.message); // Báo lỗi sai mật khẩu cũ từ Server
-            }
-        } catch(e) { 
-            alert("Lỗi mạng! Không thể kết nối tới máy chủ."); 
-        }
+            if(res.ok) { alert(data.message); dongModal('pwdModal'); document.getElementById('oldPwd').value = document.getElementById('newPwd').value = document.getElementById('confirmPwd').value = ''; } 
+            else alert("Lỗi: " + data.message);
+        } catch(e) { alert("Lỗi mạng!"); }
         showLoading(false);
     }
 
-    // Các hàm xử lý bảng và dữ liệu giữ nguyên
     async function moQuanLyTaiKhoan() {
         moModal('adminModal');
         try {
-            const res = await fetch('/api/users');
-            const users = await res.json();
-            const tbody = document.getElementById('userListBody');
-            tbody.innerHTML = '';
-            users.forEach((u, i) => {
-                tbody.innerHTML += `<tr><td>${i+1}</td><td><b>${u.tenKhoa}</b></td><td>${u.username}</td><td><code style="color:red; font-weight:bold;">${u.password}</code></td></tr>`;
-            });
+            const res = await fetch('/api/users'); const users = await res.json(); const tbody = document.getElementById('userListBody'); tbody.innerHTML = '';
+            users.forEach((u, i) => { tbody.innerHTML += `<tr><td>${i+1}</td><td><b>${u.tenKhoa}</b></td><td>${u.username}</td><td><code style="color:red; font-weight:bold;">${u.password}</code></td></tr>`; });
         } catch(e) { console.log(e); }
     }
 
     async function taoTaiKhoan() {
-        const u = document.getElementById('newUsername').value;
-        const p = document.getElementById('newPassword').value;
-        const tk = document.getElementById('newTenKhoa').value;
+        const u = document.getElementById('newUsername').value, p = document.getElementById('newPassword').value, tk = document.getElementById('newTenKhoa').value;
         if(!u || !p || !tk) return alert("Nhập đủ thông tin!");
-
         try {
-            const res = await fetch('/api/users', {
-                method: 'POST', headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ username: u, password: p, tenKhoa: tk })
-            });
-            const data = await res.json();
-            alert(data.message);
-            if(res.ok) {
-                document.getElementById('newUsername').value = '';
-                document.getElementById('newPassword').value = '';
-                document.getElementById('newTenKhoa').value = '';
-                moQuanLyTaiKhoan(); 
-            }
+            const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p, tenKhoa: tk }) });
+            const data = await res.json(); alert(data.message);
+            if(res.ok) { document.getElementById('newUsername').value = document.getElementById('newPassword').value = document.getElementById('newTenKhoa').value = ''; moQuanLyTaiKhoan(); }
         } catch(e) { alert("Lỗi mạng!"); }
     }
 
+    // --- 🟢 TẢI DỮ LIỆU (NÂNG CẤP ĐỂ TẢI CẢ DATA KHOA) ---
     async function layDuLieu() {
         showLoading(true);
         try {
-            const response = await fetch('/api/data');
-            database = await response.json();
+            // Lấy PL1, PL2
+            const resData = await fetch('/api/data');
+            const mainData = await resData.json();
+            database.PL1 = mainData.PL1 || [];
+            database.PL2 = mainData.PL2 || [];
+
+            // Lấy dữ liệu 30 Khoa
+            const resDepts = await fetch('/api/dept-data');
+            database.depts = await resDepts.json();
+
             renderTable();
-        } catch (error) {}
+        } catch (error) { console.log(error); }
         showLoading(false);
     }
+
     const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\(.*\)/g,"").trim() : "";
 
+    // --- 🟢 VẼ BẢNG (NÂNG CẤP THÊM NÚT BÓC VÀ XÓA) ---
     function renderTable(data = null) {
-        const list = data || database[currentTab];
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+        let list = [];
+
+        // Xác định nguồn dữ liệu để vẽ
+        if (data) {
+            list = data; // Đang tìm kiếm (lọc)
+        } else {
+            if (isDeptTab) {
+                const deptObj = database.depts.find(d => d.tenKhoa === currentTab);
+                list = deptObj ? deptObj.danhMucQTKT : [];
+            } else {
+                list = database[currentTab] || [];
+            }
+        }
+
         const thead = document.getElementById('tableHead');
         const tbody = document.getElementById('dataBody');
         
-        if (currentTab === 'PL1') {
-            thead.innerHTML = `<tr><th>STT</th><th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định</th></tr>`;
+        // Vẽ Header
+        let htmlHead = `<tr><th>STT</th>`;
+        if (currentTab === 'PL1' || isDeptTab) {
+            htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định</th>`;
         } else {
-            thead.innerHTML = `<tr><th>STT</th><th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định</th></tr>`;
+            htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định</th>`;
         }
 
+        // 🧠 XÁC ĐỊNH QUYỀN HIỆN CỘT THAO TÁC
+        let canAdd = false;
+        let canRemove = false;
+
+        if (currentUser && currentUser.role === 'khoa') {
+            if (!isDeptTab) canAdd = true; // Đang ở PL1/PL2 -> Cho bóc
+            if (isDeptTab && currentUser.tenKhoa === currentTab) canRemove = true; // Đang ở nhà mình -> Cho xóa
+        }
+        if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemove = true; // Admin có quyền xóa hộ các khoa
+
+        if (canAdd || canRemove) {
+            htmlHead += `<th style="text-align:center;">Thao tác</th>`;
+        }
+        htmlHead += `</tr>`;
+        thead.innerHTML = htmlHead;
+
+        // Vẽ Body
         tbody.innerHTML = '';
         list.forEach((item, index) => {
             const row = tbody.insertRow();
+            let maHienThi = item.ma || item.maLienKet || ''; // Lấy mã chuẩn để làm ID xóa/thêm
+            
             let html = `<td>${index + 1}</td>`;
-            if (currentTab === 'PL1') html += `<td><b>${item.ma || ''}</b></td><td>${item.chuong || ''}</td><td>${item.ten || ''}</td>`;
-            else html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${item.ten || ''}</td>`;
+            if (currentTab === 'PL1' || isDeptTab) {
+                let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`;
+                html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${item.ten || ''}</td>`;
+            } else {
+                html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${item.ten || ''}</td>`;
+            }
             html += `<td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
+            
+            // Vẽ nút
+            if (canAdd) {
+                // Biến đổi object thành chuỗi an toàn để truyền vào hàm click
+                html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Bóc về khoa</button></td>`;
+            } else if (canRemove) {
+                html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}')">🗑️ Xóa</button></td>`;
+            }
+
             row.innerHTML = html;
         });
         capNhatDanhSachQuyetDinh();
     }
 
+    // --- 🟢 API: BÓC QUY TRÌNH ---
+    async function bocQuyTrinh(ma) {
+        if(!currentUser) return;
+        // Tìm quy trình đang được click trong PL1 hoặc PL2
+        const item = database[currentTab].find(x => x.ma === ma || x.maLienKet === ma);
+        if(!item) return;
+
+        showLoading(true);
+        try {
+            const res = await fetch('/api/dept-data/add', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item })
+            });
+            const data = await res.json();
+            if(res.ok) {
+                // Thông báo nhẹ góc màn hình (dùng JS thuần)
+                let toast = document.createElement("div");
+                toast.innerText = "✅ " + data.message;
+                toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;";
+                document.body.appendChild(toast);
+                setTimeout(() => toast.remove(), 2000);
+                
+                await layDuLieu(); // Tải lại để cập nhật giỏ hàng ngầm
+            } else {
+                alert("⚠️ " + data.message); // Báo trùng lặp
+            }
+        } catch(e) { alert("Lỗi mạng!"); }
+        showLoading(false);
+    }
+
+    // --- 🟢 API: XÓA QUY TRÌNH ---
+    async function xoaQuyTrinh(ma) {
+        if(!confirm("Bạn có chắc chắn muốn xóa quy trình này khỏi danh mục của khoa?")) return;
+        showLoading(true);
+        try {
+            const res = await fetch('/api/dept-data/remove', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ tenKhoa: currentTab, maQuyTrinh: ma }) // Xóa đúng của Khoa đang xem
+            });
+            if(res.ok) {
+                await layDuLieu(); // Load lại data
+            } else { alert("Lỗi khi xóa!"); }
+        } catch(e) { alert("Lỗi mạng!"); }
+        showLoading(false);
+    }
+
+
     function apDungLoc() {
         const search = document.getElementById('searchBox').value.toLowerCase();
         const loaiSelect = document.getElementById('filterLoai').value;
         const qd = document.getElementById('filterQuyetDinh').value;
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
 
-        const filtered = database[currentTab].filter(item => {
+        // Lấy đúng nguồn để lọc
+        let sourceList = [];
+        if (isDeptTab) {
+            const deptObj = database.depts.find(d => d.tenKhoa === currentTab);
+            sourceList = deptObj ? deptObj.danhMucQTKT : [];
+        } else {
+            sourceList = database[currentTab] || [];
+        }
+
+        const filtered = sourceList.filter(item => {
             const matchSearch = (item.ma?.toLowerCase().includes(search) || item.ten?.toLowerCase().includes(search));
             const matchQD = qd === "" || item.quyetDinh === qd;
             let matchLoai = true;
@@ -416,7 +476,10 @@
     function capNhatDanhSachQuyetDinh() {
         const select = document.getElementById('filterQuyetDinh');
         const currentVal = select.value;
-        const dsQD = [...new Set(database[currentTab].map(item => item.quyetDinh).filter(i => i))];
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+        let sourceList = isDeptTab ? (database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []) : database[currentTab];
+        
+        const dsQD = [...new Set(sourceList.map(item => item.quyetDinh).filter(i => i))];
         select.innerHTML = '<option value="">-- Tất cả quyết định --</option>';
         dsQD.sort().forEach(qd => {
             const opt = document.createElement('option');
@@ -426,6 +489,44 @@
         });
     }
 
+    function capNhatTieuDe() {
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+        let textRole = "";
+        
+        if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)";
+        else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)";
+        else textRole = `(Quyền: ${currentUser.tenKhoa})`;
+
+        if (currentTab === 'PL1') {
+            document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1";
+            document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`;
+        } else if (currentTab === 'PL2') {
+            document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 2";
+            document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`;
+        } else {
+            // Đang xem tab của 1 khoa
+            document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`;
+            if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
+                document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`;
+            } else {
+                document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`;
+            }
+        }
+    }
+
+    function switchTab(tab) {
+        currentTab = tab;
+        capNhatTieuDe();
+        document.getElementById('searchBox').value = ''; 
+        
+        // Reset Phân loại và Quyết định về Tất cả
+        document.getElementById('filterLoai').value = "";
+        document.getElementById('filterQuyetDinh').value = "";
+
+        renderTable();
+    }
+
+    // Các hàm Excel giữ nguyên
     async function importFromExcel() {
         const fileInput = document.getElementById('fileExcel');
         const file = fileInput.files[0];
@@ -459,15 +560,21 @@
         };
         reader.readAsArrayBuffer(file);
     }
-
-    function switchTab(tab) {
-        currentTab = tab;
-        document.getElementById('tabTitle').innerText = tab === 'PL1' ? "DANH MỤC PHỤ LỤC 1" : "DANH MỤC PHỤ LỤC 2";
-        document.getElementById('searchBox').value = ''; renderTable();
+    function jumpToPL1(ma) { if(!ma) return; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
+    
+    // Xuất Excel giờ đây sẽ xuất đúng tab đang đứng (kể cả tab của Khoa)
+    function exportToExcel() { 
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+        let listToExport = isDeptTab ? (database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []) : database[currentTab];
+        
+        const ws = XLSX.utils.json_to_sheet(listToExport); 
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
+        
+        let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`;
+        XLSX.writeFile(wb, fileName); 
     }
-
-    function jumpToPL1(ma) { if(!ma) return; currentTab = 'PL1'; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
-    function exportToExcel() { const ws = XLSX.utils.json_to_sheet(database[currentTab]); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); XLSX.writeFile(wb, `DanhMuc_${currentTab}_Xuat.xlsx`); }
+    
     function showLoading(status) { document.getElementById('loading').style.display = status ? 'flex' : 'none'; }
 </script>
 </body>
