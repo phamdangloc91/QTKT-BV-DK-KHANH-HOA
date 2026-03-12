@@ -19,7 +19,6 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-du-phong';
 
 if (!MONGO_URI) { console.error("❌ LỖI: Chưa cấu hình MONGO_URI!"); process.exit(1); }
 
-// 🟢 DANH SÁCH 30 KHOA/TRUNG TÂM CHUẨN
 const DANH_SACH_KHOA = [
     "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
     "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
@@ -53,12 +52,8 @@ const DeptDataSchema = new mongoose.Schema({
 });
 const DeptDataModel = mongoose.model('DeptData', DeptDataSchema);
 
-// 🟢 HÀM KIỂM TRA VÀ TẠO BÙ DỮ LIỆU ĐÃ ĐƯỢC NÂNG CẤP
 async function khoiTaoDuLieuGoc() {
-    // Dọn dẹp tàn dư cấu trúc cũ (nếu có) để không bị kẹt lỗi Database
     try { await DeptDataModel.collection.dropIndex("username_1"); } catch(e) {}
-
-    // 1. Điểm danh 30 khoa: Khoa nào chưa có giỏ thì tự động tạo mới
     for (let ten of DANH_SACH_KHOA) {
         await DeptDataModel.findOneAndUpdate(
             { tenKhoa: ten }, 
@@ -66,13 +61,9 @@ async function khoiTaoDuLieuGoc() {
             { upsert: true, new: true }
         );
     }
-    console.log("✅ Đã điểm danh và tạo đủ 30 Giỏ hàng cho các Khoa.");
-
-    // 2. Tạo tài khoản Admin
     const countAdmin = await UserModel.countDocuments({ role: 'admin' });
     if (countAdmin === 0) {
         await UserModel.create({ username: 'admin', password: '123', role: 'admin', tenKhoa: 'Phòng Kế hoạch tổng hợp' });
-        console.log("✅ Đã tạo tài khoản quản trị: [admin]");
     }
 }
 
@@ -89,7 +80,7 @@ const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024
 app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// --- 4. CÁC API HỆ THỐNG ---
+// --- 4. API DỮ LIỆU GỐC & TÀI KHOẢN ---
 app.get('/api/data', async (req, res) => {
     try {
         const result = await DataModel.findOne({ id: "hospital_main_db" });
@@ -123,17 +114,16 @@ app.post('/api/login', async (req, res) => {
 
 app.get('/api/users', async (req, res) => {
     try {
-        const users = await UserModel.find({ role: 'khoa' }, 'username password tenKhoa');
+        const users = await UserModel.find({ role: { $ne: 'admin' } }, 'username password tenKhoa role');
         res.json(users);
     } catch (error) { res.status(500).json({ message: "Lỗi lấy danh sách" }); }
 });
 
 app.post('/api/users', async (req, res) => {
     try {
-        const { username, password, tenKhoa, role } = req.body; // 🟢 Nhận thêm 'role'
+        const { username, password, tenKhoa, role } = req.body;
         const exists = await UserModel.findOne({ username });
         if(exists) return res.status(400).json({ message: "Tên đăng nhập đã tồn tại!" });
-        
         await UserModel.create({ username, password, role: role, tenKhoa });
         res.json({ message: "Tạo tài khoản thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi tạo tài khoản" }); }
@@ -163,11 +153,11 @@ app.put('/api/users/admin-update', async (req, res) => {
 app.delete('/api/users/:id', async (req, res) => {
     try {
         await UserModel.findByIdAndDelete(req.params.id);
-        res.json({ message: "Đã xóa tài khoản thành công! (Dữ liệu quy trình của khoa vẫn an toàn)" });
+        res.json({ message: "Đã xóa tài khoản thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
-// --- API DỮ LIỆU KHOA ---
+// --- 5. API DỮ LIỆU KHOA ---
 app.get('/api/dept-data', async (req, res) => {
     try {
         const allDepts = await DeptDataModel.find({});
@@ -181,14 +171,17 @@ app.post('/api/dept-data/add', async (req, res) => {
         const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
         if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
 
-        // 🟢 ĐÃ SỬA LỖI: Chỉ so sánh khi mã có dữ liệu, tránh lỗi "Trống = Trống", kết hợp so sánh Tên
         const daCo = dept.danhMucQTKT.find(qt => 
             (quyTrinh.ma && qt.ma === quyTrinh.ma) || 
             (quyTrinh.maLienKet && qt.maLienKet === quyTrinh.maLienKet) ||
             (quyTrinh.ten && qt.ten === quyTrinh.ten)
         );
-
         if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục!" });
+
+        // Khởi tạo thêm 3 biến trạng thái mặc định khi bóc về
+        quyTrinh.trangThai = "CHUA_NOP";
+        quyTrinh.fileKhoa = null;
+        quyTrinh.fileAdmin = null;
 
         dept.danhMucQTKT.push(quyTrinh);
         await dept.save();
@@ -206,6 +199,61 @@ app.post('/api/dept-data/remove', async (req, res) => {
         await dept.save();
         res.json({ message: "Đã xóa quy trình khỏi danh mục của khoa!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
+
+// 🟢 MỚI: API KHOA NỘP FILE QUY TRÌNH (BẢN NHÁP)
+app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh } = req.body;
+        if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
+
+        // 1. Up lên Drive
+        const fileMetadata = { name: `[NHÁP]_${tenKhoa}_${maQuyTrinh}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
+        const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
+        const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
+        
+        // Cấp quyền Public để click link là xem được
+        await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
+        fs.unlinkSync(req.file.path); 
+
+        // 2. Cập nhật trạng thái trong MongoDB
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
+        
+        dept.danhMucQTKT[qtIndex].trangThai = 'CHO_DUYET';
+        dept.danhMucQTKT[qtIndex].fileKhoa = driveRes.data.webViewLink;
+        dept.markModified('danhMucQTKT'); // Bắt buộc báo cho Mongo biết mảng bị thay đổi
+        await dept.save();
+
+        res.json({ message: "Nộp quy trình thành công! Trạng thái: Chờ duyệt." });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload: " + error.message }); }
+});
+
+// 🟢 MỚI: API ADMIN DUYỆT VÀ CHỐT FILE (BẢN FINAL PDF/WORD)
+app.post('/api/upload/admin', upload.single('fileDuyet'), async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh } = req.body;
+        if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
+
+        // 1. Up bản Final lên Drive
+        const fileMetadata = { name: `[FINAL]_${tenKhoa}_${maQuyTrinh}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
+        const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
+        const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
+        
+        await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
+        fs.unlinkSync(req.file.path);
+
+        // 2. Cập nhật trạng thái thành ĐÃ DUYỆT
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
+        
+        dept.danhMucQTKT[qtIndex].trangThai = 'DA_DUYET';
+        dept.danhMucQTKT[qtIndex].fileAdmin = driveRes.data.webViewLink;
+        dept.markModified('danhMucQTKT');
+        await dept.save();
+
+        res.json({ message: "Duyệt thành công! Đã gửi sang tab Hội đồng KHKT." });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload: " + error.message }); }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
