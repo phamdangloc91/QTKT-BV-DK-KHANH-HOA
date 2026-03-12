@@ -7,7 +7,8 @@
     <style>
         :root { --primary: #0056b3; --bg: #f8f9fa; --success: #28a745; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; }
-        .navbar { background: var(--primary); padding: 0 20px; display: flex; align-items: center; height: 60px; color: white; }
+        .navbar { background: var(--primary); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 60px; color: white; }
+        .navbar-left { display: flex; align-items: center; }
         .dropdown { position: relative; display: inline-block; margin-right: 20px; }
         .dropbtn { background: none; border: none; color: white; padding: 20px; font-size: 16px; font-weight: bold; cursor: pointer; }
         .dropdown-content { display: none; position: absolute; background-color: white; min-width: 250px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; }
@@ -15,14 +16,10 @@
         .dropdown-content a:hover { background-color: #f1f1f1; }
         .dropdown:hover .dropdown-content { display: block; }
 
-        .container { padding: 20px; max-width: 1600px; margin: auto; }
+        .container { padding: 20px; max-width: 1600px; margin: auto; display: none; /* Ẩn nội dung khi chưa đăng nhập */ }
         .header-info { margin-bottom: 15px; border-left: 5px solid var(--primary); padding-left: 15px; }
         
-        .filter-section { 
-            background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px;
-            display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr; gap: 10px; align-items: end;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-        }
+        .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr 1.2fr; gap: 10px; align-items: end; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 12px; font-weight: bold; color: #555; }
         select, input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
@@ -38,24 +35,45 @@
         .btn:hover { opacity: 0.8; }
         
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.7); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); }
+
+        /* --- CSS MÀN HÌNH ĐĂNG NHẬP --- */
+        #loginOverlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 10000; display: flex; justify-content: center; align-items: center; }
+        .login-box { background: white; padding: 40px; border-radius: 10px; width: 350px; text-align: center; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+        .login-box h2 { color: var(--primary); margin-top: 0; margin-bottom: 20px; }
+        .login-box input { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 14px; }
+        .login-box button { width: 100%; padding: 12px; background: var(--primary); color: white; border: none; border-radius: 5px; font-weight: bold; font-size: 16px; cursor: pointer; margin-top: 15px; transition: 0.2s; }
+        .login-box button:hover { background: #004494; }
     </style>
 </head>
 <body>
 
+<div id="loginOverlay">
+    <div class="login-box">
+        <h2>🏥 ĐĂNG NHẬP</h2>
+        <input type="text" id="username" placeholder="Tên đăng nhập (VD: admin hoặc khoamat)">
+        <input type="password" id="password" placeholder="Mật khẩu (VD: 123)">
+        <button onclick="xuLyDangNhap()">ĐĂNG NHẬP</button>
+        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:15px; font-weight:bold;"></p>
+    </div>
+</div>
+
 <div id="loading" class="loading-overlay">ĐANG XỬ LÝ DỮ LIỆU... VUI LÒNG ĐỢI</div>
 
 <nav class="navbar">
-    <div style="font-size: 18px; font-weight: bold; margin-right: 30px;">🏥 BV ĐK KHÁNH HÒA</div>
-    <div class="dropdown">
-        <button class="dropbtn">QUY TRÌNH KỸ THUẬT ▼</button>
-        <div class="dropdown-content">
-            <a href="#" onclick="switchTab('PL1')">Phụ lục 1 (Đến 30/6/2026)</a>
-            <a href="#" onclick="switchTab('PL2')">Phụ lục 2 (Từ 1/7/2026)</a>
+    <div class="navbar-left">
+        <div style="font-size: 18px; font-weight: bold; margin-right: 30px;">🏥 BV ĐK KHÁNH HÒA</div>
+        <div class="dropdown">
+            <button class="dropbtn">QUY TRÌNH KỸ THUẬT ▼</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="switchTab('PL1')">Phụ lục 1 (Đến 30/6/2026)</a>
+                <a href="#" onclick="switchTab('PL2')">Phụ lục 2 (Từ 1/7/2026)</a>
+            </div>
         </div>
     </div>
+    <div id="navUserInfo" style="font-size: 14px;"></div>
 </nav>
 
-<div class="container">
+<div class="container" id="mainContainer">
     <div class="header-info">
         <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
         <small id="tabDesc">Hệ thống tra cứu quy trình và phân loại kỹ thuật</small>
@@ -85,7 +103,9 @@
         </div>
         <div class="filter-group" style="flex-direction: row; gap: 5px;">
             <button class="btn" style="background:var(--success)" onclick="exportToExcel()">📥 Xuất Excel</button>
-            <button class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
+            
+            <button id="btnNhapExcel" class="btn" style="background:#17a2b8" onclick="document.getElementById('fileExcel').click()">📤 Nhập Excel</button>
+            
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
     </div>
@@ -101,16 +121,90 @@
 <script>
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [] };
+    let currentUser = null; // Biến lưu người dùng đang đăng nhập
 
+    // --- 1. XỬ LÝ ĐĂNG NHẬP & PHÂN QUYỀN ---
+    
+    // Kiểm tra thẻ bài (Token) ngay khi vừa mở web
+    window.onload = function() {
+        const savedUser = localStorage.getItem('hospital_user');
+        if (savedUser) {
+            currentUser = JSON.parse(savedUser);
+            vaoHeThong(); // Nếu có thẻ bài rồi thì cho vào luôn
+        }
+    };
+
+    // Hàm gửi tài khoản/mật khẩu lên Server
+    async function xuLyDangNhap() {
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        const errTag = document.getElementById('loginError');
+
+        if(!u || !p) {
+            errTag.innerText = "Vui lòng nhập đủ thông tin!";
+            errTag.style.display = 'block';
+            return;
+        }
+
+        try {
+            const response = await fetch('/api/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ username: u, password: p })
+            });
+            const data = await response.json();
+
+            if (response.ok) {
+                // Đăng nhập đúng: Lưu thẻ bài vào trình duyệt
+                currentUser = { token: data.token, role: data.role, tenKhoa: data.tenKhoa };
+                localStorage.setItem('hospital_user', JSON.stringify(currentUser));
+                vaoHeThong();
+            } else {
+                // Sai pass hoặc sai tên
+                errTag.innerText = data.message;
+                errTag.style.display = 'block';
+            }
+        } catch (error) {
+            errTag.innerText = "Lỗi kết nối máy chủ!";
+            errTag.style.display = 'block';
+        }
+    }
+
+    // Hàm thực thi khi vào hệ thống thành công
+    function vaoHeThong() {
+        document.getElementById('loginOverlay').style.display = 'none'; // Ẩn màn hình đen
+        document.getElementById('mainContainer').style.display = 'block'; // Hiện nội dung web
+        
+        // Hiển thị tên Khoa trên góc phải màn hình
+        document.getElementById('navUserInfo').innerHTML = `
+            👤 <b>${currentUser.tenKhoa}</b> 
+            <a href="#" onclick="dangXuat()" style="color:#ffcccc; margin-left:15px; text-decoration:none;">[Đăng xuất]</a>
+        `;
+
+        // 🚨 PHÂN QUYỀN Ở ĐÂY: Nếu không phải Admin thì giấu nút Nhập Excel đi
+        if (currentUser.role !== 'admin') {
+            document.getElementById('btnNhapExcel').style.display = 'none';
+        } else {
+            document.getElementById('btnNhapExcel').style.display = 'inline-block';
+        }
+
+        layDuLieu(); // Bắt đầu tải dữ liệu bảng
+    }
+
+    // Hàm Đăng xuất
+    function dangXuat() {
+        localStorage.removeItem('hospital_user'); // Xé bỏ thẻ bài
+        location.reload(); // Tải lại trang web
+    }
+
+    // --- 2. CÁC HÀM XỬ LÝ DỮ LIỆU (Giữ nguyên như cũ) ---
     async function layDuLieu() {
         showLoading(true);
         try {
             const response = await fetch('/api/data');
             database = await response.json();
             renderTable();
-        } catch (error) {
-            console.error("Lỗi tải dữ liệu:", error);
-        }
+        } catch (error) { console.error("Lỗi:", error); }
         showLoading(false);
     }
 
@@ -122,9 +216,9 @@
         const tbody = document.getElementById('dataBody');
         
         if (currentTab === 'PL1') {
-            thead.innerHTML = `<tr><th>STT</th><th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định phê duyệt</th></tr>`;
+            thead.innerHTML = `<tr><th>STT</th><th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định</th></tr>`;
         } else {
-            thead.innerHTML = `<tr><th>STT</th><th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định phê duyệt</th></tr>`;
+            thead.innerHTML = `<tr><th>STT</th><th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật</th><th>Phân loại</th><th>Quyết định</th></tr>`;
         }
 
         tbody.innerHTML = '';
@@ -187,7 +281,6 @@
         const reader = new FileReader();
         reader.onload = async function(e) {
             try {
-                // --- XỬ LÝ DỮ LIỆU ĐỂ HIỂN THỊ ---
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
                 const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]);
 
@@ -206,23 +299,16 @@
                     return item;
                 });
 
-                // --- GỬI FILE VÀ DỮ LIỆU LÊN SERVER ---
                 const formData = new FormData();
                 formData.append('fileExcel', file); 
                 formData.append('database', JSON.stringify(database)); 
 
-                const response = await fetch('/api/upload-and-save', {
-                    method: 'POST',
-                    body: formData 
-                });
-                
+                const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData });
                 const result = await response.json();
                 alert(result.message);
                 renderTable();
-
             } catch (error) {
-                console.error("Lỗi:", error);
-                alert("Đã xảy ra lỗi trong quá trình xử lý hoặc kết nối Server!");
+                alert("Đã xảy ra lỗi trong quá trình xử lý!");
             } finally {
                 fileInput.value = ''; 
                 showLoading(false);
@@ -235,8 +321,6 @@
         currentTab = tab;
         document.getElementById('tabTitle').innerText = tab === 'PL1' ? "DANH MỤC PHỤ LỤC 1" : "DANH MỤC PHỤ LỤC 2";
         document.getElementById('searchBox').value = '';
-        document.getElementById('filterLoai').value = '';
-        document.getElementById('filterQuyetDinh').value = '';
         renderTable();
     }
 
@@ -258,8 +342,6 @@
     function showLoading(status) {
         document.getElementById('loading').style.display = status ? 'flex' : 'none';
     }
-
-    window.onload = layDuLieu;
 </script>
 </body>
 </html>
