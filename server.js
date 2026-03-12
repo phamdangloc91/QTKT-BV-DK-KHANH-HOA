@@ -42,7 +42,7 @@ const DataModel = mongoose.model('HospitalData', DataSchema);
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
-    role: { type: String, enum: ['admin', 'khoa'] },
+    role: { type: String, enum: ['admin', 'khoa', 'hdkhkt'] }, 
     tenKhoa: { type: String, required: true }
 });
 const UserModel = mongoose.model('User', UserSchema);
@@ -130,10 +130,11 @@ app.get('/api/users', async (req, res) => {
 
 app.post('/api/users', async (req, res) => {
     try {
-        const { username, password, tenKhoa } = req.body;
+        const { username, password, tenKhoa, role } = req.body; // 🟢 Nhận thêm 'role'
         const exists = await UserModel.findOne({ username });
         if(exists) return res.status(400).json({ message: "Tên đăng nhập đã tồn tại!" });
-        await UserModel.create({ username, password, role: 'khoa', tenKhoa });
+        
+        await UserModel.create({ username, password, role: role, tenKhoa });
         res.json({ message: "Tạo tài khoản thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi tạo tài khoản" }); }
 });
