@@ -157,7 +157,11 @@
             <div style="display:flex; gap:10px; margin-top:10px; align-items:center;">
                 <input type="text" id="newUsername" placeholder="Tên đăng nhập (VD: khoangoai)" style="margin:0; flex:1; min-width:0;">
                 <input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0; flex:1; min-width:0;">
-                <input type="text" id="newTenKhoa" placeholder="Tên hiển thị (VD: Khoa Ngoại)" style="margin:0; flex:1; min-width:0;">
+                
+                <select id="newTenKhoa" style="margin:0; flex:1.5; min-width:0; padding:10px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="">-- Chọn Khoa để liên kết --</option>
+                </select>
+                
                 <button class="btn" style="background:var(--success); white-space:nowrap; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button>
             </div>
         </div>
@@ -176,7 +180,31 @@
 <script>
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [] };
-    let currentUser = null; 
+    let currentUser = null;
+    // Danh sách 30 khoa để nhúng vào giao diện
+    const DANH_SACH_KHOA = [
+    "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
+    "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
+    "Khoa Phẫu thuật - Gây mê Hồi sức", "Khoa Phụ Sản", "Khoa Tai Mũi Họng", "Khoa Mắt", "Khoa Răng Hàm Mặt",
+    "Khoa Vật lý Trị liệu - Phục hồi Chức năng", "Khoa Y học Cổ truyền", "Khoa Ngoại Tiết niệu", 
+    "Khoa Đột quỵ", "Khoa Huyết học - Truyền máu", "Khoa Hóa sinh", "Khoa Vi sinh - Ký sinh trùng", 
+    "Khoa Chẩn đoán Hình ảnh", "Khoa Giải phẫu bệnh", "Khoa Kiểm soát Nhiễm khuẩn", "Khoa Dược", 
+    "Khoa Dinh dưỡng", "Khoa Nội Tim mạch Lão học", "Khoa Tim mạch Can thiệp", "Khoa Ngoại Lồng ngực",
+    "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
+    ]; 
+
+    // Nạp danh sách Khoa vào Dropdown lúc vừa mở trang
+    window.addEventListener('DOMContentLoaded', () => {
+        const selectKhoa = document.getElementById('newTenKhoa');
+        if(selectKhoa) {
+            DANH_SACH_KHOA.forEach(khoa => {
+                const option = document.createElement('option');
+                option.value = khoa;
+                option.textContent = khoa;
+                selectKhoa.appendChild(option);
+            });
+        }
+    }); 
 
     window.onload = function() {
         const savedUser = localStorage.getItem('hospital_user');

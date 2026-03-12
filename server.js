@@ -19,41 +19,56 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret-key-du-phong';
 
 if (!MONGO_URI) { console.error("❌ LỖI: Chưa cấu hình MONGO_URI!"); process.exit(1); }
 
+// 🟢 DANH SÁCH 30 KHOA/TRUNG TÂM CHUẨN CỦA BỆNH VIỆN
+const DANH_SACH_KHOA = [
+    "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
+    "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
+    "Khoa Phẫu thuật - Gây mê Hồi sức", "Khoa Phụ Sản", "Khoa Tai Mũi Họng", "Khoa Mắt", "Khoa Răng Hàm Mặt",
+    "Khoa Vật lý Trị liệu - Phục hồi Chức năng", "Khoa Y học Cổ truyền", "Khoa Ngoại Tiết niệu", 
+    "Khoa Đột quỵ", "Khoa Huyết học - Truyền máu", "Khoa Hóa sinh", "Khoa Vi sinh - Ký sinh trùng", 
+    "Khoa Chẩn đoán Hình ảnh", "Khoa Giải phẫu bệnh", "Khoa Kiểm soát Nhiễm khuẩn", "Khoa Dược", 
+    "Khoa Dinh dưỡng", "Khoa Nội Tim mạch Lão học", "Khoa Tim mạch Can thiệp", "Khoa Ngoại Lồng ngực",
+    "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
+];
+
 // --- 1. KẾT NỐI MONGODB VÀ ĐỊNH NGHĨA CÁC BẢNG ---
 mongoose.connect(MONGO_URI)
-    .then(() => { console.log("✅ Đã kết nối MongoDB Atlas"); khoiTaoTaiKhoanMau(); })
+    .then(() => { console.log("✅ Đã kết nối MongoDB Atlas"); khoiTaoDuLieuGoc(); })
     .catch(err => console.error("❌ Lỗi kết nối MongoDB:", err));
 
-// Bảng 1: Dữ liệu gốc (PL1, PL2)
 const DataSchema = new mongoose.Schema({ id: { type: String, default: "hospital_main_db" }, currentData: Object });
 const DataModel = mongoose.model('HospitalData', DataSchema);
 
-// Bảng 2: Tài khoản
 const UserSchema = new mongoose.Schema({
     username: { type: String, required: true, unique: true },
     password: { type: String, required: true },
     role: { type: String, enum: ['admin', 'khoa'] },
-    tenKhoa: { type: String }
+    tenKhoa: { type: String, required: true }
 });
 const UserModel = mongoose.model('User', UserSchema);
 
-// 🟢 BẢNG 3 (MỚI): Giỏ chứa Quy trình và Dữ liệu riêng của từng Khoa
+// 🟢 BẢNG 3: Giỏ chứa Quy trình (Liên kết bằng tenKhoa thay vì username)
 const DeptDataSchema = new mongoose.Schema({
-    username: { type: String, required: true, unique: true }, // Mã liên kết với tài khoản (VD: khoamat)
-    tenKhoa: { type: String },
-    danhMucQTKT: { type: Array, default: [] } // Mảng chứa các quy trình đã bóc về
+    tenKhoa: { type: String, required: true, unique: true }, // Khóa chính là Tên Khoa
+    danhMucQTKT: { type: Array, default: [] }
 });
 const DeptDataModel = mongoose.model('DeptData', DeptDataSchema);
 
-async function khoiTaoTaiKhoanMau() {
-    const count = await UserModel.countDocuments();
-    if (count === 0) {
-        await UserModel.insertMany([
-            { username: 'admin', password: '123', role: 'admin', tenKhoa: 'Phòng Kế hoạch tổng hợp' },
-            { username: 'khoamat', password: '123', role: 'khoa', tenKhoa: 'Khoa Mắt' }
-        ]);
-        // Tự động tạo giỏ trống cho Khoa Mắt
-        await DeptDataModel.create({ username: 'khoamat', tenKhoa: 'Khoa Mắt', danhMucQTKT: [] });
+// 🟢 Hàm tự động tạo 31 Giỏ hàng và Tài khoản Admin
+async function khoiTaoDuLieuGoc() {
+    // 1. Tạo 31 giỏ hàng rỗng cho tất cả các khoa (Nếu chưa có)
+    const countDept = await DeptDataModel.countDocuments();
+    if (countDept === 0) {
+        const deptsToInsert = DANH_SACH_KHOA.map(ten => ({ tenKhoa: ten, danhMucQTKT: [] }));
+        await DeptDataModel.insertMany(deptsToInsert);
+        console.log("✅ Đã tạo sẵn 31 Giỏ hàng (Tab) cho các khoa.");
+    }
+
+    // 2. Tạo tài khoản Admin
+    const countAdmin = await UserModel.countDocuments({ role: 'admin' });
+    if (countAdmin === 0) {
+        await UserModel.create({ username: 'admin', password: '123', role: 'admin', tenKhoa: 'Phòng Kế hoạch tổng hợp' });
+        console.log("✅ Đã tạo tài khoản quản trị: [admin] - MK: 123");
     }
 }
 
@@ -70,7 +85,7 @@ const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024
 app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// --- 4. API DỮ LIỆU GỐC & TÀI KHOẢN (Giữ nguyên) ---
+// --- 4. API DỮ LIỆU GỐC & TÀI KHOẢN ---
 app.get('/api/data', async (req, res) => {
     try {
         const result = await DataModel.findOne({ id: "hospital_main_db" });
@@ -89,7 +104,7 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
             fs.unlinkSync(req.file.path);
         }
         res.json({ message: "Lưu dữ liệu và Backup Drive thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống: " + error.message }); }
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
 app.post('/api/login', async (req, res) => {
@@ -109,15 +124,15 @@ app.get('/api/users', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Lỗi lấy danh sách" }); }
 });
 
+// 🟢 API Tạo tài khoản (Chỉ lưu vào User, vì Giỏ hàng đã có sẵn)
 app.post('/api/users', async (req, res) => {
     try {
         const { username, password, tenKhoa } = req.body;
         const exists = await UserModel.findOne({ username });
         if(exists) return res.status(400).json({ message: "Tên đăng nhập đã tồn tại!" });
+        
         await UserModel.create({ username, password, role: 'khoa', tenKhoa });
-        // 🟢 Tự động tạo "Giỏ dữ liệu" cho khoa mới
-        await DeptDataModel.create({ username, tenKhoa, danhMucQTKT: [] });
-        res.json({ message: "Tạo tài khoản thành công!" });
+        res.json({ message: "Tạo tài khoản thành công! Đã cấp quyền truy cập Giỏ hàng cho khoa." });
     } catch (error) { res.status(500).json({ message: "Lỗi tạo tài khoản" }); }
 });
 
@@ -129,51 +144,29 @@ app.put('/api/users/password', async (req, res) => {
         user.password = newPassword;
         await user.save();
         res.json({ message: "Cập nhật mật khẩu thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi cập nhật hệ thống!" }); }
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống!" }); }
 });
 
-// --- 5. API DỮ LIỆU KHOA (MỚI TOANH) ---
-
-// API: Lấy danh sách QTKT của TẤT CẢ các khoa (Dùng để hiển thị cho Khách xem)
+// --- 5. API DỮ LIỆU KHOA (Chuẩn bị cho bước sau) ---
 app.get('/api/dept-data', async (req, res) => {
     try {
         const allDepts = await DeptDataModel.find({});
         res.json(allDepts);
-    } catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu các khoa" }); }
+    } catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
 });
 
-// API: Bóc quy trình về khoa (Thêm vào mảng danhMucQTKT)
 app.post('/api/dept-data/add', async (req, res) => {
     try {
-        const { username, quyTrinh } = req.body; // quyTrinh là 1 object copy từ PL1
-        
-        // Tìm giỏ của khoa này
-        const dept = await DeptDataModel.findOne({ username: username });
+        const { tenKhoa, quyTrinh } = req.body; 
+        const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
         if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
 
-        // Kiểm tra xem quy trình này đã bóc chưa (chống trùng lặp mã)
         const daCo = dept.danhMucQTKT.find(qt => qt.ma === quyTrinh.ma || qt.maLienKet === quyTrinh.maLienKet);
-        if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục của khoa!" });
+        if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục!" });
 
-        // Thêm vào giỏ và lưu lại
         dept.danhMucQTKT.push(quyTrinh);
         await dept.save();
-
         res.json({ message: "Đã bóc quy trình về khoa thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
-});
-
-// API: Xóa quy trình khỏi khoa
-app.post('/api/dept-data/remove', async (req, res) => {
-    try {
-        const { username, maQuyTrinh } = req.body;
-        const dept = await DeptDataModel.findOne({ username: username });
-        
-        // Lọc bỏ quy trình có mã trùng khớp
-        dept.danhMucQTKT = dept.danhMucQTKT.filter(qt => qt.ma !== maQuyTrinh && qt.maLienKet !== maQuyTrinh);
-        await dept.save();
-
-        res.json({ message: "Đã xóa quy trình khỏi danh mục của khoa!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
