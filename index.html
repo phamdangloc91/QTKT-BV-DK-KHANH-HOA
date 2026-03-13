@@ -712,6 +712,7 @@
 
     function switchTab(tab) { currentTab = tab; capNhatTieuDe(); document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; apDungLoc(); }
     
+    // 🟢 HÀM NHẬP EXCEL MỚI: TỐI ƯU HÓA DUNG LƯỢNG GỬI LÊN SERVER
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; showLoading(true); 
         const reader = new FileReader(); 
@@ -743,7 +744,12 @@
                     return item; 
                 }); 
                 
-                const formData = new FormData(); formData.append('fileExcel', file); formData.append('database', JSON.stringify(database)); 
+                // CHỈ ĐÓNG GÓI DỮ LIỆU CỦA 1 TAB ĐỂ TRÁNH QUÁ TẢI SERVER RENDER
+                const formData = new FormData(); 
+                formData.append('fileExcel', file); 
+                formData.append('tabName', currentTab);
+                formData.append('tabData', JSON.stringify(database[currentTab])); 
+                
                 const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
                 const result = await response.json(); alert(result.message); renderTable(); 
             } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng cột."); } finally { fileInput.value = ''; showLoading(false); } 

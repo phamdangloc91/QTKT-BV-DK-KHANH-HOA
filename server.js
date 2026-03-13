@@ -85,18 +85,33 @@ app.get('/api/data', async (req, res) => {
     catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
 });
 
+// 🟢 ĐÃ TỐI ƯU HÓA: Chỉ nhận và cập nhật đúng Tab đang tải lên, giúp gói tin cực nhẹ
 app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) => {
     try {
-        const processedData = JSON.parse(req.body.database);
-        await DataModel.findOneAndUpdate({ id: "hospital_main_db" }, { currentData: processedData }, { upsert: true });
+        const tabName = req.body.tabName;
+        const tabData = JSON.parse(req.body.tabData);
+
+        // Lệnh cập nhật nhỏ giọt: Chỉ đè dữ liệu vào đúng tab được gửi lên
+        const updateQuery = {};
+        updateQuery[`currentData.${tabName}`] = tabData;
+
+        await DataModel.findOneAndUpdate(
+            { id: "hospital_main_db" }, 
+            { $set: updateQuery }, 
+            { upsert: true }
+        );
+
         if (req.file && driveService && DRIVE_FOLDER_ID) {
-            const fileMetadata = { name: `[Backup] ${Date.now()}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
+            const fileMetadata = { name: `[Backup_${tabName}] ${Date.now()}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
             const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
             await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id' });
             fs.unlinkSync(req.file.path);
         }
-        res.json({ message: "Lưu dữ liệu và Backup Drive thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+        res.json({ message: `Đã lưu thành công dữ liệu bảng [${tabName}] và Backup lên Drive!` });
+    } catch (error) { 
+        console.error(error); 
+        res.status(500).json({ message: "Lỗi hệ thống khi lưu dữ liệu" }); 
+    }
 });
 
 app.post('/api/login', async (req, res) => {
