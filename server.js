@@ -170,6 +170,7 @@ app.post('/api/dept-data/remove', async (req, res) => {
 });
 
 // --- 🟢 BỘ MÁY XỬ LÝ FILE (ĐÃ TINH GỌN LẠI) ---
+// --- 🟢 BỘ MÁY XỬ LÝ FILE MỚI (TỐI ƯU HÓA) ---
 async function uploadToDrive(fileObj, prefixName) {
     if (!fileObj) return null;
     const fileMetadata = { name: `${prefixName}_${fileObj.originalname}`, parents: [DRIVE_FOLDER_ID] };
@@ -180,7 +181,7 @@ async function uploadToDrive(fileObj, prefixName) {
     return driveRes.data.webViewLink;
 }
 
-// Khoa nộp file Word -> CHO_DUYET
+// 1. Khoa nộp file Word -> CHO_DUYET
 app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
@@ -196,31 +197,59 @@ app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => 
     } catch (error) { res.status(500).json({ message: "Lỗi upload" }); }
 });
 
-// Admin up 3 File chính thức -> DA_PHE_DUYET
-const multiUpload = upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }, { name: 'fPdf', maxCount: 1 }]);
-app.post('/api/upload/final', multiUpload, async (req, res) => {
+// 2. Admin Up HÀNG LOẠT (Quyết định & Biên bản) cho nhiều kỹ thuật cùng lúc
+const multiQDBB = upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }]);
+app.post('/api/upload/batch-qdbb', multiQDBB, async (req, res) => {
+    try {
+        const items = JSON.parse(req.body.items); // Mảng các {tenKhoa, maQuyTrinh}
+        const files = req.files || {};
+        
+        let linkQD = files['fQuyetDinh'] ? await uploadToDrive(files['fQuyetDinh'][0], `[QĐ]_${Date.now()}`) : null;
+        let linkBB = files['fBienBan'] ? await uploadToDrive(files['fBienBan'][0], `[BB]_${Date.now()}`) : null;
+
+        if (!linkQD && !linkBB) return res.status(400).json({ message: "Chưa chọn file nào!" });
+
+        // Tìm và gắn link vào tất cả các kỹ thuật được chọn
+        const deptsToSave = {};
+        for (let item of items) {
+            if (!deptsToSave[item.tenKhoa]) deptsToSave[item.tenKhoa] = await DeptDataModel.findOne({ tenKhoa: item.tenKhoa });
+            
+            const dept = deptsToSave[item.tenKhoa];
+            if (dept) {
+                const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === item.maQuyTrinh || qt.maLienKet === item.maQuyTrinh));
+                if (qtIndex !== -1) {
+                    if (linkQD) dept.danhMucQTKT[qtIndex].fileQuyetDinh = linkQD;
+                    if (linkBB) dept.danhMucQTKT[qtIndex].fileBienBan = linkBB;
+                    dept.markModified('danhMucQTKT');
+                }
+            }
+        }
+        // Lưu toàn bộ vào Database
+        for (let k in deptsToSave) await deptsToSave[k].save();
+
+        res.json({ message: "Đã đính kèm Quyết định & Biên bản cho các kỹ thuật thành công!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi đính kèm hàng loạt: " + error.message }); }
+});
+
+// 3. Admin Up File Chính Thức (PDF) -> Đóng quy trình (DA_PHE_DUYET)
+app.post('/api/upload/final-pdf', upload.single('fPdf'), async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
-        const files = req.files;
+        if (!req.file) return res.status(400).json({ message: "Chưa chọn file PDF!" });
         
-        let linkQD = files['fQuyetDinh'] ? await uploadToDrive(files['fQuyetDinh'][0], `[QĐ]_${maQuyTrinh}`) : null;
-        let linkBB = files['fBienBan'] ? await uploadToDrive(files['fBienBan'][0], `[BB]_${maQuyTrinh}`) : null;
-        let linkPDF = files['fPdf'] ? await uploadToDrive(files['fPdf'][0], `[FINAL]_${maQuyTrinh}`) : null;
-
+        const linkPDF = await uploadToDrive(req.file, `[FINAL]_${maQuyTrinh}`);
         const dept = await DeptDataModel.findOne({ tenKhoa });
         const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
         
         dept.danhMucQTKT[qtIndex].trangThai = 'DA_PHE_DUYET';
-        if(linkQD) dept.danhMucQTKT[qtIndex].fileQuyetDinh = linkQD;
-        if(linkBB) dept.danhMucQTKT[qtIndex].fileBienBan = linkBB;
-        if(linkPDF) dept.danhMucQTKT[qtIndex].filePdfChinhThuc = linkPDF;
+        dept.danhMucQTKT[qtIndex].filePdfChinhThuc = linkPDF;
 
         dept.markModified('danhMucQTKT'); await dept.save();
-        res.json({ message: "Đã nộp các file chính thức thành công! Quy trình hoàn tất phê duyệt." });
+        res.json({ message: "Đã tải file PDF chính thức thành công! Quy trình hoàn tất." });
     } catch (error) { res.status(500).json({ message: "Lỗi upload file" }); }
 });
 
-// API Cập nhật Trạng thái (Hủy / Nộp lại)
+// 4. API Cập nhật Trạng thái (Hủy / Nộp lại)
 app.post('/api/dept-data/status', async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh, action } = req.body;
@@ -228,11 +257,11 @@ app.post('/api/dept-data/status', async (req, res) => {
         const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
         const qt = dept.danhMucQTKT[qtIndex];
 
-        if (action === 'REJECT_KHOA') qt.trangThai = 'KHONG_DUYET'; // Trả về khoa
+        if (action === 'REJECT_KHOA') qt.trangThai = 'KHONG_DUYET'; // KHTH từ chối
         else if (action === 'RESUBMIT') qt.trangThai = 'CHUA_NOP'; // Khoa tạo trạng thái nộp lại
         else if (action === 'REVERT_FINAL') {
-            qt.trangThai = 'CHO_DUYET'; // Admin hủy duyệt 3 file, quay về chờ duyệt
-            qt.fileQuyetDinh = null; qt.fileBienBan = null; qt.filePdfChinhThuc = null;
+            qt.trangThai = 'CHO_DUYET'; // Admin hủy phê duyệt, rút lại file PDF
+            qt.filePdfChinhThuc = null; 
         }
 
         dept.markModified('danhMucQTKT'); await dept.save();

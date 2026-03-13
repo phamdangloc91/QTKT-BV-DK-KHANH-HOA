@@ -22,9 +22,9 @@
         .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 12px; font-weight: bold; color: #555; }
-        select, input { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+        select, input[type="text"] { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
 
-        .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: auto; max-height: 650px; }
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: auto; max-height: 600px; }
         table { width: 100%; border-collapse: collapse; min-width: 1200px; }
         th { background: #f2f2f2; color: #333; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; }
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: middle; }
@@ -59,10 +59,11 @@
         .upload-box { border: 1px dashed #ccc; padding: 10px; border-radius: 5px; margin-bottom: 10px; background: #fdfdfd; }
         .upload-box label { font-size: 13px; font-weight: bold; color: #333; display: block; margin-bottom: 5px;}
         .upload-box input[type="file"] { margin: 0; padding: 5px; background: white; }
-        
-        /* Box xem file online */
         .file-online-link { display: inline-block; background: #e7f3ff; color: #0056b3; padding: 8px 12px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; margin-bottom: 8px; border: 1px solid #b3d7ff; transition: 0.2s; width: 100%; box-sizing: border-box;}
         .file-online-link:hover { background: #0056b3; color: white; }
+        
+        /* 🟢 Toolbar đính kèm hàng loạt */
+        #batchToolbar { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
     </style>
 </head>
 <body>
@@ -105,6 +106,17 @@
     <div class="header-info">
         <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
         <small id="tabDesc" style="font-size: 14px; color: #666;">Hệ thống tra cứu quy trình và phân loại kỹ thuật</small>
+    </div>
+
+    <div id="batchToolbar">
+        <div id="batchStatusText" style="color: #856404; font-size: 14px;">
+            <b>Công cụ Admin:</b> Đính kèm Quyết định & Biên bản cho nhiều kỹ thuật cùng lúc.
+        </div>
+        <div>
+            <button id="btnStartBatch" class="btn" style="background: var(--purple); font-size:13px; padding: 8px 12px;" onclick="toggleMultiSelect(true)">📄 Tải QĐ & BB họp HĐ KHKT</button>
+            <button id="btnConfirmBatch" class="btn" style="background: var(--success); font-size:13px; padding: 8px 12px; display:none;" onclick="moModalBatch()">✅ Xác nhận Chọn</button>
+            <button id="btnCancelBatch" class="btn" style="background: var(--danger); font-size:13px; padding: 8px 12px; display:none;" onclick="toggleMultiSelect(false)">❌ Hủy</button>
+        </div>
     </div>
 
     <div class="filter-section">
@@ -190,32 +202,40 @@
     </div>
 </div>
 
-<div id="uploadFinalModal" class="modal">
+<div id="uploadSinglePdfModal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="dongModal('uploadFinalModal')">&times;</span>
-        <h3>Tải 3 Tài Liệu Phê Duyệt Chính Thức</h3>
+        <span class="close-btn" onclick="dongModal('uploadSinglePdfModal')">&times;</span>
+        <h3>Đính kèm File PDF Chính thức</h3>
         <p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload"></b></p>
-        
+        <div class="upload-box">
+            <label>File QTKT Chính thức đã ký (Chỉ PDF)</label>
+            <input type="file" id="fPdfChinhThuc" accept=".pdf">
+        </div>
+        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 10px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button>
+    </div>
+</div>
+
+<div id="uploadBatchModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('uploadBatchModal')">&times;</span>
+        <h3>Đính kèm Quyết định & Biên bản</h3>
+        <p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount"></b> kỹ thuật đã chọn.</p>
         <div class="upload-box">
             <label>1. Quyết định phê duyệt QTKT (PDF/Word)</label>
-            <input type="file" id="fQuyetDinh" accept=".pdf,.doc,.docx">
+            <input type="file" id="fQuyetDinhBatch" accept=".pdf,.doc,.docx">
         </div>
         <div class="upload-box">
             <label>2. Biên bản họp Hội đồng KHKT (PDF/Word)</label>
-            <input type="file" id="fBienBan" accept=".pdf,.doc,.docx">
+            <input type="file" id="fBienBanBatch" accept=".pdf,.doc,.docx">
         </div>
-        <div class="upload-box">
-            <label>3. File QTKT Chính thức đã ký (Chỉ PDF)</label>
-            <input type="file" id="fPdfChinhThuc" accept=".pdf">
-        </div>
-        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 10px; margin-top: 10px;" onclick="xuLyUpload3File()">🚀 Xác nhận Tải lên</button>
+        <button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 10px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button>
     </div>
 </div>
 
 <div id="detailModal" class="modal">
     <div class="modal-content large">
         <span class="close-btn" onclick="dongModal('detailModal')">&times;</span>
-        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN PHÊ DUYỆT QUY TRÌNH</h3>
+        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3>
         <h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4>
         <p style="font-size: 14px;">Mã kỹ thuật: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b></p>
         
@@ -228,7 +248,7 @@
         </div>
 
         <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;">
-            <b>2. Tài liệu Phê duyệt Chính thức (Xem Online):</b>
+            <b>2. Tài liệu Phê duyệt (Xem Online):</b>
             <div id="dtFilesArea" style="margin-top: 15px;"></div>
         </div>
     </div>
@@ -238,7 +258,10 @@
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [], depts: [] };
     let currentUser = null;
+    
     let targetUpload = { ma: null, tenKhoa: null }; 
+    let isMultiSelectMode = false; // Trạng thái bật/tắt ô vuông
+    let selectedTechniques = []; // Mảng chứa các kỹ thuật được tick
 
     const DANH_SACH_KHOA = [
         "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
@@ -270,6 +293,7 @@
     function moModal(id) { document.getElementById(id).style.display = 'flex'; }
     function dongModal(id) { document.getElementById(id).style.display = 'none'; }
 
+    // --- ĐĂNG NHẬP & PHÂN QUYỀN ---
     async function xuLyDangNhap() {
         const u = document.getElementById('username').value, p = document.getElementById('password').value, errTag = document.getElementById('loginError');
         if(!u || !p) { errTag.innerText = "Vui lòng nhập đủ thông tin!"; errTag.style.display = 'block'; return; }
@@ -302,39 +326,23 @@
     }
     function dangXuat() { localStorage.removeItem('hospital_user'); location.reload(); }
     async function xuLyDoiMatKhau() { /*...*/ }
-    
-    async function moQuanLyTaiKhoan() {
-        moModal('adminModal');
-        try {
-            const res = await fetch('/api/users'); const users = await res.json(); const tbody = document.getElementById('userListBody'); tbody.innerHTML = '';
-            users.forEach((u, i) => { 
-                tbody.innerHTML += `<tr>
-                    <td>${i+1}</td><td>[Khoa] <b>${u.tenKhoa}</b></td>
-                    <td><input type="text" id="edit-user-${u._id}" class="inline-input" value="${u.username}"></td>
-                    <td><input type="text" id="edit-pass-${u._id}" class="inline-input" value="${u.password}" style="color:red; font-weight:bold;"></td>
-                    <td>
-                        <button class="btn" style="background:#ffc107; color:black; padding:6px; font-size:12px;" onclick="suaTaiKhoan('${u._id}')">💾 Lưu</button>
-                        <button class="btn" style="background:#dc3545; padding:6px; font-size:12px;" onclick="xoaTaiKhoan('${u._id}', '${u.tenKhoa}')">🗑️ Xóa</button>
-                    </td>
-                </tr>`; 
-            });
-        } catch(e) { console.log(e); }
-    }
+    async function moQuanLyTaiKhoan() { /*...*/ }
     async function suaTaiKhoan(id) { /*...*/ }
     async function xoaTaiKhoan(id, tenKhoa) { /*...*/ }
     async function taoTaiKhoan() { /*...*/ }
 
-    // --- BỘ MÁY LỌC DỮ LIỆU ---
+    // --- LỌC DỮ LIỆU CŨ MỚI ---
     function getAggregatedList(tabName) {
         let result = [];
         database.depts.forEach(d => {
             d.danhMucQTKT.forEach(qt => {
                 let pushIt = false;
-                // Phiên dịch lỗi dữ liệu cũ: Nếu là DA_DUYET/CHO_HDKHKT thì tự động chuyển về CHO_DUYET
                 let ttRaw = qt.trangThai || 'CHUA_NOP';
+                // Ép các mã cũ thành CHO_DUYET để Admin kiểm soát lại toàn bộ
                 let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
 
-                if (tabName === 'KHTH_CHO_DUYET' && tt === 'CHO_DUYET') pushIt = true;
+                if (tabName === 'KHTH_CHO_DUYET' && (tt === 'CHO_DUYET' || tt === 'DA_PHE_DUYET')) pushIt = true; 
+                // Note: Admin vào tab này sẽ thấy cả những bài đã duyệt xong để có thể Hủy nếu cần.
 
                 if (pushIt) { result.push({ ...qt, tenKhoaChuQuan: d.tenKhoa, trangThaiFix: tt }); }
             });
@@ -354,7 +362,34 @@
     }
     const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\(.*\)/g,"").trim() : "";
 
-    // --- VẼ BẢNG KÈM NÚT BẤM THÔNG MINH ---
+    // --- 🟢 BẬT/TẮT CHẾ ĐỘ MULTI-SELECT ---
+    function toggleMultiSelect(state) {
+        isMultiSelectMode = state;
+        selectedTechniques = [];
+        
+        if (isMultiSelectMode) {
+            document.getElementById('btnStartBatch').style.display = 'none';
+            document.getElementById('btnConfirmBatch').style.display = 'inline-block';
+            document.getElementById('btnCancelBatch').style.display = 'inline-block';
+            document.getElementById('batchStatusText').innerHTML = `<b style="color:var(--danger)">Vui lòng TICK CHỌN các ô vuông trong bảng bên dưới.</b>`;
+        } else {
+            document.getElementById('btnStartBatch').style.display = 'inline-block';
+            document.getElementById('btnConfirmBatch').style.display = 'none';
+            document.getElementById('btnCancelBatch').style.display = 'none';
+            document.getElementById('batchStatusText').innerHTML = `<b>Công cụ Admin:</b> Đính kèm Quyết định & Biên bản cho nhiều kỹ thuật cùng lúc.`;
+        }
+        apDungLoc(); // Vẽ lại bảng để hiện ô vuông
+    }
+
+    function toggleSelectRow(checkbox, tenKhoa, ma) {
+        if (checkbox.checked) {
+            selectedTechniques.push({ tenKhoa, maQuyTrinh: ma });
+        } else {
+            selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma));
+        }
+    }
+
+    // --- 🟢 VẼ BẢNG KÈM Ô VUÔNG TICK CHỌN ---
     function renderTable(data = null) {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
@@ -362,71 +397,90 @@
         if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); list = deptObj ? deptObj.danhMucQTKT : []; } else { list = database[currentTab] || []; }
 
         const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
-        let htmlHead = `<tr><th>STT</th>`;
-        if (isSuperTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        else if (currentTab === 'PL1' || isDeptTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        else htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
+        let htmlHead = `<tr>`;
+        
+        // 🟢 Thêm cột Checkbox nếu đang bật chế độ
+        if (isMultiSelectMode) htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
+        
+        htmlHead += `<th>STT</th>`;
+        if (isSuperTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th>`;
+        else if (currentTab === 'PL1' || isDeptTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th>`;
+        else htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th>`;
 
         let canAdd = false; let canRemove = false; let showFileCol = false;
         if (currentUser && currentUser.role === 'khoa') { if (!isDeptTab && !isSuperTab) canAdd = true; if (isDeptTab && currentUser.tenKhoa === currentTab) canRemove = true; }
         if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemove = true; 
         if (isDeptTab || isSuperTab) showFileCol = true; 
 
-        if (showFileCol) htmlHead += `<th style="width:250px;">Trạng thái & File</th>`;
-        if (canAdd || canRemove) htmlHead += `<th style="text-align:center;">Khoa Thao tác</th>`;
+        if (showFileCol) htmlHead += `<th style="width:300px;">Trạng thái & File</th>`;
+        if (canAdd || canRemove) htmlHead += `<th style="text-align:center;">Thao tác</th>`;
         htmlHead += `</tr>`; thead.innerHTML = htmlHead;
 
         tbody.innerHTML = ''; let currentKhoaGroup = ""; 
 
         list.forEach((item, index) => {
-            if (isSuperTab && item.tenKhoaChuQuan !== currentKhoaGroup) {
-                currentKhoaGroup = item.tenKhoaChuQuan;
-                const groupRow = tbody.insertRow(); groupRow.innerHTML = `<td colspan="10" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td>`;
+            let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
+            
+            if (isSuperTab && realTenKhoa !== currentKhoaGroup) {
+                currentKhoaGroup = realTenKhoa;
+                const groupRow = tbody.insertRow(); 
+                let colSpan = isMultiSelectMode ? 10 : 9;
+                groupRow.innerHTML = `<td colspan="${colSpan}" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td>`;
             }
 
             const row = tbody.insertRow(); let maHienThi = item.ma || item.maLienKet || ''; 
+            let html = "";
+            
+            // 🟢 Vẽ ô vuông checkbox
+            if (isMultiSelectMode) {
+                // Giữ lại dấu tick nếu lỡ tìm kiếm
+                let isChecked = selectedTechniques.find(x => x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi) ? "checked" : "";
+                html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="toggleSelectRow(this, '${realTenKhoa}', '${maHienThi}')" ${isChecked}></td>`;
+            }
+
             let tenClickable = `<a href="#" onclick="moChiTiet('${maHienThi}', \`${item.ten}\`, \`${item.phanLoai}\`)" style="color:#0056b3; font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
 
-            let html = `<td>${index + 1}</td>`;
-            if (isSuperTab) { html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; }
+            html += `<td>${index + 1}</td>`;
+            if (isSuperTab) { html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td>`; }
             else if (currentTab === 'PL1' || isDeptTab) {
                 let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`;
-                html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
+                html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td>`;
             } else { 
-                html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
+                html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td>`; 
             }
             
             if (showFileCol) {
                 let fileHtml = '';
                 let ttRaw = item.trangThai || 'CHUA_NOP';
                 const tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
                 
-                // Trạng thái chung
                 if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`;
-                else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ duyệt HĐKHKT</span><br>`;
+                else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`;
                 else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
                 else if(tt === 'DA_PHE_DUYET') fileHtml += `<span class="badge badge-success">Đã phê duyệt chính thức</span><br>`;
 
-                // LOGIC NÚT BẤM (KHOA VS ADMIN)
+                // LOGIC KHOA
                 if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
                     if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
-                    if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file (Word)</button>`;
+                    if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
                     if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
                 } 
+                // LOGIC ADMIN
                 else if (currentUser && currentUser.role === 'admin') {
-                    if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Xem bản Khoa nộp</a><br>`;
-                    
-                    if(tt === 'CHO_DUYET') {
-                        fileHtml += `<button class="btn" style="background:var(--success);" onclick="chuanBiUp3File('${maHienThi}', '${realTenKhoa}', \`${item.ten}\`)">📥 Tải 3 File Chính Thức</button> `;
-                        fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Hủy (Trả về Khoa)</button>`;
+                    if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
+                    if(item.fileQuyetDinh) fileHtml += `<a href="${item.fileQuyetDinh}" target="_blank" style="font-size:12px; color:#ff9800; margin-right:10px;">📄 Quyết định</a>`;
+                    if(item.fileBienBan) fileHtml += `<a href="${item.fileBienBan}" target="_blank" style="font-size:12px; color:#ff9800;">📄 Biên bản</a><br>`;
+
+                    if(tt === 'CHO_DUYET' && !isMultiSelectMode) {
+                        fileHtml += `<button class="btn" style="background:var(--success);" onclick="chuanBiUpSinglePdf('${maHienThi}', '${realTenKhoa}', \`${item.ten}\`)">📥 Tải File Chính Thức (PDF)</button> `;
+                        fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Hủy (Trả về)</button>`;
                     }
-                    if(tt === 'DA_PHE_DUYET') {
+                    if(tt === 'DA_PHE_DUYET' && !isMultiSelectMode) {
                         fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`;
                     }
                 } 
 
-                if(tt === 'DA_PHE_DUYET') fileHtml += `<span style="font-size:12px; color:#555;">(Click vào Tên kỹ thuật để xem file)</span>`;
+                if(tt === 'DA_PHE_DUYET') fileHtml += `<span style="font-size:12px; color:#555;">(Click vào Tên kỹ thuật để xem chi tiết)</span>`;
                 html += `<td>${fileHtml}</td>`;
             }
             
@@ -438,7 +492,37 @@
         capNhatDanhSachQuyetDinh();
     }
 
-    // --- UPLOAD FILE ---
+    // --- 🟢 UPLOAD HÀNG LOẠT (QĐ & BB) ---
+    function moModalBatch() {
+        if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 kỹ thuật trong bảng!");
+        document.getElementById('lblBatchCount').innerText = selectedTechniques.length;
+        moModal('uploadBatchModal');
+    }
+
+    async function xuLyUploadBatch() {
+        const fQD = document.getElementById('fQuyetDinhBatch').files[0];
+        const fBB = document.getElementById('fBienBanBatch').files[0];
+        if(!fQD && !fBB) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+        
+        showLoading(true);
+        try {
+            const formData = new FormData();
+            formData.append('items', JSON.stringify(selectedTechniques));
+            if(fQD) formData.append('fQuyetDinh', fQD);
+            if(fBB) formData.append('fBienBan', fBB);
+
+            const res = await fetch('/api/upload/batch-qdbb', { method: 'POST', body: formData });
+            const data = await res.json(); alert(data.message);
+            if(res.ok) {
+                dongModal('uploadBatchModal');
+                document.getElementById('fQuyetDinhBatch').value = ''; document.getElementById('fBienBanBatch').value = '';
+                toggleMultiSelect(false); // Tắt chế độ chọn
+                layDuLieu();
+            }
+        } catch(e) { alert("Lỗi tải file!"); } showLoading(false);
+    }
+
+    // --- 🟢 UPLOAD SINGLE FILE PDF ---
     function chuanBiNopKhoa(ma) { targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; document.getElementById('fileNopKhoa').click(); }
     async function xuLyNopFileKhoa() {
         const fileInput = document.getElementById('fileNopKhoa'); if(!fileInput.files[0]) return; showLoading(true);
@@ -448,26 +532,26 @@
         } catch(e) { alert("Lỗi khi tải file lên!"); } fileInput.value = ''; showLoading(false);
     }
 
-    function chuanBiUp3File(ma, tenKhoa, tenQuyTrinh) {
+    function chuanBiUpSinglePdf(ma, tenKhoa, tenQuyTrinh) {
         targetUpload = { ma: ma, tenKhoa: tenKhoa };
-        document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadFinalModal');
+        document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadSinglePdfModal');
     }
-    async function xuLyUpload3File() {
-        const fQD = document.getElementById('fQuyetDinh').files[0]; const fBB = document.getElementById('fBienBan').files[0]; const fPDF = document.getElementById('fPdfChinhThuc').files[0];
-        if(!fQD && !fBB && !fPDF) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+    
+    async function xuLyUploadSinglePdf() {
+        const fPDF = document.getElementById('fPdfChinhThuc').files[0];
+        if(!fPDF) return alert("Vui lòng chọn file PDF!");
         showLoading(true);
         try {
-            const formData = new FormData(); formData.append('tenKhoa', targetUpload.tenKhoa); formData.append('maQuyTrinh', targetUpload.ma);
-            if(fQD) formData.append('fQuyetDinh', fQD); if(fBB) formData.append('fBienBan', fBB); if(fPDF) formData.append('fPdf', fPDF);
-            const res = await fetch('/api/upload/final', { method: 'POST', body: formData }); const data = await res.json(); alert(data.message); 
-            if(res.ok) { dongModal('uploadFinalModal'); layDuLieu(); }
+            const formData = new FormData(); formData.append('tenKhoa', targetUpload.tenKhoa); formData.append('maQuyTrinh', targetUpload.ma); formData.append('fPdf', fPDF);
+            const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); const data = await res.json(); alert(data.message); 
+            if(res.ok) { dongModal('uploadSinglePdfModal'); document.getElementById('fPdfChinhThuc').value = ''; layDuLieu(); }
         } catch(e) { alert("Lỗi khi tải file lên!"); } showLoading(false);
     }
 
     async function thayDoiTrangThai(tenKhoa, ma, action) {
         let msg = "Bạn có chắc chắn thực hiện thao tác này?";
         if(action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
-        if(action === 'REVERT_FINAL') msg = "Xác nhận HỦY DUYỆT? Kỹ thuật sẽ quay về trạng thái Chờ duyệt, toàn bộ 3 file chính thức sẽ bị gỡ bỏ!";
+        if(action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? Kỹ thuật sẽ quay về trạng thái Chờ duyệt, file PDF chính thức sẽ bị gỡ bỏ!";
         if(!confirm(msg)) return;
         showLoading(true);
         try {
@@ -480,41 +564,75 @@
     function moChiTiet(ma, ten, phanLoai) {
         document.getElementById('dtTenQT').innerText = ten; document.getElementById('dtMaQT').innerText = ma; document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL';
         const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = '';
-        let hasFinalFiles = false; let fileHtml = '';
+        let fileHtml = ''; let coBaoCao = false;
 
         database.depts.forEach(d => {
             const qt = d.danhMucQTKT.find(x => x.ma === ma || x.maLienKet === ma);
             if(qt) {
+                coBaoCao = true;
                 let ttRaw = qt.trangThai || 'CHUA_NOP';
                 let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
                 let ttStr = "Chưa nộp"; let col = "gray";
-                if(tt === 'CHO_DUYET') { ttStr = "Chờ HĐKHKT duyệt"; col = "var(--warning)"; }
+                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; }
                 else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; }
                 else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
                 
                 tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
 
-                if(tt === 'DA_PHE_DUYET') {
-                    hasFinalFiles = true;
-                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem online: Quyết định Phê duyệt (Của ${d.tenKhoa})</a>`;
-                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem online: Biên bản HĐKHKT (Của ${d.tenKhoa})</a>`;
-                    if(qt.filePdfChinhThuc) fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank">📄 Xem online: Quy trình PDF Chính thức (Của ${d.tenKhoa})</a>`;
+                // In Link tải file nếu có
+                if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                    fileHtml += `<div style="margin-bottom:10px; padding-bottom:5px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
+                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Quyết định Phê duyệt</a>`;
+                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Biên bản HĐKHKT</a>`;
+                    if(qt.filePdfChinhThuc) fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none;">📄 Quy trình PDF Chính thức</a>`;
+                    fileHtml += `</div>`;
                 }
             }
         });
-        if(tbody.innerHTML === '') tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
+        if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
         const fileArea = document.getElementById('dtFilesArea');
-        if(hasFinalFiles) fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa hoàn tất phê duyệt, chưa có tài liệu chính thức.</span>`;
+        if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
         moModal('detailModal');
     }
 
-    // CÁC HÀM TÌM KIẾM, ĐỔI TAB GIỮ NGUYÊN
+    // --- CÁC HÀM CŨ GIỮ NGUYÊN TÍNH NĂNG ---
     async function bocQuyTrinh(ma) { if(!currentUser) return; const item = database[currentTab].find(x => x.ma === ma || x.maLienKet === ma); if(!item) return; showLoading(true); try { const res = await fetch('/api/dept-data/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item }) }); const data = await res.json(); if(res.ok) { let toast = document.createElement("div"); toast.innerText = "✅ " + data.message; toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); await layDuLieu(); } else alert("⚠️ " + data.message); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
-    async function xoaQuyTrinh(ma) { if(!confirm("Xác nhận xóa quy trình khỏi giỏ?")) return; showLoading(true); try { const res = await fetch('/api/dept-data/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentTab, maQuyTrinh: ma }) }); if(res.ok) await layDuLieu(); else alert("Lỗi khi xóa!"); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
-    function apDungLoc() { const search = document.getElementById('searchBox').value.toLowerCase(), loaiSelect = document.getElementById('filterLoai').value, qd = document.getElementById('filterQuyetDinh').value; const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; if (isSuperTab) { sourceList = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); sourceList = deptObj ? deptObj.danhMucQTKT : []; } else { sourceList = database[currentTab] || []; } const filtered = sourceList.filter(item => { const matchSearch = (item.ma?.toLowerCase().includes(search) || item.ten?.toLowerCase().includes(search) || item.tenKhoaChuQuan?.toLowerCase().includes(search)); const matchQD = qd === "" || item.quyetDinh === qd; let matchLoai = true; if (loaiSelect !== "") { const val = item.phanLoai ? item.phanLoai.toUpperCase().trim() : ""; if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); } return matchSearch && matchLoai && matchQD; }); renderTable(filtered); }
+    async function xoaQuyTrinh(ma) { if(!confirm("Xác nhận xóa kỹ thuật khỏi danh sách khoa?")) return; showLoading(true); try { const res = await fetch('/api/dept-data/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentTab, maQuyTrinh: ma }) }); if(res.ok) await layDuLieu(); else alert("Lỗi khi xóa!"); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
+
+    function apDungLoc() {
+        const search = document.getElementById('searchBox').value.toLowerCase(), loaiSelect = document.getElementById('filterLoai').value, qd = document.getElementById('filterQuyetDinh').value;
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_');
+        let sourceList = [];
+        if (isSuperTab) { sourceList = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); sourceList = deptObj ? deptObj.danhMucQTKT : []; } else { sourceList = database[currentTab] || []; }
+        const filtered = sourceList.filter(item => {
+            const matchSearch = (item.ma?.toLowerCase().includes(search) || item.ten?.toLowerCase().includes(search) || item.tenKhoaChuQuan?.toLowerCase().includes(search));
+            const matchQD = qd === "" || item.quyetDinh === qd; let matchLoai = true;
+            if (loaiSelect !== "") { const val = item.phanLoai ? item.phanLoai.toUpperCase().trim() : ""; if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); }
+            return matchSearch && matchLoai && matchQD;
+        });
+        renderTable(filtered);
+    }
+
     function capNhatDanhSachQuyetDinh() { const select = document.getElementById('filterQuyetDinh'); const currentVal = select.value; const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; if(isSuperTab) sourceList = getAggregatedList(currentTab); else if(isDeptTab) sourceList = database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []; else sourceList = database[currentTab] || []; const dsQD = [...new Set(sourceList.map(item => item.quyetDinh).filter(i => i))]; select.innerHTML = '<option value="">-- Tất cả quyết định --</option>'; dsQD.sort().forEach(qd => { const opt = document.createElement('option'); opt.value = qd; opt.innerText = qd; if(qd === currentVal) opt.selected = true; select.appendChild(opt); }); }
-    function capNhatTieuDe() { const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = ""; if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`; if (currentTab === 'PL1') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } else if (currentTab === 'PL2') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 2"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } else if (currentTab === 'KHTH_CHO_DUYET') { document.getElementById('tabTitle').innerText = "DANH MỤC CHỜ DUYỆT - HĐKHKT"; document.getElementById('tabDesc').innerText = `Các quy trình khoa đã nộp bản nháp, chờ Admin duyệt ${textRole}`; } else if (currentTab === 'KHTH_NOP_BO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP BỘ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Trung ương (Đang cập nhật) ${textRole}`; } else if (currentTab === 'KHTH_NOP_SO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP SỞ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Tỉnh (Đang cập nhật) ${textRole}`; } else { document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`; if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`; else document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`; } }
+
+    function capNhatTieuDe() {
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = "";
+        if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`;
+        
+        // Ẩn hiện thanh Toolbar Đính kèm hàng loạt
+        const batchToolbar = document.getElementById('batchToolbar');
+        if (currentTab === 'KHTH_CHO_DUYET' && currentUser && currentUser.role === 'admin') { batchToolbar.style.display = 'flex'; } 
+        else { batchToolbar.style.display = 'none'; isMultiSelectMode = false; } // Tự tắt chế độ nếu chuyển tab khác
+
+        if (currentTab === 'PL1') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'PL2') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 2"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'KHTH_CHO_DUYET') { document.getElementById('tabTitle').innerText = "DANH MỤC CHỜ DUYỆT - P.KHTH"; document.getElementById('tabDesc').innerText = `Các quy trình khoa đã nộp bản nháp, chờ Admin duyệt ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_BO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP BỘ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Trung ương (Đang cập nhật) ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_SO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP SỞ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Tỉnh (Đang cập nhật) ${textRole}`; }
+        else { document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`; if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`; else document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`; } 
+    }
+
     function switchTab(tab) { currentTab = tab; capNhatTieuDe(); document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; apDungLoc(); }
     async function importFromExcel() { /*...*/ } function jumpToPL1(ma) { if(!ma) return; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     function exportToExcel() { /*...*/ } function showLoading(status) { document.getElementById('loading').style.display = status ? 'flex' : 'none'; }
