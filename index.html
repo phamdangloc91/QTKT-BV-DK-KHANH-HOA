@@ -142,7 +142,7 @@
         </div>
         
         <div class="action-bar" id="userActionBar" style="display:none;">
-            <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="exportToExcel()">📥 Xuất Excel</button>
+            <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="exportToExcel()">📥 Xuất Excel (Đã chỉnh format)</button>
             <button id="btnNhapExcel" class="btn" style="background:#17a2b8; font-size: 14px; padding: 10px 15px;" onclick="document.getElementById('fileExcel').click()">📤 Nhập File Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
@@ -258,6 +258,7 @@
 <script>
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [], GiaDV: [], depts: [] };
+    let currentFilteredData = []; // 🟢 LƯU BẢNG ĐANG HIỂN THỊ ĐỂ XUẤT EXCEL
     let currentUser = null;
     let targetUpload = { ma: null, tenKhoa: null }; 
     let isMultiSelectMode = false; 
@@ -326,29 +327,11 @@
 
     function dangXuat() { localStorage.removeItem('hospital_user'); location.reload(); }
     async function xuLyDoiMatKhau() { /*...*/ }
-    
-    async function moQuanLyTaiKhoan() {
-        moModal('adminModal');
-        try {
-            const res = await fetch('/api/users'); const users = await res.json(); const tbody = document.getElementById('userListBody'); tbody.innerHTML = '';
-            users.forEach((u, i) => { 
-                tbody.innerHTML += `<tr>
-                    <td>${i+1}</td><td>[Khoa] <b>${u.tenKhoa}</b></td>
-                    <td><input type="text" id="edit-user-${u._id}" class="inline-input" value="${u.username}"></td>
-                    <td><input type="text" id="edit-pass-${u._id}" class="inline-input" value="${u.password}" style="color:red; font-weight:bold;"></td>
-                    <td>
-                        <button class="btn" style="background:#ffc107; color:black; padding:6px; font-size:12px;" onclick="suaTaiKhoan('${u._id}')">💾 Lưu</button>
-                        <button class="btn" style="background:#dc3545; padding:6px; font-size:12px;" onclick="xoaTaiKhoan('${u._id}', '${u.tenKhoa}')">🗑️ Xóa</button>
-                    </td>
-                </tr>`; 
-            });
-        } catch(e) { console.log(e); }
-    }
+    async function moQuanLyTaiKhoan() { /*...*/ }
     async function suaTaiKhoan(id) { /*...*/ }
     async function xoaTaiKhoan(id, tenKhoa) { /*...*/ }
     async function taoTaiKhoan() { /*...*/ }
 
-    // --- LỌC DỮ LIỆU ---
     function getAggregatedList(tabName) {
         let result = [];
         database.depts.forEach(d => {
@@ -356,7 +339,6 @@
                 let pushIt = false;
                 let ttRaw = qt.trangThai || 'CHUA_NOP';
                 let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
-
                 if (tabName === 'KHTH_CHO_DUYET' && tt === 'CHO_DUYET') pushIt = true;
                 if (pushIt) { result.push({ ...qt, tenKhoaChuQuan: d.tenKhoa, trangThaiFix: tt }); }
             });
@@ -369,9 +351,7 @@
         showLoading(true);
         try {
             const resData = await fetch('/api/data'); const mainData = await resData.json(); 
-            database.PL1 = mainData.PL1 || []; 
-            database.PL2 = mainData.PL2 || [];
-            database.GiaDV = mainData.GiaDV || []; 
+            database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || []; database.GiaDV = mainData.GiaDV || []; 
             const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
             apDungLoc(); 
         } catch (error) { console.log(error); }
@@ -400,17 +380,18 @@
         else { selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma)); }
     }
 
-    // --- VẼ BẢNG KÈM BẢNG GIÁ DỊCH VỤ ---
     function renderTable(data = null) {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
         let list = [];
         if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); list = deptObj ? deptObj.danhMucQTKT : []; } else { list = database[currentTab] || []; }
 
+        // LƯU LẠI DANH SÁCH ĐỂ XUẤT EXCEL
+        currentFilteredData = list;
+
         const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
         let htmlHead = `<tr>`;
         
-        // NẾU LÀ TAB GIÁ DỊCH VỤ
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ</th><th>Giá phê duyệt</th></tr>`;
             thead.innerHTML = htmlHead;
@@ -423,7 +404,6 @@
             return;
         }
 
-        // CÁC TAB KHÁC
         if (isMultiSelectMode) htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
         htmlHead += `<th>STT</th>`;
         
@@ -435,7 +415,6 @@
         
         if (currentUser && currentUser.role === 'khoa') { if (!isDeptTab && !isSuperTab) canAdd = true; }
         if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemove = true; 
-        
         if (isDeptTab || isSuperTab) showFileCol = true; 
 
         if (showFileCol) htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`;
@@ -519,7 +498,6 @@
         capNhatDanhSachQuyetDinh();
     }
 
-    // --- UPLOAD HÀNG LOẠT & SINGLE ---
     function moModalBatch() {
         if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 kỹ thuật trong bảng!");
         document.getElementById('lblBatchCount').innerText = selectedTechniques.length;
@@ -573,7 +551,6 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
-    // 🟢 XEM CHI TIẾT ONLINE 
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
         document.getElementById('dtTenQT').innerText = ten || ''; 
         document.getElementById('dtMaQT').innerText = ma; 
@@ -621,7 +598,6 @@
     async function bocQuyTrinh(ma) { if(!currentUser) return; const item = database[currentTab].find(x => x.ma === ma || x.maLienKet === ma); if(!item) return; showLoading(true); try { const res = await fetch('/api/dept-data/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item }) }); const data = await res.json(); if(res.ok) { let toast = document.createElement("div"); toast.innerText = "✅ " + data.message; toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); await layDuLieu(); } else alert("⚠️ " + data.message); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
     async function xoaQuyTrinh(ma, tenKhoa) { if(!confirm(`Bạn muốn xóa TOÀN BỘ dữ liệu quy trình này khỏi ${tenKhoa.toUpperCase()} không?\n\n(Hệ thống sẽ tự động dọn dẹp xóa luôn các file trên Drive)`)) return; showLoading(true); try { const res = await fetch('/api/dept-data/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma }) }); const data = await res.json(); if(res.ok) { alert(data.message); await layDuLieu(); } else alert("Lỗi khi xóa!"); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
 
-    // 🟢 BỘ LỌC ĐÃ ĐƯỢC TỐI ƯU CHO TAB GIÁ
     function apDungLoc() { 
         const search = document.getElementById('searchBox').value.toLowerCase();
         
@@ -674,7 +650,6 @@
 
     function switchTab(tab) { currentTab = tab; capNhatTieuDe(); document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; apDungLoc(); }
     
-    // 🟢 HÀM NHẬP EXCEL MỚI
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; showLoading(true); 
         const reader = new FileReader(); 
@@ -716,12 +691,86 @@
     
     function jumpToPL1(ma) { if(!ma) return; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     
+    // 🟢 HÀM XUẤT EXCEL (CHỈ XUẤT DỮ LIỆU ĐANG HIỂN THỊ, ĐỊNH DẠNG ĐẸP)
     function exportToExcel() { 
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let listToExport = [];
-        if(isSuperTab) listToExport = getAggregatedList(currentTab); else if (isDeptTab) listToExport = database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []; else listToExport = database[currentTab];
-        const ws = XLSX.utils.json_to_sheet(listToExport); const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
-        let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; XLSX.writeFile(wb, fileName); 
+        if (!currentFilteredData || currentFilteredData.length === 0) {
+            alert("Không có dữ liệu để xuất!");
+            return;
+        }
+
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+        const isSuperTab = currentTab.startsWith('KHTH_');
+
+        // Tạo cục dữ liệu sạch chuẩn bị xuất
+        const cleanData = currentFilteredData.map((item, index) => {
+            let row = { "STT": index + 1 };
+            
+            if (currentTab === 'GiaDV') {
+                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
+                row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
+                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
+                // Định dạng số học để Excel có thể tính SUM
+                row["GIÁ PHÊ DUYỆT (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
+            } else {
+                if (isSuperTab) {
+                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
+                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                    
+                    let ttRaw = item.trangThai || 'CHUA_NOP';
+                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
+                    if(tt === 'CHO_DUYET') row["TRẠNG THÁI"] = "Chờ KHTH duyệt";
+                    else if(tt === 'KHONG_DUYET') row["TRẠNG THÁI"] = "Bị KHTH từ chối";
+                    else if(tt === 'DA_PHE_DUYET') row["TRẠNG THÁI"] = "Đã phê duyệt chính thức";
+                    else row["TRẠNG THÁI"] = "Chưa nộp";
+
+                } else if (currentTab === 'PL1' || isDeptTab) {
+                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                    row["TÊN CHƯƠNG"] = item.chuong || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                } else { // PL2
+                    row["MÃ CHƯƠNG"] = item.maChuong || "";
+                    row["TÊN CHƯƠNG"] = item.chuong || "";
+                    row["MÃ LIÊN KẾT"] = item.maLienKet || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                }
+            }
+            return row;
+        });
+
+        const ws = XLSX.utils.json_to_sheet(cleanData); 
+        
+        // --- TỰ ĐỘNG CĂN CHỈNH ĐỘ RỘNG CỘT (AUTO-FIT) ---
+        const colWidths = [];
+        const keys = Object.keys(cleanData[0] || {});
+        keys.forEach(key => {
+            let maxLen = key.length; // Chiều dài của Tiêu đề
+            cleanData.forEach(row => {
+                let val = row[key];
+                if (val !== null && val !== undefined) {
+                    let len = val.toString().length;
+                    if (typeof val === 'number') len += 4; // Cộng thêm khoảng trống nếu là số tiền
+                    if (len > maxLen) maxLen = len;
+                }
+            });
+            // Khống chế độ rộng tối đa là 60 ký tự để cột không bị to quá đáng
+            colWidths.push({ wch: Math.min(maxLen + 2, 60) });
+        });
+        ws['!cols'] = colWidths; // Áp dụng độ rộng cột vào Sheet
+
+        const wb = XLSX.utils.book_new(); 
+        XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
+        
+        let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; 
+        XLSX.writeFile(wb, fileName); 
     }
+
     function showLoading(status) { document.getElementById('loading').style.display = status ? 'flex' : 'none'; }
 </script>
 </body>
