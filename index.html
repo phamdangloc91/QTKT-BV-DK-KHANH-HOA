@@ -142,7 +142,7 @@
         </div>
         
         <div class="action-bar" id="userActionBar" style="display:none;">
-            <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="exportToExcel()">📥 Xuất Excel (Đã chỉnh format)</button>
+            <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="exportToExcel()">📥 Xuất Excel (Dữ liệu đã lọc)</button>
             <button id="btnNhapExcel" class="btn" style="background:#17a2b8; font-size: 14px; padding: 10px 15px;" onclick="document.getElementById('fileExcel').click()">📤 Nhập File Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls">
         </div>
@@ -252,13 +252,18 @@
             <b>2. Tài liệu Phê duyệt (Xem Online):</b>
             <div id="dtFilesArea" style="margin-top: 15px;"></div>
         </div>
+
+        <div style="margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
+            <b style="color: #856404;">3. Áp giá Dịch vụ tương đương (TT 23/2024):</b>
+            <div id="dtGiaDVArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
     </div>
 </div>
 
 <script>
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [], GiaDV: [], depts: [] };
-    let currentFilteredData = []; // 🟢 LƯU BẢNG ĐANG HIỂN THỊ ĐỂ XUẤT EXCEL
+    let currentFilteredData = [];
     let currentUser = null;
     let targetUpload = { ma: null, tenKhoa: null }; 
     let isMultiSelectMode = false; 
@@ -327,7 +332,24 @@
 
     function dangXuat() { localStorage.removeItem('hospital_user'); location.reload(); }
     async function xuLyDoiMatKhau() { /*...*/ }
-    async function moQuanLyTaiKhoan() { /*...*/ }
+    
+    async function moQuanLyTaiKhoan() {
+        moModal('adminModal');
+        try {
+            const res = await fetch('/api/users'); const users = await res.json(); const tbody = document.getElementById('userListBody'); tbody.innerHTML = '';
+            users.forEach((u, i) => { 
+                tbody.innerHTML += `<tr>
+                    <td>${i+1}</td><td>[Khoa] <b>${u.tenKhoa}</b></td>
+                    <td><input type="text" id="edit-user-${u._id}" class="inline-input" value="${u.username}"></td>
+                    <td><input type="text" id="edit-pass-${u._id}" class="inline-input" value="${u.password}" style="color:red; font-weight:bold;"></td>
+                    <td>
+                        <button class="btn" style="background:#ffc107; color:black; padding:6px; font-size:12px;" onclick="suaTaiKhoan('${u._id}')">💾 Lưu</button>
+                        <button class="btn" style="background:#dc3545; padding:6px; font-size:12px;" onclick="xoaTaiKhoan('${u._id}', '${u.tenKhoa}')">🗑️ Xóa</button>
+                    </td>
+                </tr>`; 
+            });
+        } catch(e) { console.log(e); }
+    }
     async function suaTaiKhoan(id) { /*...*/ }
     async function xoaTaiKhoan(id, tenKhoa) { /*...*/ }
     async function taoTaiKhoan() { /*...*/ }
@@ -386,7 +408,6 @@
         let list = [];
         if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); list = deptObj ? deptObj.danhMucQTKT : []; } else { list = database[currentTab] || []; }
 
-        // LƯU LẠI DANH SÁCH ĐỂ XUẤT EXCEL
         currentFilteredData = list;
 
         const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
@@ -551,12 +572,14 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
+    // 🟢 HÀM XEM CHI TIẾT TÍCH HỢP TỰ ĐỘNG KHỚP GIÁ (TT23)
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
         document.getElementById('dtTenQT').innerText = ten || ''; 
         document.getElementById('dtMaQT').innerText = ma; 
         document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL';
         document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
 
+        // 1. In danh sách khoa áp dụng
         const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = '';
         let fileHtml = ''; let coBaoCao = false;
 
@@ -592,6 +615,50 @@
         if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
         const fileArea = document.getElementById('dtFilesArea');
         if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
+
+        // 2. 🟢 BỘ LỌC TÌM KIẾM GIÁ DỊCH VỤ TỰ ĐỘNG BẰNG MÃ VÀ TÊN
+        const giaArea = document.getElementById('dtGiaDVArea');
+        let matchedPrices = database.GiaDV.filter(priceItem => {
+            let isCodeMatch = false;
+            if (ma && priceItem.maTuongDuong && typeof priceItem.maTuongDuong === 'string') {
+                let parts = priceItem.maTuongDuong.split('.'); // "01.0303.0001" -> ["01", "0303", "0001"]
+                if (parts.length >= 2) {
+                    let a = parseInt(parts[0], 10);
+                    let b = parseInt(parts[1], 10);
+                    if (!isNaN(a) && !isNaN(b)) {
+                        let reconstructed = a + '.' + b; // "1.303"
+                        if (reconstructed === ma.trim()) isCodeMatch = true;
+                    }
+                }
+            }
+            
+            let isNameMatch = false;
+            if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') {
+                let tPL = ten.toLowerCase().trim();
+                let tGia = priceItem.tenKyThuat.toLowerCase().trim();
+                if (tPL === tGia) isNameMatch = true;
+            }
+
+            return isCodeMatch || isNameMatch;
+        });
+
+        if (matchedPrices.length > 0) {
+            let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;">`;
+            htmlGia += `<thead><tr><th>Mã tương đương</th><th>Tên dịch vụ theo Giá</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
+            matchedPrices.forEach(p => {
+                let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
+                htmlGia += `<tr>
+                    <td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td>
+                    <td>${p.tenDichVu || p.tenKyThuat || ''}</td>
+                    <td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td>
+                </tr>`;
+            });
+            htmlGia += `</tbody></table>`;
+            giaArea.innerHTML = htmlGia;
+        } else {
+            giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`;
+        }
+
         moModal('detailModal');
     }
 
@@ -650,6 +717,7 @@
 
     function switchTab(tab) { currentTab = tab; capNhatTieuDe(); document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; apDungLoc(); }
     
+    // 🟢 CẬP NHẬT: NHẬP EXCEL (SỬ DỤNG TÊN CỘT MỚI TỪ FILE CỦA BẠN)
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; showLoading(true); 
         const reader = new FileReader(); 
@@ -691,17 +759,13 @@
     
     function jumpToPL1(ma) { if(!ma) return; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     
-    // 🟢 HÀM XUẤT EXCEL (CHỈ XUẤT DỮ LIỆU ĐANG HIỂN THỊ, ĐỊNH DẠNG ĐẸP)
+    // 🟢 HÀM XUẤT EXCEL CHỈ XUẤT DỮ LIỆU ĐANG HIỂN THỊ CÓ FORMATTING
     function exportToExcel() { 
-        if (!currentFilteredData || currentFilteredData.length === 0) {
-            alert("Không có dữ liệu để xuất!");
-            return;
-        }
+        if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
 
-        // Tạo cục dữ liệu sạch chuẩn bị xuất
         const cleanData = currentFilteredData.map((item, index) => {
             let row = { "STT": index + 1 };
             
@@ -709,7 +773,6 @@
                 row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
                 row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
                 row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
-                // Định dạng số học để Excel có thể tính SUM
                 row["GIÁ PHÊ DUYỆT (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
             } else {
                 if (isSuperTab) {
@@ -746,27 +809,24 @@
 
         const ws = XLSX.utils.json_to_sheet(cleanData); 
         
-        // --- TỰ ĐỘNG CĂN CHỈNH ĐỘ RỘNG CỘT (AUTO-FIT) ---
         const colWidths = [];
         const keys = Object.keys(cleanData[0] || {});
         keys.forEach(key => {
-            let maxLen = key.length; // Chiều dài của Tiêu đề
+            let maxLen = key.length; 
             cleanData.forEach(row => {
                 let val = row[key];
                 if (val !== null && val !== undefined) {
                     let len = val.toString().length;
-                    if (typeof val === 'number') len += 4; // Cộng thêm khoảng trống nếu là số tiền
+                    if (typeof val === 'number') len += 4; 
                     if (len > maxLen) maxLen = len;
                 }
             });
-            // Khống chế độ rộng tối đa là 60 ký tự để cột không bị to quá đáng
             colWidths.push({ wch: Math.min(maxLen + 2, 60) });
         });
-        ws['!cols'] = colWidths; // Áp dụng độ rộng cột vào Sheet
+        ws['!cols'] = colWidths; 
 
         const wb = XLSX.utils.book_new(); 
         XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
-        
         let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; 
         XLSX.writeFile(wb, fileName); 
     }
