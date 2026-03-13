@@ -274,7 +274,7 @@
         "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
         "Khoa Phẫu thuật - Gây mê Hồi sức", "Khoa Phụ Sản", "Khoa Tai Mũi Họng", "Khoa Mắt", "Khoa Răng Hàm Mặt",
         "Khoa Vật lý Trị liệu - Phục hồi Chức năng", "Khoa Y học Cổ truyền", "Khoa Ngoại Tiết niệu", 
-        "Khoa Đột quỵ", "Khoa Huyết học - Truyền máu", "Khoa Hóa sinh", "Khoa Vi sinh - Ký sinh trùng", 
+        "Khoa Độtỵ", "Khoa Huyết học - Truyền máu", "Khoa Hóa sinh", "Khoa Vi sinh - Ký sinh trùng", 
         "Khoa Chẩn đoán Hình ảnh", "Khoa Giải phẫu bệnh", "Khoa Kiểm soát Nhiễm khuẩn", "Khoa Dược", 
         "Khoa Dinh dưỡng", "Khoa Nội Tim mạch Lão học", "Khoa Tim mạch Can thiệp", "Khoa Ngoại Lồng ngực",
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
@@ -572,14 +572,12 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
-    // 🟢 HÀM XEM CHI TIẾT TÍCH HỢP TỰ ĐỘNG KHỚP GIÁ (TT23)
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
         document.getElementById('dtTenQT').innerText = ten || ''; 
         document.getElementById('dtMaQT').innerText = ma; 
         document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL';
         document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
 
-        // 1. In danh sách khoa áp dụng
         const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = '';
         let fileHtml = ''; let coBaoCao = false;
 
@@ -616,29 +614,26 @@
         const fileArea = document.getElementById('dtFilesArea');
         if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
 
-        // 2. 🟢 BỘ LỌC TÌM KIẾM GIÁ DỊCH VỤ TỰ ĐỘNG BẰNG MÃ VÀ TÊN
         const giaArea = document.getElementById('dtGiaDVArea');
         let matchedPrices = database.GiaDV.filter(priceItem => {
             let isCodeMatch = false;
             if (ma && priceItem.maTuongDuong && typeof priceItem.maTuongDuong === 'string') {
-                let parts = priceItem.maTuongDuong.split('.'); // "01.0303.0001" -> ["01", "0303", "0001"]
+                let parts = priceItem.maTuongDuong.split('.'); 
                 if (parts.length >= 2) {
                     let a = parseInt(parts[0], 10);
                     let b = parseInt(parts[1], 10);
                     if (!isNaN(a) && !isNaN(b)) {
-                        let reconstructed = a + '.' + b; // "1.303"
+                        let reconstructed = a + '.' + b; 
                         if (reconstructed === ma.trim()) isCodeMatch = true;
                     }
                 }
             }
-            
             let isNameMatch = false;
             if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') {
                 let tPL = ten.toLowerCase().trim();
                 let tGia = priceItem.tenKyThuat.toLowerCase().trim();
                 if (tPL === tGia) isNameMatch = true;
             }
-
             return isCodeMatch || isNameMatch;
         });
 
@@ -717,7 +712,6 @@
 
     function switchTab(tab) { currentTab = tab; capNhatTieuDe(); document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; apDungLoc(); }
     
-    // 🟢 CẬP NHẬT: NHẬP EXCEL (SỬ DỤNG TÊN CỘT MỚI TỪ FILE CỦA BẠN)
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; showLoading(true); 
         const reader = new FileReader(); 
@@ -759,7 +753,6 @@
     
     function jumpToPL1(ma) { if(!ma) return; switchTab('PL1'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     
-    // 🟢 HÀM XUẤT EXCEL CHỈ XUẤT DỮ LIỆU ĐANG HIỂN THỊ CÓ FORMATTING
     function exportToExcel() { 
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
