@@ -55,7 +55,12 @@ const DeptDataModel = mongoose.model('DeptData', DeptDataSchema);
 async function khoiTaoDuLieuGoc() {
     try { await DeptDataModel.collection.dropIndex("username_1"); } catch(e) {}
     for (let ten of DANH_SACH_KHOA) {
-        await DeptDataModel.findOneAndUpdate({ tenKhoa: ten }, { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [] } }, { upsert: true, new: true });
+        // 🟢 ĐÃ SỬA LỖI WARNING MONGOOSE (returnDocument: 'after')
+        await DeptDataModel.findOneAndUpdate(
+            { tenKhoa: ten }, 
+            { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [] } }, 
+            { upsert: true, returnDocument: 'after' }
+        );
     }
     const countAdmin = await UserModel.countDocuments({ role: 'admin' });
     if (countAdmin === 0) { await UserModel.create({ username: 'admin', password: '123', role: 'admin', tenKhoa: 'Phòng Kế hoạch tổng hợp' }); }
