@@ -55,7 +55,6 @@ const DeptDataModel = mongoose.model('DeptData', DeptDataSchema);
 async function khoiTaoDuLieuGoc() {
     try { await DeptDataModel.collection.dropIndex("username_1"); } catch(e) {}
     for (let ten of DANH_SACH_KHOA) {
-        // 🟢 ĐÃ SỬA LỖI WARNING MONGOOSE (returnDocument: 'after')
         await DeptDataModel.findOneAndUpdate(
             { tenKhoa: ten }, 
             { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [] } }, 
@@ -75,42 +74,48 @@ try {
 } catch (error) { console.error("❌ Lỗi Drive:", error.message); }
 
 // --- 3. MIDDLEWARE ---
-const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024 }});
+const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024 }}); // Cho phép gói tin 100MB
 app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
 // --- 4. API HỆ THỐNG CƠ BẢN ---
 app.get('/api/data', async (req, res) => {
-    try { const result = await DataModel.findOne({ id: "hospital_main_db" }); res.json(result ? result.currentData : { PL1: [], PL2: [] }); } 
+    try { const result = await DataModel.findOne({ id: "hospital_main_db" }); res.json(result ? result.currentData : { PL1: [], PL2: [], GiaDV: [], MaDVBV: [] }); } 
     catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
 });
 
-// 🟢 ĐÃ TỐI ƯU HÓA: Chỉ nhận và cập nhật đúng Tab đang tải lên, giúp gói tin cực nhẹ
+// 🟢 ĐÃ VÁ LỖI TẠI ĐÂY: Hỗ trợ nén tải riêng lẻ từng Tab (tabData) để tránh sập Server
 app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) => {
     try {
         const tabName = req.body.tabName;
+        if (!tabName) return res.status(400).json({ message: "Không xác định được bảng dữ liệu!" });
+        
         const tabData = JSON.parse(req.body.tabData);
 
-        // Lệnh cập nhật nhỏ giọt: Chỉ đè dữ liệu vào đúng tab được gửi lên
+        // Lệnh cập nhật siêu nhẹ: Chỉ ghi đè dữ liệu của đúng cái Tab đang tải lên
         const updateQuery = {};
         updateQuery[`currentData.${tabName}`] = tabData;
 
         await DataModel.findOneAndUpdate(
             { id: "hospital_main_db" }, 
             { $set: updateQuery }, 
-            { upsert: true }
+            { upsert: true, returnDocument: 'after' }
         );
 
         if (req.file && driveService && DRIVE_FOLDER_ID) {
-            const fileMetadata = { name: `[Backup_${tabName}] ${Date.now()}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
-            const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
-            await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id' });
-            fs.unlinkSync(req.file.path);
+            try {
+                const fileMetadata = { name: `[Backup_${tabName}] ${Date.now()}_${req.file.originalname}`, parents: [DRIVE_FOLDER_ID] };
+                const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
+                await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id' });
+                fs.unlinkSync(req.file.path);
+            } catch (e) {
+                console.log("Lỗi nhỏ khi up backup lên Drive, nhưng dữ liệu Web đã lưu thành công.");
+            }
         }
-        res.json({ message: `Đã lưu thành công dữ liệu bảng [${tabName}] và Backup lên Drive!` });
+        res.json({ message: `Lưu dữ liệu cho bảng [${tabName}] thành công!` });
     } catch (error) { 
-        console.error(error); 
-        res.status(500).json({ message: "Lỗi hệ thống khi lưu dữ liệu" }); 
+        console.error("Lỗi hệ thống:", error);
+        res.status(500).json({ message: "Lỗi hệ thống khi phân tích dữ liệu" }); 
     }
 });
 
