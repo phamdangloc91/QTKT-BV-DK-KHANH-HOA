@@ -39,11 +39,12 @@
         .badge-warning { background: #ff9800; color: white; }
         .badge-success { background: #28a745; color: white; }
         .badge-danger { background: #dc3545; color: white; }
+        .badge-locked { background: #5a6268; color: white; border: 1px solid #4e555b; cursor: not-allowed; }
 
         .btn { padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; font-size: 11px; margin: 2px 0; display: inline-block;}
         .btn:hover { opacity: 0.8; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
         .btn-add { background: var(--success); padding: 6px 12px; font-size: 12px; }
-        .btn-remove { background: #6c757d; padding: 6px 12px; font-size: 12px; }
+        .btn-remove { background: #dc3545; padding: 6px 12px; font-size: 12px; }
         
         .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); font-size: 18px; flex-direction: column;}
 
@@ -502,9 +503,7 @@
         if (parts.length >= 2) {
             let a = parseInt(parts[0], 10);
             let b = parseInt(parts[1], 10);
-            if (!isNaN(a) && !isNaN(b)) {
-                return a + '.' + b;
-            }
+            if (!isNaN(a) && !isNaN(b)) { return a + '.' + b; }
         }
         return mtd.toString().trim();
     }
@@ -543,8 +542,7 @@
         
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead;
-            tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
@@ -555,8 +553,7 @@
 
         if (currentTab === 'MaDVBV') {
             htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead;
-            tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
@@ -590,7 +587,11 @@
 
         let canAdd = false; let canRemove = false; let showFileCol = false;
         
-        if (currentUser && currentUser.role === 'khoa') { if (!isDeptTab && !isSuperTab) canAdd = true; }
+        // 🟢 CẬP NHẬT QUYỀN XÓA (KHOA ĐƯỢC XÓA TRONG TAB CỦA MÌNH NẾU CHƯA FINAL)
+        if (currentUser && currentUser.role === 'khoa') { 
+            if (!isDeptTab && !isSuperTab) canAdd = true; 
+            if (isDeptTab && currentUser.tenKhoa === currentTab) canRemove = true; 
+        }
         if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemove = true; 
         if (isDeptTab || isSuperTab) showFileCol = true; 
 
@@ -599,6 +600,13 @@
         htmlHead += `</tr>`; thead.innerHTML = htmlHead;
 
         tbody.innerHTML = ''; let currentKhoaGroup = ""; 
+
+        // Tải giỏ hàng của Khoa hiện tại để dò xem đã Add chưa
+        let myDeptCart = [];
+        if (currentUser && currentUser.role === 'khoa') {
+            const myDept = database.depts.find(d => d.tenKhoa === currentUser.tenKhoa);
+            if (myDept) myDeptCart = myDept.danhMucQTKT;
+        }
 
         list.forEach((item, index) => {
             let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
@@ -633,11 +641,12 @@
                 html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
             }
             
+            // 🟢 LẤY TRẠNG THÁI ĐỂ XỬ LÝ NÚT XÓA CHO KHOA
+            let ttRaw = item.trangThai || 'CHUA_NOP';
+            let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+
             if (showFileCol) {
                 let fileHtml = '';
-                let ttRaw = item.trangThai || 'CHUA_NOP';
-                const tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                
                 if(tt === 'DA_PHE_DUYET') {
                     fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br>`;
                     fileHtml += `<span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
@@ -667,8 +676,31 @@
                 html += `<td>${fileHtml}</td>`;
             }
             
-            if (canAdd) html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
-            else if (canRemove) html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`;
+            // 🟢 LOGIC NÚT THÊM / XÓA CHO KHOA & ADMIN TÍCH HỢP TRẠNG THÁI FINAL
+            if (canAdd) { // Khoa đang đứng ở PL1, PL2
+                let itemInCart = myDeptCart.find(x => String(x.ma) === String(maHienThi) || String(x.maLienKet) === String(maHienThi));
+                if (itemInCart) {
+                    let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP';
+                    let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
+                    
+                    if (cartStatus === 'DA_PHE_DUYET') {
+                        html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
+                    } else {
+                        html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`;
+                    }
+                } else {
+                    html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
+                }
+            }
+            else if (canRemove) { // Khoa đang ở Tab Khoa Của Mình HOẶC Admin đang ở Tab Khoa Bất Kỳ
+                if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') {
+                    // Khoa không thể xóa bài đã chốt
+                    html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
+                } else {
+                    // Admin luôn được xóa. Khoa được xóa nếu bài chưa chốt.
+                    html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`;
+                }
+            }
             
             row.innerHTML = html;
         });
@@ -703,8 +735,7 @@
     }
 
     function chuanBiUpSinglePdf(ma, tenKhoa, tenQuyTrinh) {
-        dongModal('detailModal'); 
-        dongModal('detailDVModal');
+        dongModal('detailModal'); dongModal('detailDVModal');
         targetUpload = { ma: ma, tenKhoa: tenKhoa };
         document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadSinglePdfModal');
     }
@@ -734,13 +765,12 @@
         document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
-        
-        let qtktInfo = database.PL1.find(x => x.ma === qtMa || x.maLienKet === qtMa) || 
-                       database.PL2.find(x => x.ma === qtMa || x.maLienKet === qtMa);
+        let qtktInfo = database.PL1.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa)) || 
+                       database.PL2.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
         
         if (!qtktInfo) {
             for (let d of database.depts) {
-                let found = d.danhMucQTKT.find(x => x.ma === qtMa || x.maLienKet === qtMa);
+                let found = d.danhMucQTKT.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
                 if (found) { qtktInfo = found; break; }
             }
         }
@@ -753,12 +783,10 @@
                 <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
             </table>`;
-        } else {
-            qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`;
-        }
+        } else { qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-        let giaDVInfo = database.GiaDV.find(x => x.maTuongDuong === maTuongDuong);
+        let giaDVInfo = database.GiaDV.find(x => String(x.maTuongDuong) === String(maTuongDuong));
         let bhytHtml = '';
         if (giaDVInfo) {
             let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
@@ -767,9 +795,7 @@
                 <tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr>
             </table>`;
-        } else {
-            bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`;
-        }
+        } else { bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; }
         document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
         const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = '';
@@ -777,7 +803,7 @@
 
         if (qtMa) {
             database.depts.forEach(d => {
-                const qt = d.danhMucQTKT.find(x => x.ma === qtMa || x.maLienKet === qtMa);
+                const qt = d.danhMucQTKT.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
                 if(qt) {
                     coBaoCao = true;
                     let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
@@ -817,7 +843,7 @@
         let fileHtml = ''; let coBaoCao = false;
 
         database.depts.forEach(d => {
-            const qt = d.danhMucQTKT.find(x => x.ma === ma || x.maLienKet === ma);
+            const qt = d.danhMucQTKT.find(x => String(x.ma) === String(ma) || String(x.maLienKet) === String(ma));
             if(qt) {
                 coBaoCao = true;
                 let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
@@ -859,10 +885,7 @@
             if (parts.length >= 2) {
                 let a = parseInt(parts[0], 10);
                 let b = parseInt(parts[1], 10);
-                if (!isNaN(a) && !isNaN(b)) {
-                    let reconstructed = a + '.' + b; 
-                    if (reconstructed === targetMa.trim()) return true;
-                }
+                if (!isNaN(a) && !isNaN(b)) { let reconstructed = a + '.' + b; if (reconstructed === targetMa.trim()) return true; }
             }
             return false;
         }
@@ -914,7 +937,7 @@
         moModal('detailModal');
     }
 
-    async function bocQuyTrinh(ma) { if(!currentUser) return; const item = database[currentTab].find(x => x.ma === ma || x.maLienKet === ma); if(!item) return; showLoading(true); try { const res = await fetch('/api/dept-data/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item }) }); const data = await res.json(); if(res.ok) { let toast = document.createElement("div"); toast.innerText = "✅ " + data.message; toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); await layDuLieu(); } else alert("⚠️ " + data.message); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
+    async function bocQuyTrinh(ma) { if(!currentUser) return; const item = database[currentTab].find(x => String(x.ma) === String(ma) || String(x.maLienKet) === String(ma)); if(!item) return; showLoading(true); try { const res = await fetch('/api/dept-data/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item }) }); const data = await res.json(); if(res.ok) { let toast = document.createElement("div"); toast.innerText = "✅ " + data.message; toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); await layDuLieu(); } else alert("⚠️ " + data.message); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
     async function xoaQuyTrinh(ma, tenKhoa) { if(!confirm(`Bạn muốn xóa TOÀN BỘ dữ liệu quy trình này khỏi ${tenKhoa.toUpperCase()} không?\n\n(Hệ thống sẽ tự động dọn dẹp xóa luôn các file trên Drive)`)) return; showLoading(true); try { const res = await fetch('/api/dept-data/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma }) }); const data = await res.json(); if(res.ok) { alert(data.message); await layDuLieu(); } else alert("Lỗi khi xóa!"); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
 
     function apDungLoc() { 

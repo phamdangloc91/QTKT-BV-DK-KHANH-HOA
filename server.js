@@ -30,7 +30,6 @@ const DANH_SACH_KHOA = [
     "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
 ];
 
-// --- 1. KẾT NỐI MONGODB VÀ ĐỊNH NGHĨA CÁC BẢNG ---
 mongoose.connect(MONGO_URI)
     .then(() => { console.log("✅ Đã kết nối MongoDB Atlas"); khoiTaoDuLieuGoc(); })
     .catch(err => console.error("❌ Lỗi kết nối MongoDB:", err));
@@ -65,7 +64,6 @@ async function khoiTaoDuLieuGoc() {
     if (countAdmin === 0) { await UserModel.create({ username: 'admin', password: '123', role: 'admin', tenKhoa: 'Phòng Kế hoạch tổng hợp' }); }
 }
 
-// --- 2. GOOGLE DRIVE API ---
 let driveService;
 try {
     const oauth2Client = new google.auth.OAuth2(CLIENT_ID, CLIENT_SECRET, "https://developers.google.com/oauthplayground");
@@ -73,34 +71,27 @@ try {
     driveService = google.drive({ version: 'v3', auth: oauth2Client });
 } catch (error) { console.error("❌ Lỗi Drive:", error.message); }
 
-// --- 3. MIDDLEWARE ---
-const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024 }}); // Cho phép gói tin 100MB
+// 🟢 ĐÃ VÁ LỖI: TỰ ĐỘNG TẠO THƯ MỤC UPLOADS ĐỂ KHÔNG BỊ SẬP TRÊN RENDER
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir, { recursive: true }); }
+
+const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024 }});
 app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// --- 4. API HỆ THỐNG CƠ BẢN ---
 app.get('/api/data', async (req, res) => {
     try { const result = await DataModel.findOne({ id: "hospital_main_db" }); res.json(result ? result.currentData : { PL1: [], PL2: [], GiaDV: [], MaDVBV: [] }); } 
     catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
 });
 
-// 🟢 ĐÃ VÁ LỖI TẠI ĐÂY: Hỗ trợ nén tải riêng lẻ từng Tab (tabData) để tránh sập Server
 app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) => {
     try {
         const tabName = req.body.tabName;
         if (!tabName) return res.status(400).json({ message: "Không xác định được bảng dữ liệu!" });
-        
         const tabData = JSON.parse(req.body.tabData);
 
-        // Lệnh cập nhật siêu nhẹ: Chỉ ghi đè dữ liệu của đúng cái Tab đang tải lên
-        const updateQuery = {};
-        updateQuery[`currentData.${tabName}`] = tabData;
-
-        await DataModel.findOneAndUpdate(
-            { id: "hospital_main_db" }, 
-            { $set: updateQuery }, 
-            { upsert: true, returnDocument: 'after' }
-        );
+        const updateQuery = {}; updateQuery[`currentData.${tabName}`] = tabData;
+        await DataModel.findOneAndUpdate({ id: "hospital_main_db" }, { $set: updateQuery }, { upsert: true, returnDocument: 'after' });
 
         if (req.file && driveService && DRIVE_FOLDER_ID) {
             try {
@@ -108,15 +99,10 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
                 const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
                 await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id' });
                 fs.unlinkSync(req.file.path);
-            } catch (e) {
-                console.log("Lỗi nhỏ khi up backup lên Drive, nhưng dữ liệu Web đã lưu thành công.");
-            }
+            } catch (e) { console.log("Lỗi nhỏ khi up backup lên Drive, dữ liệu Web đã lưu thành công."); }
         }
         res.json({ message: `Lưu dữ liệu cho bảng [${tabName}] thành công!` });
-    } catch (error) { 
-        console.error("Lỗi hệ thống:", error);
-        res.status(500).json({ message: "Lỗi hệ thống khi phân tích dữ liệu" }); 
-    }
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi lưu dữ liệu" }); }
 });
 
 app.post('/api/login', async (req, res) => {
@@ -180,8 +166,8 @@ app.post('/api/dept-data/add', async (req, res) => {
         const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
         if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
 
-        const daCo = dept.danhMucQTKT.find(qt => (quyTrinh.ma && qt.ma === quyTrinh.ma) || (quyTrinh.maLienKet && qt.maLienKet === quyTrinh.maLienKet) || (quyTrinh.ten && qt.ten === quyTrinh.ten));
-        if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục!" });
+        const daCo = dept.danhMucQTKT.find(qt => (quyTrinh.ma && String(qt.ma) === String(quyTrinh.ma)) || (quyTrinh.maLienKet && String(qt.maLienKet) === String(quyTrinh.maLienKet)));
+        if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục của Khoa!" });
 
         quyTrinh.trangThai = "CHUA_NOP";
         dept.danhMucQTKT.push(quyTrinh); await dept.save();
@@ -189,7 +175,6 @@ app.post('/api/dept-data/add', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
-// --- 5. BỘ MÁY XỬ LÝ FILE VÀ TRẠNG THÁI ---
 function extractDriveId(link) {
     if (!link) return null;
     const match = link.match(/\/d\/(.+?)\//);
@@ -208,7 +193,7 @@ app.post('/api/dept-data/remove', async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
         const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh);
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh));
         
         if (qtIndex !== -1) {
             const qt = dept.danhMucQTKT[qtIndex];
@@ -234,18 +219,26 @@ app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => 
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
         if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
-        const link = await uploadToDrive(req.file, `[NHÁP]_${tenKhoa}_${maQuyTrinh}`);
         
         const dept = await DeptDataModel.findOne({ tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
-        dept.danhMucQTKT[qtIndex].trangThai = 'CHO_DUYET'; dept.danhMucQTKT[qtIndex].fileKhoa = link;
+        if(!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
+
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
+        if (qtIndex === -1) return res.status(404).json({ message: "Chưa Thêm kỹ thuật này vào giỏ hàng, nên không thể upload file!" });
+
+        const link = await uploadToDrive(req.file, `[NHÁP]_${tenKhoa}_${maQuyTrinh}`);
+        dept.danhMucQTKT[qtIndex].trangThai = 'CHO_DUYET'; 
+        dept.danhMucQTKT[qtIndex].fileKhoa = link;
         dept.markModified('danhMucQTKT'); await dept.save();
         res.json({ message: "Nộp quy trình thành công! Đang chờ P.KHTH duyệt." });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload" }); }
+    } catch (error) { 
+        console.error(error); 
+        // 🟢 ĐÃ VÁ LỖI: BÁO RÕ LÝ DO NẾU DRIVE TỪ CHỐI
+        res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
+    }
 });
 
-const multiQDBB = upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }]);
-app.post('/api/upload/batch-qdbb', multiQDBB, async (req, res) => {
+app.post('/api/upload/batch-qdbb', upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }]), async (req, res) => {
     try {
         const items = JSON.parse(req.body.items); const files = req.files || {};
         let linkQD = files['fQuyetDinh'] ? await uploadToDrive(files['fQuyetDinh'][0], `[QĐ]_${Date.now()}`) : null;
@@ -258,7 +251,7 @@ app.post('/api/upload/batch-qdbb', multiQDBB, async (req, res) => {
             if (!deptsToSave[item.tenKhoa]) deptsToSave[item.tenKhoa] = await DeptDataModel.findOne({ tenKhoa: item.tenKhoa });
             const dept = deptsToSave[item.tenKhoa];
             if (dept) {
-                const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === item.maQuyTrinh || qt.maLienKet === item.maQuyTrinh));
+                const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(item.maQuyTrinh) || String(qt.maLienKet) === String(item.maQuyTrinh)));
                 if (qtIndex !== -1) {
                     if (linkQD) dept.danhMucQTKT[qtIndex].fileQuyetDinh = linkQD;
                     if (linkBB) dept.danhMucQTKT[qtIndex].fileBienBan = linkBB;
@@ -268,31 +261,38 @@ app.post('/api/upload/batch-qdbb', multiQDBB, async (req, res) => {
         }
         for (let k in deptsToSave) await deptsToSave[k].save();
         res.json({ message: "Đã đính kèm Quyết định & Biên bản thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi đính kèm hàng loạt" }); }
+    } catch (error) { 
+        res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
+    }
 });
 
 app.post('/api/upload/final-pdf', upload.single('fPdf'), async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
         if (!req.file) return res.status(400).json({ message: "Chưa chọn file PDF!" });
-        const linkPDF = await uploadToDrive(req.file, `[FINAL]_${maQuyTrinh}`);
-        const dept = await DeptDataModel.findOne({ tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
         
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
+        if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy quy trình!" });
+
+        const linkPDF = await uploadToDrive(req.file, `[FINAL]_${maQuyTrinh}`);
         dept.danhMucQTKT[qtIndex].trangThai = 'DA_PHE_DUYET';
         dept.danhMucQTKT[qtIndex].filePdfChinhThuc = linkPDF;
         dept.markModified('danhMucQTKT'); await dept.save();
         res.json({ message: "Đã tải file PDF chính thức thành công! Quy trình hoàn tất." });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload file" }); }
+    } catch (error) { 
+        res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
+    }
 });
 
 app.post('/api/dept-data/status', async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh, action } = req.body;
         const dept = await DeptDataModel.findOne({ tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (qt.ma === maQuyTrinh || qt.maLienKet === maQuyTrinh));
-        const qt = dept.danhMucQTKT[qtIndex];
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
+        if (qtIndex === -1) return res.status(404).json({ message: "Lỗi trạng thái: Không tìm thấy dữ liệu!" });
 
+        const qt = dept.danhMucQTKT[qtIndex];
         if (action === 'REJECT_KHOA') qt.trangThai = 'KHONG_DUYET';
         else if (action === 'RESUBMIT') qt.trangThai = 'CHUA_NOP'; 
         else if (action === 'REVERT_FINAL') {
