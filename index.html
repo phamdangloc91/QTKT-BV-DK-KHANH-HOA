@@ -268,7 +268,7 @@
 
 <script>
     let currentTab = 'PL1';
-    let database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] }; // 🟢 THÊM KHO CHỨA MaDVBV
+    let database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
     let currentFilteredData = [];
     let currentUser = null;
     let targetUpload = { ma: null, tenKhoa: null }; 
@@ -379,16 +379,15 @@
         showLoading(true);
         try {
             const resData = await fetch('/api/data'); const mainData = await resData.json(); 
-            database.PL1 = mainData.PL1 || []; 
-            database.PL2 = mainData.PL2 || []; 
-            database.GiaDV = mainData.GiaDV || []; 
-            database.MaDVBV = mainData.MaDVBV || []; // 🟢 NẠP KHO MÃ DỊCH VỤ BV
+            database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || []; database.GiaDV = mainData.GiaDV || []; database.MaDVBV = mainData.MaDVBV || []; 
             const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
             apDungLoc(); 
         } catch (error) { console.log(error); }
         showLoading(false);
     }
-    const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\(.*\)/g,"").trim() : "";
+    
+    // 🟢 HÀM NORMALIZE SIÊU SẠCH (Cắt mọi khoảng trắng thừa)
+    const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function toggleMultiSelect(state) {
         isMultiSelectMode = state; selectedTechniques = [];
@@ -411,7 +410,6 @@
         else { selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma)); }
     }
 
-    // --- VẼ BẢNG ---
     function renderTable(data = null) {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
@@ -425,37 +423,24 @@
         
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead;
-            tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; tbody.innerHTML = '';
             list.forEach((item, index) => {
-                const row = tbody.insertRow();
-                let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
+                const row = tbody.insertRow(); let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
                 row.innerHTML = `<td>${index + 1}</td><td><b>${item.maTuongDuong || ''}</b></td><td>${item.tenKyThuat || ''}</td><td>${item.tenDichVu || ''}</td><td style="color:red; font-weight:bold; text-align:right;">${formattedPrice}</td>`;
-            });
-            return;
+            }); return;
         }
 
-        // 🟢 NẾU LÀ TAB MÃ DỊCH VỤ BỆNH VIỆN
         if (currentTab === 'MaDVBV') {
             htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead;
-            tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
                 let gVP = item.giaVienPhi ? Number(item.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '';
                 let gYC = item.giaYeuCau ? Number(item.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '';
                 let gNN = item.giaNuocNgoai ? Number(item.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '';
-                row.innerHTML = `<td>${index + 1}</td>
-                                 <td><b>${item.maDichVu || ''}</b></td>
-                                 <td>${item.maTuongDuong || ''}</td>
-                                 <td>${item.tenDichVu || ''}</td>
-                                 <td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td>
-                                 <td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td>
-                                 <td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td>
-                                 <td style="color:red; text-align:right; font-weight:bold;">${gNN}</td>`;
-            });
-            return;
+                row.innerHTML = `<td>${index + 1}</td><td><b>${item.maDichVu || ''}</b></td><td>${item.maTuongDuong || ''}</td><td>${item.tenDichVu || ''}</td><td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td><td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td><td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td><td style="color:red; text-align:right; font-weight:bold;">${gNN}</td>`;
+            }); return;
         }
 
         if (isMultiSelectMode) htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
@@ -605,7 +590,6 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
-    // 🟢 CHI TIẾT TÍCH HỢP TỰ ĐỘNG KHỚP GIÁ (TT23) VÀ MÃ DỊCH VỤ BỆNH VIỆN
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
         document.getElementById('dtTenQT').innerText = ten || ''; 
         document.getElementById('dtMaQT').innerText = ma; 
@@ -648,11 +632,9 @@
         const fileArea = document.getElementById('dtFilesArea');
         if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
 
-        // 🟢 BỘ LỌC GIÁ DỊCH VỤ TT 23 VÀ GIÁ BỆNH VIỆN
         const giaArea = document.getElementById('dtGiaDVArea');
         const giaBVArea = document.getElementById('dtMaDVBVArea');
 
-        // Hàm chung để nhận diện mã tương đương "01.0303.0001" -> "1.303"
         function isCodeMatch(maTuongDuong, targetMa) {
             if (!targetMa || !maTuongDuong || typeof maTuongDuong !== 'string') return false;
             let parts = maTuongDuong.split('.'); 
@@ -667,7 +649,6 @@
             return false;
         }
 
-        // Lọc Giá TT23
         let matchedPrices = database.GiaDV.filter(priceItem => {
             let isNameMatch = false;
             if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') {
@@ -687,7 +668,6 @@
             giaArea.innerHTML = htmlGia;
         } else { giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; }
 
-        // Lọc Giá Bệnh Viện
         let matchedBVPrices = database.MaDVBV.filter(priceItem => isCodeMatch(priceItem.maTuongDuong, ma));
         
         if (matchedBVPrices.length > 0) {
@@ -773,17 +753,48 @@
     function switchTab(tab) { currentTab = tab; capNhatTieuDe(); document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; apDungLoc(); }
     
     async function importFromExcel() { 
-        const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; showLoading(true); 
+        const fileInput = document.getElementById('fileExcel'); 
+        const file = fileInput.files[0]; 
+        if (!file) return; 
+        showLoading(true); 
         const reader = new FileReader(); 
         reader.onload = async function(e) { 
             try { 
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
-                const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]]); 
+                const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                database[currentTab] = jsonData.map(row => { 
+                const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); 
+                
+                let headerRowIndex = -1;
+                let headers = [];
+                
+                for (let i = 0; i < Math.min(20, rawData.length); i++) {
+                    let rowStr = rawData[i].map(c => c ? c.toString().toLowerCase() : "").join(" ");
+                    if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương")) {
+                        headerRowIndex = i;
+                        headers = rawData[i].map(normalize);
+                        break;
+                    }
+                }
+
+                if (headerRowIndex === -1) {
+                    alert("Không tìm thấy dòng Tiêu đề chuẩn (Mã dịch vụ, Mã kỹ thuật...). Hãy đảm bảo file Excel đúng định dạng!");
+                    showLoading(false);
+                    return;
+                }
+
+                let parsedData = [];
+                for (let i = headerRowIndex + 1; i < rawData.length; i++) {
+                    let rowData = rawData[i];
+                    if (!rowData || rowData.length === 0) continue; 
+                    
                     let item = {}; 
-                    Object.keys(row).forEach(key => { 
-                        let k = normalize(key), v = row[key]; 
+                    let hasData = false;
+
+                    headers.forEach((k, colIndex) => { 
+                        if (!k) return;
+                        let v = rowData[colIndex]; 
+                        if (v !== undefined && v !== null && v !== "") hasData = true;
                         
                         if (currentTab === 'GiaDV') {
                             if (k === "mã tương đương" || k.includes("mã tương đương")) item.maTuongDuong = v; 
@@ -791,14 +802,13 @@
                             if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("tên dv")) item.tenDichVu = v; 
                             if (k === "giá phê duyệt" || k.includes("giá")) item.giaMax = v;
                         } else if (currentTab === 'MaDVBV') {
-                            // 🟢 NẠP DỮ LIỆU TỪ FILE EXCEL MỚI CỦA BẠN
-                            if (k === "mã dịch vụ" || k.includes("mã dịch vụ")) item.maDichVu = v;
-                            if (k === "mã tương đương" || k.includes("mã tương đương")) item.maTuongDuong = v;
-                            if (k === "tên dịch vụ" || k.includes("tên dịch vụ")) item.tenDichVu = v;
-                            if (k === "giá bhyt" || k.includes("giá bhyt")) item.giaBHYT = v;
-                            if (k === "giá viện phí" || k.includes("giá viện phí")) item.giaVienPhi = v;
-                            if (k === "giá yêu cầu" || k.includes("giá yêu cầu")) item.giaYeuCau = v;
-                            if (k === "giá nước ngoài" || k.includes("giá nước ngoài")) item.giaNuocNgoai = v;
+                            if (k === "mã dịch vụ" || k.includes("mã dịch vụ") || k.includes("ma_dichvu")) item.maDichVu = v;
+                            if (k === "mã tương đương" || k.includes("mã tương đương") || k.includes("ma_tuongduong")) item.maTuongDuong = v;
+                            if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("ten_dichvu")) item.tenDichVu = v;
+                            if (k === "giá bhyt" || k.includes("giá bhyt") || k.includes("gia_bhyt")) item.giaBHYT = v;
+                            if (k === "giá viện phí" || k.includes("giá viện phí") || k.includes("gia_vienphi")) item.giaVienPhi = v;
+                            if (k === "giá yêu cầu" || k.includes("giá yêu cầu") || k.includes("gia_yeucau")) item.giaYeuCau = v;
+                            if (k === "giá nước ngoài" || k.includes("giá nước ngoài") || k.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                         } else {
                             if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v; 
                             if (k.includes("stt của chương") || k === "machuong") item.maChuong = v; 
@@ -809,14 +819,17 @@
                             if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v; 
                         }
                     }); 
-                    return item; 
-                }); 
+                    
+                    if (hasData) parsedData.push(item);
+                } 
+                
+                database[currentTab] = parsedData;
                 
                 const formData = new FormData(); formData.append('fileExcel', file); 
                 formData.append('tabName', currentTab); formData.append('tabData', JSON.stringify(database[currentTab])); 
                 const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
                 const result = await response.json(); alert(result.message); renderTable(); 
-            } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng cột."); } finally { fileInput.value = ''; showLoading(false); } 
+            } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng cột."); console.error(error); } finally { fileInput.value = ''; showLoading(false); } 
         }; 
         reader.readAsArrayBuffer(file); 
     }
