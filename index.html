@@ -6,28 +6,32 @@
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <style>
         :root { --primary: #0056b3; --bg: #f8f9fa; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --purple: #6f42c1; --info: #17a2b8; }
-        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; }
-        .navbar { background: var(--primary); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 60px; color: white; }
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
+        .navbar { background: var(--primary); padding: 0 20px; display: flex; align-items: center; justify-content: space-between; height: 65px; color: white; box-shadow: 0 2px 4px rgba(0,0,0,0.1); z-index: 100; position: relative;}
         .navbar-left { display: flex; align-items: center; }
+        .logo-img { height: 45px; margin-right: 15px; border-radius: 50%; background: white; padding: 2px; box-shadow: 0 0 5px rgba(0,0,0,0.3); }
         .dropdown { position: relative; display: inline-block; margin-right: 20px; }
-        .dropbtn { background: none; border: none; color: white; padding: 20px; font-size: 16px; font-weight: bold; cursor: pointer; }
-        .dropdown-content { display: none; position: absolute; background-color: white; min-width: 280px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; max-height: 500px; overflow-y: auto; }
-        .dropdown-content a { color: #333; padding: 10px 16px; text-decoration: none; display: block; border-bottom: 1px solid #eee; font-size: 14px; }
-        .dropdown-content a:hover { background-color: #e7f3ff; color: var(--primary); font-weight: bold; }
+        .dropbtn { background: none; border: none; color: white; padding: 20px 10px; font-size: 15px; font-weight: bold; cursor: pointer; transition: 0.3s;}
+        .dropbtn:hover { color: #ffd700; }
+        .dropdown-content { display: none; position: absolute; background-color: white; min-width: 280px; box-shadow: 0 8px 16px rgba(0,0,0,0.2); z-index: 1000; max-height: 500px; overflow-y: auto; border-radius: 4px; top: 100%;}
+        .dropdown-content a { color: #333; padding: 12px 16px; text-decoration: none; display: block; border-bottom: 1px solid #eee; font-size: 14px; }
+        .dropdown-content a:hover { background-color: #e7f3ff; color: var(--primary); font-weight: bold; padding-left: 20px; transition: 0.2s;}
         .dropdown:hover .dropdown-content { display: block; }
 
-        .container { padding: 20px; max-width: 1600px; margin: auto; }
+        .container { padding: 20px; max-width: 1600px; margin: auto; flex: 1; width: 100%; box-sizing: border-box;}
         .header-info { margin-bottom: 15px; border-left: 5px solid var(--primary); padding-left: 15px; }
         
-        .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .filter-section { background: white; padding: 15px; border-radius: 8px; margin-bottom: 20px; display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 10px; align-items: end; box-shadow: 0 2px 5px rgba(0,0,0,0.05); border: 1px solid #eaeaea;}
         .filter-group { display: flex; flex-direction: column; gap: 5px; }
         .filter-group label { font-size: 12px; font-weight: bold; color: #555; }
-        select, input[type="text"], input[type="password"] { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; }
+        select, input[type="text"], input[type="password"] { padding: 10px; border: 1px solid #ccc; border-radius: 5px; font-size: 14px; outline: none;}
+        select:focus, input[type="text"]:focus { border-color: var(--primary); }
 
-        .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: auto; max-height: 600px; }
+        .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: auto; max-height: calc(100vh - 300px); border: 1px solid #eaeaea;}
         table { width: 100%; border-collapse: collapse; min-width: 1300px; }
-        th { background: #f2f2f2; color: #333; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; }
+        th { background: #f8f9fa; color: #333; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; font-size: 13px;}
         td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: middle; }
+        tr:hover { background-color: #f1f8ff; }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; margin-bottom: 4px;}
         .badge-type { background: #e7f3ff; color: #007bff; border: 1px solid #b3d7ff; }
@@ -37,14 +41,14 @@
         .badge-danger { background: #dc3545; color: white; }
 
         .btn { padding: 6px 10px; border: none; border-radius: 4px; cursor: pointer; font-weight: bold; color: white; transition: 0.2s; font-size: 11px; margin: 2px 0; display: inline-block;}
-        .btn:hover { opacity: 0.8; }
+        .btn:hover { opacity: 0.8; transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.2);}
         .btn-add { background: var(--success); padding: 6px 12px; font-size: 12px; }
         .btn-remove { background: #6c757d; padding: 6px 12px; font-size: 12px; }
         
-        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.8); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); font-size: 18px;}
+        .loading-overlay { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(255,255,255,0.9); z-index: 9999; justify-content: center; align-items: center; font-weight: bold; color: var(--primary); font-size: 18px; flex-direction: column;}
 
-        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; }
-        .modal-content { background-color: white; padding: 25px; border-radius: 8px; width: 400px; max-width: 90%; box-shadow: 0 4px 20px rgba(0,0,0,0.2); max-height: 90vh; overflow-y: auto;}
+        .modal { display: none; position: fixed; z-index: 2000; left: 0; top: 0; width: 100%; height: 100%; background-color: rgba(0,0,0,0.6); align-items: center; justify-content: center; backdrop-filter: blur(3px);}
+        .modal-content { background-color: white; padding: 25px; border-radius: 8px; width: 400px; max-width: 90%; box-shadow: 0 10px 30px rgba(0,0,0,0.3); max-height: 90vh; overflow-y: auto;}
         .modal-content.large { width: 900px; max-width: 95%; } 
         .modal h3 { margin-top: 0; color: var(--primary); border-bottom: 2px solid #eee; padding-bottom: 10px; }
         .modal input { width: 100%; padding: 10px; margin: 8px 0 15px 0; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
@@ -56,25 +60,36 @@
         .inline-input { border: 1px solid #aaa; padding: 6px; border-radius: 4px; text-align: center; font-size: 14px; width: 90%; }
         
         .action-bar { display: flex; gap: 5px; justify-content: flex-end; }
-        .upload-box { border: 1px dashed #ccc; padding: 10px; border-radius: 5px; margin-bottom: 10px; background: #fdfdfd; }
-        .upload-box label { font-size: 13px; font-weight: bold; color: #333; display: block; margin-bottom: 5px;}
-        .upload-box input[type="file"] { margin: 0; padding: 5px; background: white; }
+        .upload-box { border: 1px dashed #ccc; padding: 15px; border-radius: 5px; margin-bottom: 15px; background: #fdfdfd; transition: 0.3s;}
+        .upload-box:hover { border-color: var(--primary); background: #f4f8ff; }
+        .upload-box label { font-size: 13px; font-weight: bold; color: #333; display: block; margin-bottom: 8px;}
+        .upload-box input[type="file"] { margin: 0; padding: 5px; background: white; width: 100%; box-sizing: border-box;}
         
         .file-online-link { display: inline-block; background: #e7f3ff; color: #0056b3; padding: 8px 12px; border-radius: 5px; text-decoration: none; font-weight: bold; font-size: 13px; margin-bottom: 8px; border: 1px solid #b3d7ff; transition: 0.2s; box-sizing: border-box;}
-        .file-online-link:hover { background: #0056b3; color: white; }
+        .file-online-link:hover { background: #0056b3; color: white; border-color: #0056b3;}
         
-        #batchToolbar { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 10px 15px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        #batchToolbar { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+
+        /* 🟢 CSS MỚI CHO FOOTER BẢN QUYỀN */
+        .site-footer { background-color: #e9ecef; border-top: 1px solid #dee2e6; padding: 15px 20px; text-align: center; font-size: 13px; color: #6c757d; margin-top: auto; line-height: 1.6;}
+        .site-footer b { color: var(--primary); font-size: 14px; display: block; margin-bottom: 3px;}
+        .version-tag { background: #6c757d; color: white; padding: 2px 6px; border-radius: 12px; font-size: 11px; margin-left: 5px;}
     </style>
 </head>
 <body>
 
-<div id="loading" class="loading-overlay">ĐANG XỬ LÝ DỮ LIỆU... VUI LÒNG ĐỢI</div>
+<div id="loading" class="loading-overlay">
+    <div style="font-size: 40px; margin-bottom: 15px;">⏳</div>
+    ĐANG XỬ LÝ DỮ LIỆU... VUI LÒNG ĐỢI
+</div>
 
 <input type="file" id="fileNopKhoa" style="display:none" accept=".doc,.docx" onchange="xuLyNopFileKhoa()">
 
 <nav class="navbar">
     <div class="navbar-left">
-        <div style="font-size: 18px; font-weight: bold; margin-right: 30px;">🏥 BV ĐK KHÁNH HÒA</div>
+        <img src="logo.jpg" alt="Logo BVĐK Khánh Hòa" class="logo-img" onerror="this.src='https://cdn-icons-png.flaticon.com/512/803/803087.png'">
+        <div style="font-size: 19px; font-weight: bold; margin-right: 30px; letter-spacing: 0.5px;">BVĐK KHÁNH HÒA</div>
+        
         <div class="dropdown">
             <button class="dropbtn">QUY TRÌNH KỸ THUẬT ▼</button>
             <div class="dropdown-content">
@@ -100,13 +115,13 @@
         </div>
     </div>
     <div id="navAuthArea" style="font-size: 14px;">
-        <button class="btn" style="background: white; color: var(--primary); padding: 5px 15px;" onclick="moModal('loginModal')">Đăng nhập</button>
+        <button class="btn" style="background: white; color: var(--primary); padding: 8px 20px; font-size: 13px;" onclick="moModal('loginModal')">Đăng nhập</button>
     </div>
 </nav>
 
 <div class="container">
     <div class="header-info">
-        <h2 id="tabTitle" style="margin:0">DANH MỤC PHỤ LỤC 1</h2>
+        <h2 id="tabTitle" style="margin:0; color: #333;">DANH MỤC PHỤ LỤC 1</h2>
         <small id="tabDesc" style="font-size: 14px; color: #666;">Hệ thống tra cứu quy trình và phân loại kỹ thuật</small>
     </div>
 
@@ -115,9 +130,9 @@
             <b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.
         </div>
         <div>
-            <button id="btnStartBatch" class="btn" style="background: var(--purple); font-size:13px; padding: 8px 12px;" onclick="toggleMultiSelect(true)">📄 Tải / Cập nhật QĐ & BB họp HĐ KHKT</button>
-            <button id="btnConfirmBatch" class="btn" style="background: var(--success); font-size:13px; padding: 8px 12px; display:none;" onclick="moModalBatch()">✅ Xác nhận Chọn</button>
-            <button id="btnCancelBatch" class="btn" style="background: var(--danger); font-size:13px; padding: 8px 12px; display:none;" onclick="toggleMultiSelect(false)">❌ Hủy</button>
+            <button id="btnStartBatch" class="btn" style="background: var(--purple); font-size:13px; padding: 8px 15px;" onclick="toggleMultiSelect(true)">📄 Tải / Cập nhật QĐ & BB họp HĐ KHKT</button>
+            <button id="btnConfirmBatch" class="btn" style="background: var(--success); font-size:13px; padding: 8px 15px; display:none;" onclick="moModalBatch()">✅ Xác nhận Chọn</button>
+            <button id="btnCancelBatch" class="btn" style="background: var(--danger); font-size:13px; padding: 8px 15px; display:none;" onclick="toggleMultiSelect(false)">❌ Hủy</button>
         </div>
     </div>
 
@@ -157,14 +172,19 @@
     </div>
 </div>
 
+<footer class="site-footer">
+    <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
+</footer>
+
 <div id="loginModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
-        <h3>Đăng Nhập Hệ Thống</h3>
-        <input type="text" id="username" placeholder="Tài khoản...">
-        <input type="password" id="password" placeholder="Mật khẩu">
-        <button class="btn" style="width:100%; background:var(--primary); font-size: 14px; padding: 10px;" onclick="xuLyDangNhap()">Đăng Nhập</button>
-        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:10px; text-align:center;"></p>
+        <h3 style="text-align: center; margin-bottom: 20px;">Đăng Nhập Hệ Thống</h3>
+        <input type="text" id="username" placeholder="Tên đăng nhập...">
+        <input type="password" id="password" placeholder="Mật khẩu...">
+        <button class="btn" style="width:100%; background:var(--primary); font-size: 15px; padding: 12px; margin-top: 10px;" onclick="xuLyDangNhap()">Đăng Nhập</button>
+        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:15px; text-align:center; font-weight:bold;"></p>
     </div>
 </div>
 
@@ -208,12 +228,12 @@
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('uploadSinglePdfModal')">&times;</span>
         <h3>Tải lên File PDF Chính thức</h3>
-        <p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload"></b></p>
+        <p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload" style="color: var(--primary);"></b></p>
         <div class="upload-box">
             <label>File QTKT Chính thức đã ký (Chỉ PDF)</label>
             <input type="file" id="fPdfChinhThuc" accept=".pdf">
         </div>
-        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 10px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button>
+        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button>
     </div>
 </div>
 
@@ -221,7 +241,7 @@
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('uploadBatchModal')">&times;</span>
         <h3>Đính kèm Quyết định & Biên bản</h3>
-        <p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount"></b> kỹ thuật đã chọn.</p>
+        <p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount" style="font-size: 16px;"></b> kỹ thuật đã chọn.</p>
         <div class="upload-box">
             <label>1. Quyết định phê duyệt QTKT (PDF/Word)</label>
             <input type="file" id="fQuyetDinhBatch" accept=".pdf,.doc,.docx">
@@ -230,7 +250,7 @@
             <label>2. Biên bản họp Hội đồng KHKT (PDF/Word)</label>
             <input type="file" id="fBienBanBatch" accept=".pdf,.doc,.docx">
         </div>
-        <button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 10px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button>
+        <button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button>
     </div>
 </div>
 
@@ -423,7 +443,6 @@
     
     const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
-    // 🟢 HÀM TIỆN ÍCH: CHUYỂN MÃ TƯƠNG ĐƯƠNG THÀNH MÃ KỸ THUẬT (Ví dụ: "01.0303" -> "1.303")
     function getQtMaFromMaTuongDuong(mtd) {
         if (!mtd) return null;
         let parts = mtd.toString().split('.');
@@ -492,7 +511,6 @@
                 let gYC = item.giaYeuCau ? Number(item.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '';
                 let gNN = item.giaNuocNgoai ? Number(item.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '';
 
-                // 🟢 Tên Dịch vụ BV trở thành Link Clickable
                 let safeTenDV = item.tenDichVu ? item.tenDichVu.replace(/["'`\n\r]/g, "") : "";
                 let safeMaTD = item.maTuongDuong ? item.maTuongDuong.replace(/["'`\n\r]/g, "") : "";
                 let safeMaDV = item.maDichVu ? item.maDichVu.replace(/["'`\n\r]/g, "") : "";
@@ -657,14 +675,12 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
-    // 🟢 HÀM MỚI: XEM CHI TIẾT TỪ GÓC ĐỘ MÃ DỊCH VỤ BỆNH VIỆN (TRA NGƯỢC)
     function moChiTietDV(maDichVu, maTuongDuong, tenDichVu) {
         document.getElementById('dvTenDV').innerText = tenDichVu || '';
         document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
         
-        // 1. Tìm thông tin QTKT gốc (Bảng Phụ Lục 1 / 2)
         let qtktInfo = database.PL1.find(x => x.ma === qtMa || x.maLienKet === qtMa) || 
                        database.PL2.find(x => x.ma === qtMa || x.maLienKet === qtMa);
         
@@ -688,7 +704,6 @@
         }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-        // 2. Tìm thông tin BHYT (TT23)
         let giaDVInfo = database.GiaDV.find(x => x.maTuongDuong === maTuongDuong);
         let bhytHtml = '';
         if (giaDVInfo) {
@@ -703,7 +718,6 @@
         }
         document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
-        // 3 & 4. Tìm các khoa áp dụng & File Phê duyệt
         const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = '';
         let fileHtml = ''; let coBaoCao = false;
 
@@ -739,7 +753,6 @@
         moModal('detailDVModal');
     }
 
-    // 🟢 CHI TIẾT TỪ GÓC ĐỘ QUY TRÌNH KỸ THUẬT (CÓ MỤC 4)
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
         document.getElementById('dtTenQT').innerText = ten || ''; 
         document.getElementById('dtMaQT').innerText = ma; 
@@ -800,7 +813,6 @@
             return false;
         }
 
-        // Lọc Giá TT23
         let matchedPrices = database.GiaDV.filter(priceItem => {
             let isNameMatch = false;
             if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') {
@@ -820,7 +832,6 @@
             giaArea.innerHTML = htmlGia;
         } else { giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; }
 
-        // 🟢 Lọc Giá Bệnh Viện (MỤC 4)
         let matchedBVPrices = database.MaDVBV.filter(priceItem => isCodeMatch(priceItem.maTuongDuong, ma));
         
         if (matchedBVPrices.length > 0) {
@@ -931,7 +942,7 @@
                 }
 
                 if (headerRowIndex === -1) {
-                    alert("Không tìm thấy dòng Tiêu đề chuẩn (Mã dịch vụ, Mã kỹ thuật...). Hãy đảm bảo file Excel đúng định dạng!");
+                    alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!");
                     showLoading(false);
                     return;
                 }
