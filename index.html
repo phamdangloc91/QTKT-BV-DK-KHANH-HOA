@@ -266,6 +266,38 @@
     </div>
 </div>
 
+<div id="detailDVModal" class="modal">
+    <div class="modal-content large">
+        <span class="close-btn" onclick="dongModal('detailDVModal')">&times;</span>
+        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN DỊCH VỤ BỆNH VIỆN</h3>
+        <h4 id="dvTenDV" style="color: var(--info); margin-top: 5px;"></h4>
+        <p style="font-size: 14px;">Mã Dịch vụ BV: <b id="dvMaDV"></b></p>
+
+        <div style="margin-top: 15px; background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #ccc;">
+            <b style="color: #333;">1. Quy trình Kỹ thuật liên kết (Theo Mã Tương đương):</b>
+            <div id="dvQTKTArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+
+        <div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
+            <b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b>
+            <div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <b>3. Các khoa đăng ký áp dụng Quy trình này:</b>
+            <table class="user-table" style="margin-top: 5px;">
+                <thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead>
+                <tbody id="dvKhoaBody"></tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;">
+            <b>4. Tài liệu Phê duyệt Chính thức (Của Quy trình liên kết):</b>
+            <div id="dvFilesArea" style="margin-top: 10px; font-size: 14px; line-height: 1.6;"></div>
+        </div>
+    </div>
+</div>
+
 <script>
     let currentTab = 'PL1';
     let database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
@@ -379,15 +411,31 @@
         showLoading(true);
         try {
             const resData = await fetch('/api/data'); const mainData = await resData.json(); 
-            database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || []; database.GiaDV = mainData.GiaDV || []; database.MaDVBV = mainData.MaDVBV || []; 
+            database.PL1 = mainData.PL1 || []; 
+            database.PL2 = mainData.PL2 || []; 
+            database.GiaDV = mainData.GiaDV || []; 
+            database.MaDVBV = mainData.MaDVBV || []; 
             const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
             apDungLoc(); 
         } catch (error) { console.log(error); }
         showLoading(false);
     }
     
-    // 🟢 HÀM NORMALIZE SIÊU SẠCH (Cắt mọi khoảng trắng thừa)
     const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
+
+    // 🟢 HÀM TIỆN ÍCH: CHUYỂN MÃ TƯƠNG ĐƯƠNG THÀNH MÃ KỸ THUẬT (Ví dụ: "01.0303" -> "1.303")
+    function getQtMaFromMaTuongDuong(mtd) {
+        if (!mtd) return null;
+        let parts = mtd.toString().split('.');
+        if (parts.length >= 2) {
+            let a = parseInt(parts[0], 10);
+            let b = parseInt(parts[1], 10);
+            if (!isNaN(a) && !isNaN(b)) {
+                return a + '.' + b;
+            }
+        }
+        return mtd.toString().trim();
+    }
 
     function toggleMultiSelect(state) {
         isMultiSelectMode = state; selectedTechniques = [];
@@ -423,24 +471,43 @@
         
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            thead.innerHTML = htmlHead;
+            tbody.innerHTML = '';
             list.forEach((item, index) => {
-                const row = tbody.insertRow(); let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
+                const row = tbody.insertRow();
+                let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
                 row.innerHTML = `<td>${index + 1}</td><td><b>${item.maTuongDuong || ''}</b></td><td>${item.tenKyThuat || ''}</td><td>${item.tenDichVu || ''}</td><td style="color:red; font-weight:bold; text-align:right;">${formattedPrice}</td>`;
-            }); return;
+            });
+            return;
         }
 
         if (currentTab === 'MaDVBV') {
-            htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
+            thead.innerHTML = htmlHead;
+            tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
                 let gVP = item.giaVienPhi ? Number(item.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '';
                 let gYC = item.giaYeuCau ? Number(item.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '';
                 let gNN = item.giaNuocNgoai ? Number(item.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '';
-                row.innerHTML = `<td>${index + 1}</td><td><b>${item.maDichVu || ''}</b></td><td>${item.maTuongDuong || ''}</td><td>${item.tenDichVu || ''}</td><td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td><td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td><td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td><td style="color:red; text-align:right; font-weight:bold;">${gNN}</td>`;
-            }); return;
+
+                // 🟢 Tên Dịch vụ BV trở thành Link Clickable
+                let safeTenDV = item.tenDichVu ? item.tenDichVu.replace(/["'`\n\r]/g, "") : "";
+                let safeMaTD = item.maTuongDuong ? item.maTuongDuong.replace(/["'`\n\r]/g, "") : "";
+                let safeMaDV = item.maDichVu ? item.maDichVu.replace(/["'`\n\r]/g, "") : "";
+                let tenClickable = `<a href="#" onclick="moChiTietDV('${safeMaDV}', '${safeMaTD}', '${safeTenDV}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.tenDichVu || ''}</a>`;
+
+                row.innerHTML = `<td>${index + 1}</td>
+                                 <td><b>${item.maDichVu || ''}</b></td>
+                                 <td>${item.maTuongDuong || ''}</td>
+                                 <td>${tenClickable}</td>
+                                 <td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td>
+                                 <td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td>
+                                 <td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td>
+                                 <td style="color:red; text-align:right; font-weight:bold;">${gNN}</td>`;
+            });
+            return;
         }
 
         if (isMultiSelectMode) htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
@@ -590,6 +657,89 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
+    // 🟢 HÀM MỚI: XEM CHI TIẾT TỪ GÓC ĐỘ MÃ DỊCH VỤ BỆNH VIỆN (TRA NGƯỢC)
+    function moChiTietDV(maDichVu, maTuongDuong, tenDichVu) {
+        document.getElementById('dvTenDV').innerText = tenDichVu || '';
+        document.getElementById('dvMaDV').innerText = maDichVu || '';
+        
+        let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
+        
+        // 1. Tìm thông tin QTKT gốc (Bảng Phụ Lục 1 / 2)
+        let qtktInfo = database.PL1.find(x => x.ma === qtMa || x.maLienKet === qtMa) || 
+                       database.PL2.find(x => x.ma === qtMa || x.maLienKet === qtMa);
+        
+        if (!qtktInfo) {
+            for (let d of database.depts) {
+                let found = d.danhMucQTKT.find(x => x.ma === qtMa || x.maLienKet === qtMa);
+                if (found) { qtktInfo = found; break; }
+            }
+        }
+
+        let qtHtml = '';
+        if (qtktInfo) {
+            qtHtml = `<table class="user-table" style="width:100%;">
+                <tr><td style="background:#f2f2f2; width:30%;"><b>Mã kỹ thuật:</b></td><td>${qtktInfo.ma || qtktInfo.maLienKet || ''}</td></tr>
+                <tr><td style="background:#f2f2f2;"><b>Tên QTKT:</b></td><td>${qtktInfo.ten || ''}</td></tr>
+                <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
+                <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
+            </table>`;
+        } else {
+            qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`;
+        }
+        document.getElementById('dvQTKTArea').innerHTML = qtHtml;
+
+        // 2. Tìm thông tin BHYT (TT23)
+        let giaDVInfo = database.GiaDV.find(x => x.maTuongDuong === maTuongDuong);
+        let bhytHtml = '';
+        if (giaDVInfo) {
+            let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
+            bhytHtml = `<table class="user-table" style="width:100%;">
+                <tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr>
+                <tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr>
+                <tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr>
+            </table>`;
+        } else {
+            bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`;
+        }
+        document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
+
+        // 3 & 4. Tìm các khoa áp dụng & File Phê duyệt
+        const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = '';
+        let fileHtml = ''; let coBaoCao = false;
+
+        if (qtMa) {
+            database.depts.forEach(d => {
+                const qt = d.danhMucQTKT.find(x => x.ma === qtMa || x.maLienKet === qtMa);
+                if(qt) {
+                    coBaoCao = true;
+                    let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+                    let ttStr = "Chưa nộp"; let col = "gray";
+                    if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; }
+                    else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; }
+                    else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                    
+                    tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
+
+                    if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                        fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
+                        if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
+                        if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
+                        if(qt.filePdfChinhThuc) {
+                            fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                        }
+                        fileHtml += `</div>`;
+                    }
+                }
+            });
+        }
+        if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký quy trình kỹ thuật liên kết.</td></tr>`;
+        const fileArea = document.getElementById('dvFilesArea');
+        if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Chưa có tài liệu phê duyệt nào.</span>`;
+
+        moModal('detailDVModal');
+    }
+
+    // 🟢 CHI TIẾT TỪ GÓC ĐỘ QUY TRÌNH KỸ THUẬT (CÓ MỤC 4)
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
         document.getElementById('dtTenQT').innerText = ten || ''; 
         document.getElementById('dtMaQT').innerText = ma; 
@@ -619,6 +769,7 @@
                     if(qt.filePdfChinhThuc) {
                         fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;">`;
                         fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                        
                         if (currentUser && currentUser.role === 'admin') {
                             fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${ten.replace(/['"`\n\r]/g, "")}')">🔄 Cập nhật PDF</button>`;
                         }
@@ -649,6 +800,7 @@
             return false;
         }
 
+        // Lọc Giá TT23
         let matchedPrices = database.GiaDV.filter(priceItem => {
             let isNameMatch = false;
             if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') {
@@ -668,6 +820,7 @@
             giaArea.innerHTML = htmlGia;
         } else { giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; }
 
+        // 🟢 Lọc Giá Bệnh Viện (MỤC 4)
         let matchedBVPrices = database.MaDVBV.filter(priceItem => isCodeMatch(priceItem.maTuongDuong, ma));
         
         if (matchedBVPrices.length > 0) {
