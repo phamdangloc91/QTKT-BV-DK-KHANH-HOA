@@ -587,7 +587,7 @@
 
         let canAdd = false; let canRemove = false; let showFileCol = false;
         
-        // 🟢 CẬP NHẬT QUYỀN XÓA (KHOA ĐƯỢC XÓA TRONG TAB CỦA MÌNH NẾU CHƯA FINAL)
+        // 🟢 CẬP NHẬT QUYỀN XÓA KHOA (An toàn tuyệt đối)
         if (currentUser && currentUser.role === 'khoa') { 
             if (!isDeptTab && !isSuperTab) canAdd = true; 
             if (isDeptTab && currentUser.tenKhoa === currentTab) canRemove = true; 
@@ -601,7 +601,6 @@
 
         tbody.innerHTML = ''; let currentKhoaGroup = ""; 
 
-        // Tải giỏ hàng của Khoa hiện tại để dò xem đã Add chưa
         let myDeptCart = [];
         if (currentUser && currentUser.role === 'khoa') {
             const myDept = database.depts.find(d => d.tenKhoa === currentUser.tenKhoa);
@@ -641,7 +640,6 @@
                 html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
             }
             
-            // 🟢 LẤY TRẠNG THÁI ĐỂ XỬ LÝ NÚT XÓA CHO KHOA
             let ttRaw = item.trangThai || 'CHUA_NOP';
             let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
@@ -676,13 +674,12 @@
                 html += `<td>${fileHtml}</td>`;
             }
             
-            // 🟢 LOGIC NÚT THÊM / XÓA CHO KHOA & ADMIN TÍCH HỢP TRẠNG THÁI FINAL
-            if (canAdd) { // Khoa đang đứng ở PL1, PL2
+            // 🟢 TỰ ĐỘNG ĐỔI NÚT XÓA KHI KHOA TÌM KIẾM Ở BẢNG NGOÀI (CÓ KHÓA FINAL)
+            if (canAdd) { 
                 let itemInCart = myDeptCart.find(x => String(x.ma) === String(maHienThi) || String(x.maLienKet) === String(maHienThi));
                 if (itemInCart) {
                     let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP';
                     let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
-                    
                     if (cartStatus === 'DA_PHE_DUYET') {
                         html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
                     } else {
@@ -692,12 +689,10 @@
                     html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
                 }
             }
-            else if (canRemove) { // Khoa đang ở Tab Khoa Của Mình HOẶC Admin đang ở Tab Khoa Bất Kỳ
+            else if (canRemove) { 
                 if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') {
-                    // Khoa không thể xóa bài đã chốt
                     html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
                 } else {
-                    // Admin luôn được xóa. Khoa được xóa nếu bài chưa chốt.
                     html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`;
                 }
             }
@@ -735,7 +730,8 @@
     }
 
     function chuanBiUpSinglePdf(ma, tenKhoa, tenQuyTrinh) {
-        dongModal('detailModal'); dongModal('detailDVModal');
+        dongModal('detailModal'); 
+        dongModal('detailDVModal');
         targetUpload = { ma: ma, tenKhoa: tenKhoa };
         document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadSinglePdfModal');
     }
@@ -885,7 +881,10 @@
             if (parts.length >= 2) {
                 let a = parseInt(parts[0], 10);
                 let b = parseInt(parts[1], 10);
-                if (!isNaN(a) && !isNaN(b)) { let reconstructed = a + '.' + b; if (reconstructed === targetMa.trim()) return true; }
+                if (!isNaN(a) && !isNaN(b)) {
+                    let reconstructed = a + '.' + b; 
+                    if (reconstructed === targetMa.trim()) return true;
+                }
             }
             return false;
         }
