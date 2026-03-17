@@ -70,7 +70,6 @@
         
         #batchToolbar { display: none; background: #fff3cd; border: 1px solid #ffeeba; padding: 12px 20px; border-radius: 8px; margin-bottom: 15px; align-items: center; justify-content: space-between; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
 
-        /* 🟢 CSS MỚI CHO FOOTER BẢN QUYỀN */
         .site-footer { background-color: #e9ecef; border-top: 1px solid #dee2e6; padding: 15px 20px; text-align: center; font-size: 13px; color: #6c757d; margin-top: auto; line-height: 1.6;}
         .site-footer b { color: var(--primary); font-size: 14px; display: block; margin-bottom: 3px;}
         .version-tag { background: #6c757d; color: white; padding: 2px 6px; border-radius: 12px; font-size: 11px; margin-left: 5px;}
@@ -389,10 +388,28 @@
     }
 
     function dangXuat() { localStorage.removeItem('hospital_user'); location.reload(); }
-    async function xuLyDoiMatKhau() { /*...*/ }
-    
+
+    async function xuLyDoiMatKhau() {
+        const oldPwd = document.getElementById('oldPwd').value;
+        const newPwd = document.getElementById('newPwd').value;
+        const confirmPwd = document.getElementById('confirmPwd').value;
+        if(!oldPwd || !newPwd || !confirmPwd) return alert("Vui lòng nhập đủ thông tin!");
+        if(newPwd !== confirmPwd) return alert("Mật khẩu xác nhận không khớp!");
+        
+        showLoading(true);
+        try {
+            const res = await fetch('/api/users/password', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, oldPassword: oldPwd, newPassword: newPwd }) });
+            const data = await res.json(); alert(data.message);
+            if(res.ok) { dongModal('pwdModal'); document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = ''; document.getElementById('confirmPwd').value = ''; }
+        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+    }
+
     async function moQuanLyTaiKhoan() {
         moModal('adminModal');
+        await loadDanhSachTaiKhoan();
+    }
+
+    async function loadDanhSachTaiKhoan() {
         try {
             const res = await fetch('/api/users'); const users = await res.json(); const tbody = document.getElementById('userListBody'); tbody.innerHTML = '';
             users.forEach((u, i) => { 
@@ -408,9 +425,45 @@
             });
         } catch(e) { console.log(e); }
     }
-    async function suaTaiKhoan(id) { /*...*/ }
-    async function xoaTaiKhoan(id, tenKhoa) { /*...*/ }
-    async function taoTaiKhoan() { /*...*/ }
+
+    async function taoTaiKhoan() {
+        const u = document.getElementById('newUsername').value;
+        const p = document.getElementById('newPassword').value;
+        const k = document.getElementById('newTenKhoa').value;
+        if(!u || !p || !k) return alert("Vui lòng nhập đủ thông tin!");
+        
+        let role = k === 'ROLE_ADMIN' ? 'admin' : 'khoa';
+        let tenKhoa = k === 'ROLE_ADMIN' ? 'Phòng Kế hoạch tổng hợp' : k;
+
+        showLoading(true);
+        try {
+            const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p, role: role, tenKhoa: tenKhoa }) });
+            const data = await res.json(); alert(data.message);
+            if(res.ok) { document.getElementById('newUsername').value = ''; document.getElementById('newPassword').value = ''; document.getElementById('newTenKhoa').value = ''; await loadDanhSachTaiKhoan(); }
+        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+    }
+
+    async function suaTaiKhoan(id) {
+        const u = document.getElementById(`edit-user-${id}`).value;
+        const p = document.getElementById(`edit-pass-${id}`).value;
+        if(!u || !p) return alert("Không được để trống tên đăng nhập và mật khẩu!");
+        
+        showLoading(true);
+        try {
+            const res = await fetch('/api/users/admin-update', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, newUsername: u, newPassword: p }) });
+            const data = await res.json(); alert(data.message);
+        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+    }
+
+    async function xoaTaiKhoan(id, tenKhoa) {
+        if(!confirm(`Xác nhận xóa tài khoản của ${tenKhoa}?`)) return;
+        showLoading(true);
+        try {
+            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
+            const data = await res.json(); alert(data.message);
+            if(res.ok) await loadDanhSachTaiKhoan();
+        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+    }
 
     function getAggregatedList(tabName) {
         let result = [];
@@ -489,7 +542,7 @@
         let htmlHead = `<tr>`;
         
         if (currentTab === 'GiaDV') {
-            htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ</th><th>Giá phê duyệt</th></tr>`;
+            htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
             thead.innerHTML = htmlHead;
             tbody.innerHTML = '';
             list.forEach((item, index) => {
@@ -651,6 +704,7 @@
 
     function chuanBiUpSinglePdf(ma, tenKhoa, tenQuyTrinh) {
         dongModal('detailModal'); 
+        dongModal('detailDVModal');
         targetUpload = { ma: ma, tenKhoa: tenKhoa };
         document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadSinglePdfModal');
     }
