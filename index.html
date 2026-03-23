@@ -299,7 +299,7 @@
         </div>
 
         <div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
-            <b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b>
+            <b style="color: #856404;">2. Thông হিংস Dịch vụ BHYT tương đương (TT 23/2024):</b>
             <div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div>
         </div>
 
@@ -540,20 +540,41 @@
         const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
         let htmlHead = `<tr>`;
         
+        // 🟢 CẬP NHẬT TAB GIÁ DỊCH VỤ CÓ THỂ CLICK VÀO TÊN KỸ THUẬT
         if (currentTab === 'GiaDV') {
-            htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
+            thead.innerHTML = htmlHead;
+            tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
-                row.innerHTML = `<td>${index + 1}</td><td><b>${item.maTuongDuong || ''}</b></td><td>${item.tenKyThuat || ''}</td><td>${item.tenDichVu || ''}</td><td style="color:red; font-weight:bold; text-align:right;">${formattedPrice}</td>`;
+                
+                let qtMa = getQtMaFromMaTuongDuong(item.maTuongDuong);
+                let qtktInfo = database.PL1.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa)) || 
+                               database.PL2.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
+                if (!qtktInfo) {
+                    for (let d of database.depts) {
+                        let found = d.danhMucQTKT.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
+                        if (found) { qtktInfo = found; break; }
+                    }
+                }
+
+                let safeTenKT = item.tenKyThuat ? item.tenKyThuat.replace(/["'`\n\r]/g, "") : "";
+                let safePL = qtktInfo && qtktInfo.phanLoai ? qtktInfo.phanLoai.replace(/["'`\n\r]/g, "") : "";
+                let safeQD = qtktInfo && qtktInfo.quyetDinh ? qtktInfo.quyetDinh.replace(/["'`\n\r]/g, "") : "";
+                let maPass = qtktInfo ? (qtktInfo.ma || qtktInfo.maLienKet) : qtMa;
+
+                let tenClickable = `<a href="#" onclick="moChiTiet('${maPass}', '${safeTenKT}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.tenKyThuat || ''}</a>`;
+
+                row.innerHTML = `<td>${index + 1}</td><td><b>${item.maTuongDuong || ''}</b></td><td>${tenClickable}</td><td>${item.tenDichVu || ''}</td><td style="color:red; font-weight:bold; text-align:right;">${formattedPrice}</td>`;
             });
             return;
         }
 
         if (currentTab === 'MaDVBV') {
             htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            thead.innerHTML = htmlHead;
+            tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
@@ -587,7 +608,6 @@
 
         let canAdd = false; let canRemove = false; let showFileCol = false;
         
-        // 🟢 CẬP NHẬT QUYỀN XÓA KHOA (An toàn tuyệt đối)
         if (currentUser && currentUser.role === 'khoa') { 
             if (!isDeptTab && !isSuperTab) canAdd = true; 
             if (isDeptTab && currentUser.tenKhoa === currentTab) canRemove = true; 
@@ -674,7 +694,6 @@
                 html += `<td>${fileHtml}</td>`;
             }
             
-            // 🟢 TỰ ĐỘNG ĐỔI NÚT XÓA KHI KHOA TÌM KIẾM Ở BẢNG NGOÀI (CÓ KHÓA FINAL)
             if (canAdd) { 
                 let itemInCart = myDeptCart.find(x => String(x.ma) === String(maHienThi) || String(x.maLienKet) === String(maHienThi));
                 if (itemInCart) {
@@ -761,6 +780,7 @@
         document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
+        
         let qtktInfo = database.PL1.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa)) || 
                        database.PL2.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
         
@@ -779,7 +799,9 @@
                 <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
             </table>`;
-        } else { qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; }
+        } else {
+            qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`;
+        }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
         let giaDVInfo = database.GiaDV.find(x => String(x.maTuongDuong) === String(maTuongDuong));
@@ -791,7 +813,9 @@
                 <tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr>
             </table>`;
-        } else { bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; }
+        } else {
+            bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`;
+        }
         document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
         const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = '';
