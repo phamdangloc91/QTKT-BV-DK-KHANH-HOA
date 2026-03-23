@@ -178,7 +178,6 @@
                 <option value="">-- Tất cả quyết định --</option>
             </select>
         </div>
-        
         <div class="filter-group" id="groupNamDT" style="display: none;">
             <label style="color:var(--danger);">* NĂM ĐÀO TẠO</label>
             <select id="filterNamDT" onchange="apDungLoc()" style="border: 2px solid var(--danger);">
@@ -435,7 +434,7 @@
         showLoading(false);
     }
     
-    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT (NFC) ĐỂ QUÉT TỪ KHÓA CHÍNH XÁC 100%
+    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT
     const normalize = (t) => t ? t.toString().normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function getQtMaFromMaTuongDuong(mtd) {
@@ -466,7 +465,6 @@
         const isSuperTab = currentTab.startsWith('KHTH_');
         let list = [];
         
-        // 🟢 BẢNG HIỂN THỊ ĐÀO TẠO NGẮN HẠN (ROWSPAN)
         if (currentTabType === 'DTNH') {
             if (data) { list = data; } 
             else { 
@@ -479,7 +477,7 @@
             let htmlHead = `<tr>
                 <th style="width:40px; text-align:center;">STT</th>
                 <th style="width:25%">Nội dung đào tạo</th>
-                <th style="width:25%">Kỹ thuật cụ thể</th>
+                <th style="width:25%">Kỹ thuật cụ thể (Click xem liên kết QTKT)</th>
                 <th>Thời gian</th>
                 <th style="text-align:center;" title="Cử nhân Sinh học">CN.SH</th>
                 <th style="text-align:center;" title="Nữ hộ sinh">NHS</th>
@@ -495,7 +493,6 @@
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 
-                // Thuật toán kiểm tra số dòng cần Gộp (Rowspan)
                 let isFirst = false;
                 let rowspan = 1;
                 if (index === 0 || item.groupId !== list[index - 1].groupId) {
@@ -506,11 +503,31 @@
                     }
                 }
 
+                // 🟢 THUẬT TOÁN LIÊN KẾT: TÌM KỸ THUẬT CỤ THỂ TRONG PL1/PL2
+                let kyThuatHtml = item.kyThuat || '';
+                if (item.kyThuat && item.kyThuat.trim() !== '') {
+                    let normName = normalize(item.kyThuat);
+                    let matchedQT = database.PL1.find(x => normalize(x.ten) === normName) || 
+                                    database.PL2.find(x => normalize(x.ten) === normName);
+                    
+                    if (matchedQT) {
+                        let safeTen = matchedQT.ten ? matchedQT.ten.replace(/["'`\n\r]/g, "") : "";
+                        let safePL = matchedQT.phanLoai ? matchedQT.phanLoai.replace(/["'`\n\r]/g, "") : "";
+                        let safeQD = matchedQT.quyetDinh ? matchedQT.quyetDinh.replace(/["'`\n\r]/g, "") : "";
+                        let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
+                        
+                        kyThuatHtml = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${item.kyThuat}</a>`;
+                    } else {
+                        // Nếu không trùng khớp, chỉ bôi đậm như bình thường
+                        kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${item.kyThuat}</span>`;
+                    }
+                }
+
                 if (isFirst) {
                     row.innerHTML = `
                         <td rowspan="${rowspan}" style="text-align:center; font-weight:bold; background-color: white; border-right: 1px solid #eee;">${sttCounter++}</td>
                         <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;">${item.noiDung || ''}</td>
-                        <td style="color:var(--primary); font-weight:bold;">${item.kyThuat || ''}</td>
+                        <td>${kyThuatHtml}</td>
                         <td rowspan="${rowspan}" style="background-color: white; text-align:center; border-left: 1px solid #eee; border-right: 1px solid #eee;">${item.thoiGian || ''}</td>
                         <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;">${item.cns || ''}</td>
                         <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;">${item.nhs || ''}</td>
@@ -521,8 +538,7 @@
                         <td rowspan="${rowspan}" style="text-align:right; font-weight:bold; color:var(--success); background-color: white;">${item.kinhPhi || ''}</td>
                     `;
                 } else {
-                    // Dòng dưới của ô gộp chỉ cần in 1 cột kỹ thuật
-                    row.innerHTML = `<td style="color:var(--primary); font-weight:bold;">${item.kyThuat || ''}</td>`;
+                    row.innerHTML = `<td>${kyThuatHtml}</td>`;
                 }
             });
             return;
@@ -952,7 +968,6 @@
         apDungLoc(); 
     }
     
-    // 🟢 THUẬT TOÁN ĐỌC EXCEL THÔNG MINH MỚI (Tự Fill-down Merge Cells & Đọc Unicode NFC)
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; 
 
@@ -1129,7 +1144,6 @@
     
     function jumpToPL1(ma) { if(!ma) return; switchTab('PL1', 'QTKT'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     
-    // 🟢 CẬP NHẬT CHỨC NĂNG XUẤT EXCEL (Giữ nguyên form giống View HTML)
     function exportToExcel() { 
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
