@@ -96,6 +96,13 @@
         .site-footer { background-color: #e9ecef; border-top: 1px solid #dee2e6; padding: 15px 20px; text-align: center; font-size: 13px; color: #6c757d; margin-top: auto; line-height: 1.6;}
         .site-footer b { color: var(--primary); font-size: 14px; display: block; margin-bottom: 3px;}
         .version-tag { background: #6c757d; color: white; padding: 2px 6px; border-radius: 12px; font-size: 11px; margin-left: 5px;}
+
+        /* 🟢 CSS CHO TÍNH NĂNG INLINE EDITING VÀ GỢI Ý */
+        .editable-cell { padding: 4px; min-height: 20px; outline: none; border-radius: 3px; transition: 0.2s; word-wrap: break-word; }
+        .editable-cell[contenteditable="true"]:hover { background-color: #fff9c4; cursor: text; box-shadow: inset 0 0 0 1px #ffeb3b; }
+        .editable-cell[contenteditable="true"]:focus { background-color: #fff; box-shadow: inset 0 0 0 2px var(--primary); }
+        .suggestion-box { font-size: 11px; color: #ff9800; margin-top: 6px; display: block; background: #fff3cd; padding: 4px 6px; border-radius: 4px; border: 1px solid #ffeeba; }
+        .suggestion-btn { color: var(--primary); cursor: pointer; text-decoration: underline; background: none; border: none; padding: 0; font: inherit; font-weight: bold; text-align: left; }
     </style>
 </head>
 <body>
@@ -191,6 +198,7 @@
         </div>
         
         <div class="action-bar" id="userActionBar" style="display:none;">
+            <button id="btnSaveDTNH" class="btn" style="background:var(--warning); color:black; font-size: 14px; padding: 10px 15px; display:none;" onclick="saveDTNH()">💾 Lưu Bảng</button>
             <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="exportToExcel()">📥 Xuất Excel</button>
             <button id="btnNhapExcel" class="btn" style="background:#17a2b8; font-size: 14px; padding: 10px 15px;" onclick="document.getElementById('fileExcel').click()">📤 Nhập File Excel</button>
             <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls, .csv">
@@ -228,6 +236,9 @@
     let targetUpload = { ma: null, tenKhoa: null }; 
     let isMultiSelectMode = false; 
     let selectedTechniques = []; 
+
+    // 🟢 KHO TỪ KHÓA ĐỂ AI TỰ ĐỘNG GỢI Ý (FUZZY MATCH)
+    let plKeywords = [];
 
     const DANH_SACH_KHOA = [
         "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
@@ -423,19 +434,59 @@
         result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); return result;
     }
 
+    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT
+    const normalize = (t) => t ? t.toString().normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
+
+    // 🟢 CHUẨN BỊ KHO TỪ KHÓA CHO AI
+    function prepareKeywords() {
+        plKeywords = [...database.PL1, ...database.PL2].map(x => {
+            return {
+                ten: x.ten,
+                words: new Set(normalize(x.ten).split(" ").filter(Boolean))
+            };
+        });
+    }
+
+    // 🟢 AI GỢI Ý TỪ KHÓA (JACCARD SIMILARITY > 65%)
+    function getSuggestion(kyThuat) {
+        if (!kyThuat) return null;
+        let wordsKT = new Set(normalize(kyThuat).split(" ").filter(Boolean));
+        if (wordsKT.size === 0) return null;
+
+        let bestMatch = null;
+        let maxScore = 0;
+
+        for(let pl of plKeywords) {
+            let intersection = 0;
+            for(let w of wordsKT) { if(pl.words.has(w)) intersection++; }
+            let union = wordsKT.size + pl.words.size - intersection;
+            let score = intersection / union;
+            
+            if(score > maxScore) { maxScore = score; bestMatch = pl.ten; }
+        }
+        return (maxScore >= 0.65) ? bestMatch : null; 
+    }
+
+    // 🟢 XỬ LÝ CLICK GỢI Ý
+    function acceptSuggestion(btn) {
+        let suggestedText = btn.getAttribute('data-suggestion');
+        let td = btn.closest('td');
+        let cell = td.querySelector('.editable-cell');
+        cell.innerText = suggestedText;
+        btn.closest('.suggestion-box').remove();
+    }
+
     async function layDuLieu() {
         showLoading(true);
         try {
             const resData = await fetch('/api/data'); const mainData = await resData.json(); 
             database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || []; database.GiaDV = mainData.GiaDV || []; database.MaDVBV = mainData.MaDVBV || []; 
             const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
+            prepareKeywords(); // Khởi tạo kho AI
             apDungLoc(); 
         } catch (error) { console.log(error); }
         showLoading(false);
     }
-    
-    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT
-    const normalize = (t) => t ? t.toString().normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function getQtMaFromMaTuongDuong(mtd) {
         if (!mtd) return null; let parts = mtd.toString().split('.');
@@ -460,11 +511,74 @@
         else { selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma)); }
     }
 
+    // 🟢 HÀM LƯU CHỈNH SỬA TRỰC TIẾP
+    async function saveDTNH() {
+        const selectedYear = document.getElementById('filterNamDT').value;
+        if (!selectedYear) return alert("Vui lòng chọn Năm đào tạo!");
+        
+        let savedData = [];
+        let rows = document.getElementById('dataBody').rows;
+        let currentGroupId = 0;
+        let cNoiDung="", cThoiGian="", cCNS="", cNHS="", cKTV="", cDD="", cBS="", cDonVi="", cKinhPhi="";
+        
+        for(let i=0; i < rows.length; i++) {
+            let cells = rows[i].cells;
+            let kyThuat = "";
+            if (cells.length > 2) {
+                currentGroupId++;
+                cNoiDung = cells[1].querySelector('.editable-cell').innerText.trim();
+                kyThuat = cells[2].querySelector('.editable-cell').innerText.trim();
+                cThoiGian = cells[3].querySelector('.editable-cell').innerText.trim();
+                cCNS = cells[4].querySelector('.editable-cell').innerText.trim();
+                cNHS = cells[5].querySelector('.editable-cell').innerText.trim();
+                cKTV = cells[6].querySelector('.editable-cell').innerText.trim();
+                cDD = cells[7].querySelector('.editable-cell').innerText.trim();
+                cBS = cells[8].querySelector('.editable-cell').innerText.trim();
+                cDonVi = cells[9].querySelector('.editable-cell').innerText.trim();
+                cKinhPhi = cells[10].querySelector('.editable-cell').innerText.trim();
+            } else {
+                kyThuat = cells[0].querySelector('.editable-cell').innerText.trim();
+            }
+            
+            if(!cNoiDung && !kyThuat) continue;
+
+            savedData.push({
+                groupId: currentGroupId,
+                nam: selectedYear,
+                noiDung: cNoiDung,
+                kyThuat: kyThuat,
+                thoiGian: cThoiGian,
+                cns: cCNS,
+                nhs: cNHS,
+                ktv: cKTV,
+                dd: cDD,
+                bs: cBS,
+                donVi: cDonVi,
+                kinhPhi: cKinhPhi
+            });
+        }
+
+        let payloadByKhoa = {}; payloadByKhoa[currentTab] = savedData;
+
+        showLoading(true);
+        try {
+            const response = await fetch('/api/upload-dtnh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: payloadByKhoa, year: selectedYear }) }); 
+            const result = await response.json(); 
+            alert("✅ Đã lưu chỉnh sửa thành công!"); 
+            await layDuLieu(); 
+        } catch (error) { alert("Lỗi lưu dữ liệu."); console.error(error); } finally { showLoading(false); }
+    }
+
     function renderTable(data = null) {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
         let list = [];
         
+        let canEdit = false;
+        if (currentUser && currentUser.role === 'admin') canEdit = true;
+        if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) canEdit = true;
+
+        // BẢNG HIỂN THỊ ĐÀO TẠO NGẮN HẠN
         if (currentTabType === 'DTNH') {
             if (data) { list = data; } 
             else { 
@@ -493,20 +607,21 @@
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 
-                let isFirst = false;
-                let rowspan = 1;
+                let isFirst = false; let rowspan = 1;
                 if (index === 0 || item.groupId !== list[index - 1].groupId) {
                     isFirst = true;
                     for (let j = index + 1; j < list.length; j++) {
-                        if (list[j].groupId === item.groupId) rowspan++;
-                        else break;
+                        if (list[j].groupId === item.groupId) rowspan++; else break;
                     }
                 }
 
-                // 🟢 THUẬT TOÁN LIÊN KẾT: TÌM KỸ THUẬT CỤ THỂ TRONG PL1/PL2
-                let kyThuatHtml = item.kyThuat || '';
-                if (item.kyThuat && item.kyThuat.trim() !== '') {
-                    let normName = normalize(item.kyThuat);
+                // 🟢 THUẬT TOÁN LIÊN KẾT VÀ GỢI Ý MỜ
+                let kyThuatHtml = '';
+                let suggestionHtml = '';
+                let rawKT = item.kyThuat || '';
+
+                if (rawKT.trim() !== '') {
+                    let normName = normalize(rawKT);
                     let matchedQT = database.PL1.find(x => normalize(x.ten) === normName) || 
                                     database.PL2.find(x => normalize(x.ten) === normName);
                     
@@ -516,29 +631,36 @@
                         let safeQD = matchedQT.quyetDinh ? matchedQT.quyetDinh.replace(/["'`\n\r]/g, "") : "";
                         let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
                         
-                        kyThuatHtml = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${item.kyThuat}</a>`;
+                        kyThuatHtml = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
                     } else {
-                        // Nếu không trùng khớp, chỉ bôi đậm như bình thường
-                        kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${item.kyThuat}</span>`;
+                        kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${rawKT}</span>`;
+                        // Nếu đang trong chế độ chỉnh sửa, chạy AI gợi ý
+                        if (canEdit) {
+                            let suggested = getSuggestion(rawKT);
+                            if (suggested) {
+                                let safeSug = suggested.replace(/"/g, '&quot;');
+                                suggestionHtml = `<div class="suggestion-box">💡 Ý bạn là: <button class="suggestion-btn" data-suggestion="${safeSug}" onclick="acceptSuggestion(this)">${suggested}</button>?</div>`;
+                            }
+                        }
                     }
                 }
 
                 if (isFirst) {
                     row.innerHTML = `
                         <td rowspan="${rowspan}" style="text-align:center; font-weight:bold; background-color: white; border-right: 1px solid #eee;">${sttCounter++}</td>
-                        <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;">${item.noiDung || ''}</td>
-                        <td>${kyThuatHtml}</td>
-                        <td rowspan="${rowspan}" style="background-color: white; text-align:center; border-left: 1px solid #eee; border-right: 1px solid #eee;">${item.thoiGian || ''}</td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;">${item.cns || ''}</td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;">${item.nhs || ''}</td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;">${item.ktv || ''}</td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;">${item.dd || ''}</td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:red; font-weight:bold; background-color: white; border-right: 1px solid #eee;">${item.bs || ''}</td>
-                        <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;">${item.donVi || ''}</td>
-                        <td rowspan="${rowspan}" style="text-align:right; font-weight:bold; color:var(--success); background-color: white;">${item.kinhPhi || ''}</td>
+                        <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.noiDung || ''}</div></td>
+                        <td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td>
+                        <td rowspan="${rowspan}" style="background-color: white; text-align:center; border-left: 1px solid #eee; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.thoiGian || ''}</div></td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.cns || ''}</div></td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.nhs || ''}</div></td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.ktv || ''}</div></td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.dd || ''}</div></td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:red; font-weight:bold; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.bs || ''}</div></td>
+                        <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.donVi || ''}</div></td>
+                        <td rowspan="${rowspan}" style="text-align:right; font-weight:bold; color:var(--success); background-color: white;"><div class="editable-cell" contenteditable="${canEdit}">${item.kinhPhi || ''}</div></td>
                     `;
                 } else {
-                    row.innerHTML = `<td>${kyThuatHtml}</td>`;
+                    row.innerHTML = `<td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td>`;
                 }
             });
             return;
@@ -614,17 +736,17 @@
         else if (currentTab === 'PL1' || isDeptTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
         else htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
 
-        let canAdd = false; let canRemove = false; let showFileCol = false;
+        let canAddPL = false; let canRemovePL = false; let showFileCol = false;
         
         if (currentUser && currentUser.role === 'khoa') { 
-            if (!isDeptTab && !isSuperTab) canAdd = true; 
-            if (isDeptTab && currentUser.tenKhoa === currentTab) canRemove = true; 
+            if (!isDeptTab && !isSuperTab) canAddPL = true; 
+            if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; 
         }
-        if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemove = true; 
+        if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemovePL = true; 
         if (isDeptTab || isSuperTab) showFileCol = true; 
 
         if (showFileCol) htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`;
-        if (canAdd || canRemove) htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`;
+        if (canAddPL || canRemovePL) htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`;
         htmlHead += `</tr>`; thead.innerHTML = htmlHead;
 
         tbody.innerHTML = ''; let currentKhoaGroup = ""; 
@@ -702,7 +824,7 @@
                 html += `<td>${fileHtml}</td>`;
             }
             
-            if (canAdd) { 
+            if (canAddPL) { 
                 let itemInCart = myDeptCart.find(x => String(x.ma) === String(maHienThi) || String(x.maLienKet) === String(maHienThi));
                 if (itemInCart) {
                     let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP';
@@ -716,7 +838,7 @@
                     html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
                 }
             }
-            else if (canRemove) { 
+            else if (canRemovePL) { 
                 if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') {
                     html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
                 } else {
@@ -910,7 +1032,16 @@
                 return matchSearch && matchYear;
             });
             renderTable(filtered);
+            
+            // Hiện nút Save nếu có quyền
+            if(currentUser && (currentUser.role === 'admin' || currentUser.tenKhoa === currentTab)) {
+                document.getElementById('btnSaveDTNH').style.display = 'inline-block';
+            } else {
+                document.getElementById('btnSaveDTNH').style.display = 'none';
+            }
             return;
+        } else {
+            document.getElementById('btnSaveDTNH').style.display = 'none';
         }
 
         if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
@@ -967,182 +1098,6 @@
         document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; document.getElementById('filterNamDT').value = "";
         apDungLoc(); 
     }
-    
-    async function importFromExcel() { 
-        const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; 
-
-        if (currentTabType === 'DTNH') {
-            const selectedYear = document.getElementById('filterNamDT').value;
-            if (!selectedYear) {
-                alert("⚠️ VUI LÒNG CHỌN [NĂM ĐÀO TẠO] Ở THANH TÌM KIẾM PHÍA TRÊN TRƯỚC KHI TẢI FILE LÊN!");
-                fileInput.value = ''; return;
-            }
-        }
-
-        showLoading(true); 
-        const reader = new FileReader(); 
-        reader.onload = async function(e) { 
-            try { 
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); 
-                
-                if (currentTabType === 'DTNH') {
-                    const selectedYear = document.getElementById('filterNamDT').value;
-                    let headerRowIndex = -1;
-                    
-                    for (let i = 0; i < Math.min(1000, rawData.length); i++) {
-                        let rowData = rawData[i]; if(!rowData || rowData.length === 0) continue;
-                        let rowStr = rowData.map(c => c ? c.toString().toLowerCase() : "").join(" ");
-                        if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
-                            headerRowIndex = i; break;
-                        }
-                    }
-
-                    if (headerRowIndex === -1) { alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!"); showLoading(false); return; }
-
-                    let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
-                    let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
-
-                    let headRow1 = rawData[headerRowIndex].map(normalize);
-                    let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(normalize) : [];
-
-                    headRow1.forEach((k, idx) => {
-                        if (!k) return;
-                        if (k === "khoa") colKhoa = idx;
-                        if (k.includes("nội dung đào tạo")) colNoiDung = idx;
-                        if (k.includes("kĩ thuật cụ thể") || k.includes("kỹ thuật cụ thể")) colKyThuat = idx;
-                        if (k.includes("thời gian")) colThoiGian = idx;
-                        if (k.includes("đơn vị chủ trì")) colDonVi = idx;
-                        if (k.includes("kinh phí")) colKinhPhi = idx;
-                    });
-
-                    headRow2.forEach((k, idx) => {
-                        if (!k) return;
-                        if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
-                        if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
-                        if (k === "ktv" || k.includes("kỹ thuật viên")) colKTV = idx;
-                        if (k === "đd" || k.includes("điều dưỡng")) colDD = idx;
-                        if (k === "bs" || k.includes("bác sĩ")) colBS = idx;
-                    });
-
-                    let parsedData = [];
-                    let currentKhoaInFile = ""; 
-                    
-                    let currentNoiDung = "", currentThoiGian = "", currentDonVi = "", currentKinhPhi = "";
-                    let currentCNSH = "", currentNHS = "", currentKTV = "", currentDD = "", currentBS = "";
-                    let currentGroupId = 0;
-
-                    for (let i = headerRowIndex + 2; i < rawData.length; i++) {
-                        let rowData = rawData[i]; if (!rowData || rowData.length === 0) continue;
-                        
-                        let tenKhoaRaw = rowData[colKhoa];
-                        if (tenKhoaRaw && tenKhoaRaw.toString().trim() !== "") { 
-                            currentKhoaInFile = normalize(tenKhoaRaw.toString()); 
-                        }
-                        if (!currentKhoaInFile) continue;
-
-                        let normalizedCurrentTab = normalize(currentTab);
-                        if (!currentKhoaInFile.includes(normalizedCurrentTab) && !normalizedCurrentTab.includes(currentKhoaInFile)) {
-                            continue; 
-                        }
-
-                        let noiDung = rowData[colNoiDung];
-                        let kyThuat = rowData[colKyThuat];
-                        
-                        if (noiDung && noiDung.toString().trim() !== "") {
-                            currentGroupId++;
-                            currentNoiDung = noiDung;
-                            currentThoiGian = rowData[colThoiGian] || "";
-                            currentDonVi = rowData[colDonVi] || "";
-                            currentKinhPhi = rowData[colKinhPhi] || "";
-                            currentCNSH = rowData[colCNSH] || "";
-                            currentNHS = rowData[colNHS] || "";
-                            currentKTV = rowData[colKTV] || "";
-                            currentDD = rowData[colDD] || "";
-                            currentBS = rowData[colBS] || "";
-                        } else if (!kyThuat || kyThuat.toString().trim() === "") {
-                            continue; 
-                        }
-
-                        parsedData.push({
-                            groupId: currentGroupId,
-                            nam: selectedYear,
-                            noiDung: currentNoiDung,
-                            kyThuat: kyThuat || "",
-                            thoiGian: currentThoiGian,
-                            donVi: currentDonVi,
-                            kinhPhi: currentKinhPhi,
-                            cns: currentCNSH,
-                            nhs: currentNHS,
-                            ktv: currentKTV,
-                            dd: currentDD,
-                            bs: currentBS
-                        });
-                    }
-
-                    let payloadByKhoa = {};
-                    if (parsedData.length > 0) payloadByKhoa[currentTab] = parsedData;
-
-                    const response = await fetch('/api/upload-dtnh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: payloadByKhoa, year: selectedYear }) }); 
-                    const result = await response.json(); alert(result.message); await layDuLieu(); 
-                } 
-                else {
-                    let headerRowIndex = -1; let headers = [];
-                    for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                        let rowStr = rawData[i].map(c => c ? c.toString().toLowerCase() : "").join(" ");
-                        if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương")) {
-                            headerRowIndex = i; headers = rawData[i].map(normalize); break;
-                        }
-                    }
-
-                    if (headerRowIndex === -1) { alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); showLoading(false); return; }
-
-                    let parsedData = [];
-                    for (let i = headerRowIndex + 1; i < rawData.length; i++) {
-                        let rowData = rawData[i]; if (!rowData || rowData.length === 0) continue; 
-                        let item = {}; let hasData = false;
-
-                        headers.forEach((k, colIndex) => { 
-                            if (!k) return; let v = rowData[colIndex]; if (v !== undefined && v !== null && v !== "") hasData = true;
-                            
-                            if (currentTab === 'GiaDV') {
-                                if (k === "mã tương đương" || k.includes("mã tương đương")) item.maTuongDuong = v; 
-                                if (k === "tên kỹ thuật" || k.includes("tên kỹ thuật")) item.tenKyThuat = v; 
-                                if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("tên dv")) item.tenDichVu = v; 
-                                if (k === "giá phê duyệt" || k.includes("giá")) item.giaMax = v;
-                            } else if (currentTab === 'MaDVBV') {
-                                if (k === "mã dịch vụ" || k.includes("mã dịch vụ") || k.includes("ma_dichvu")) item.maDichVu = v;
-                                if (k === "mã tương đương" || k.includes("mã tương đương") || k.includes("ma_tuongduong")) item.maTuongDuong = v;
-                                if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("ten_dichvu")) item.tenDichVu = v;
-                                if (k === "giá bhyt" || k.includes("giá bhyt") || k.includes("gia_bhyt")) item.giaBHYT = v;
-                                if (k === "giá viện phí" || k.includes("giá viện phí") || k.includes("gia_vienphi")) item.giaVienPhi = v;
-                                if (k === "giá yêu cầu" || k.includes("giá yêu cầu") || k.includes("gia_yeucau")) item.giaYeuCau = v;
-                                if (k === "giá nước ngoài" || k.includes("giá nước ngoài") || k.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
-                            } else {
-                                if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v; 
-                                if (k.includes("stt của chương") || k === "machuong") item.maChuong = v; 
-                                if (k.includes("tên chương") || k === "chuong") item.chuong = v; 
-                                if (k.includes("mã liên kết") || k === "malienket") item.maLienKet = v; 
-                                if (k.includes("tên kỹ thuật") || k === "ten") item.ten = v; 
-                                if (k.includes("phân loại") || k === "phanloai") item.phanLoai = v; 
-                                if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v; 
-                            }
-                        }); 
-                        if (hasData) parsedData.push(item);
-                    } 
-                    
-                    database[currentTab] = parsedData;
-                    const formData = new FormData(); formData.append('fileExcel', file); formData.append('tabName', currentTab); formData.append('tabData', JSON.stringify(database[currentTab])); 
-                    const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
-                    const result = await response.json(); alert(result.message); renderTable(); 
-                }
-            } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); console.error(error); } finally { fileInput.value = ''; showLoading(false); } 
-        }; 
-        reader.readAsArrayBuffer(file); 
-    }
-    
-    function jumpToPL1(ma) { if(!ma) return; switchTab('PL1', 'QTKT'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     
     function exportToExcel() { 
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
