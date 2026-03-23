@@ -18,6 +18,27 @@
         .dropdown-content a:hover { background-color: #e7f3ff; color: var(--primary); font-weight: bold; padding-left: 20px; transition: 0.2s;}
         .dropdown:hover .dropdown-content { display: block; }
 
+        /* 🟢 CSS CHO MENU DANH SÁCH KHOA ĐA TẦNG (MEGA MENU) */
+        .dropdown-content.dept-grid { display: none; position: absolute; background-color: white; box-shadow: 0 8px 24px rgba(0,0,0,0.2); z-index: 1000; border-radius: 4px; top: 100%; grid-template-columns: 1fr 1fr; width: 550px; max-height: none; overflow: visible;}
+        .dropdown:hover .dropdown-content.dept-grid { display: grid; }
+        
+        .dept-item { position: relative; border-bottom: 1px solid #eee; border-right: 1px solid #eee; }
+        .dept-item:nth-child(even) { border-right: none; }
+        .dept-title { padding: 12px 16px; color: #333; font-size: 13px; cursor: default; display: flex; justify-content: space-between; align-items: center; transition: 0.2s;}
+        .dept-item:hover > .dept-title { background-color: #e7f3ff; color: var(--primary); font-weight: bold; padding-left: 20px;}
+        
+        .dept-submenu { display: none; position: absolute; top: -1px; left: 100%; background: white; min-width: 230px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 4px; z-index: 1001; border: 1px solid #ddd; }
+        .dept-item:hover > .dept-submenu { display: block; }
+        .dept-item:nth-child(even) .dept-submenu { left: auto; right: 100%; } /* Cột phải bay sang trái */
+        
+        .train-item { position: relative; }
+        .train-title { padding: 12px 16px; color: #333; font-size: 13px; cursor: default; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid #eee; transition: 0.2s;}
+        .train-item:hover > .train-title { background-color: #f4f8ff; color: var(--primary); font-weight: bold; padding-left: 20px;}
+        
+        .train-submenu { display: none; position: absolute; top: -1px; left: 100%; background: white; min-width: 160px; box-shadow: 0 4px 16px rgba(0,0,0,0.15); border-radius: 4px; z-index: 1002; border: 1px solid #ddd; }
+        .train-item:hover > .train-submenu { display: block; }
+        .dept-item:nth-child(even) .train-submenu { left: auto; right: 100%; } /* Cột phải bay sang trái */
+
         .container { padding: 20px; max-width: 1600px; margin: auto; flex: 1; width: 100%; box-sizing: border-box;}
         .header-info { margin-bottom: 15px; border-left: 5px solid var(--primary); padding-left: 15px; }
         
@@ -101,8 +122,8 @@
         </div>
         
         <div class="dropdown">
-            <button class="dropbtn" style="color: #ffeb3b;">QTKT CÁC KHOA ▼</button>
-            <div class="dropdown-content" id="menuCacKhoa"></div>
+            <button class="dropbtn" style="color: #ffeb3b;">DANH SÁCH KHOA ▼</button>
+            <div class="dropdown-content dept-grid" id="menuCacKhoa"></div>
         </div>
 
         <div class="dropdown" id="menuKHTH" style="display: none;">
@@ -299,7 +320,7 @@
         </div>
 
         <div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
-            <b style="color: #856404;">2. Thông হিংস Dịch vụ BHYT tương đương (TT 23/2024):</b>
+            <b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b>
             <div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div>
         </div>
 
@@ -338,13 +359,67 @@
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
+    // 🟢 HỆ THỐNG TẠO MEGA MENU DANH SÁCH KHOA (ĐA TẦNG)
     window.addEventListener('DOMContentLoaded', () => {
         const optGroupKhoa = document.getElementById('optGroupKhoa');
         const menuCacKhoa = document.getElementById('menuCacKhoa');
-        DANH_SACH_KHOA.forEach(khoa => {
-            const a = document.createElement('a'); a.href = "#"; a.innerText = khoa; a.onclick = () => switchTab(khoa);
-            menuCacKhoa.appendChild(a);
+        
+        DANH_SACH_KHOA.forEach((khoa) => {
             if(optGroupKhoa) { const opt = document.createElement('option'); opt.value = opt.textContent = khoa; optGroupKhoa.appendChild(opt); }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = 'dept-item';
+            
+            const title = document.createElement('div');
+            title.className = 'dept-title';
+            title.innerHTML = `${khoa} <span style="font-size:10px; color:#888;">▶</span>`;
+            
+            const submenu = document.createElement('div');
+            submenu.className = 'dept-submenu';
+            
+            const linkQTKT = document.createElement('a');
+            linkQTKT.href = "#"; linkQTKT.innerText = "Quy trình kỹ thuật";
+            linkQTKT.onclick = (e) => { e.preventDefault(); switchTab(khoa); };
+            
+            const linkNhanLuc = document.createElement('a');
+            linkNhanLuc.href = "#"; linkNhanLuc.innerText = "Nhân lực";
+            linkNhanLuc.onclick = (e) => { e.preventDefault(); alert("Chức năng [Nhân lực] đang được phát triển!"); };
+
+            const linkVatTu = document.createElement('a');
+            linkVatTu.href = "#"; linkVatTu.innerText = "Vật tư - Trang thiết bị";
+            linkVatTu.onclick = (e) => { e.preventDefault(); alert("Chức năng [Vật tư - Trang thiết bị] đang được phát triển!"); };
+
+            const trainWrapper = document.createElement('div');
+            trainWrapper.className = 'train-item';
+            
+            const trainTitle = document.createElement('div');
+            trainTitle.className = 'train-title';
+            trainTitle.innerHTML = `Kế hoạch đào tạo <span style="font-size:10px; color:#888;">▶</span>`;
+
+            const trainSubmenu = document.createElement('div');
+            trainSubmenu.className = 'train-submenu';
+            
+            const linkDaiHan = document.createElement('a');
+            linkDaiHan.href = "#"; linkDaiHan.innerText = "Dài hạn";
+            linkDaiHan.onclick = (e) => { e.preventDefault(); alert("Chức năng [Đào tạo Dài hạn] đang được phát triển!"); };
+
+            const linkNganHan = document.createElement('a');
+            linkNganHan.href = "#"; linkNganHan.innerText = "Ngắn hạn";
+            linkNganHan.onclick = (e) => { e.preventDefault(); alert("Chức năng [Đào tạo Ngắn hạn] đang được phát triển!"); };
+
+            trainSubmenu.appendChild(linkDaiHan);
+            trainSubmenu.appendChild(linkNganHan);
+            trainWrapper.appendChild(trainTitle);
+            trainWrapper.appendChild(trainSubmenu);
+
+            submenu.appendChild(linkQTKT);
+            submenu.appendChild(linkNhanLuc);
+            submenu.appendChild(linkVatTu);
+            submenu.appendChild(trainWrapper);
+
+            wrapper.appendChild(title);
+            wrapper.appendChild(submenu);
+            menuCacKhoa.appendChild(wrapper);
         });
     }); 
 
@@ -540,7 +615,6 @@
         const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
         let htmlHead = `<tr>`;
         
-        // 🟢 CẬP NHẬT TAB GIÁ DỊCH VỤ CÓ THỂ CLICK VÀO TÊN KỸ THUẬT
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
             thead.innerHTML = htmlHead;
@@ -780,7 +854,6 @@
         document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
-        
         let qtktInfo = database.PL1.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa)) || 
                        database.PL2.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
         
@@ -799,9 +872,7 @@
                 <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
             </table>`;
-        } else {
-            qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`;
-        }
+        } else { qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
         let giaDVInfo = database.GiaDV.find(x => String(x.maTuongDuong) === String(maTuongDuong));
@@ -813,9 +884,7 @@
                 <tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr>
             </table>`;
-        } else {
-            bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`;
-        }
+        } else { bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; }
         document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
         const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = '';
