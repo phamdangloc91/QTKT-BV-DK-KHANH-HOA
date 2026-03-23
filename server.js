@@ -45,9 +45,11 @@ const UserSchema = new mongoose.Schema({
 });
 const UserModel = mongoose.model('User', UserSchema);
 
+// 🟢 NÂNG CẤP SCHEMA: Thêm daoTaoNganHan
 const DeptDataSchema = new mongoose.Schema({
     tenKhoa: { type: String, required: true, unique: true }, 
-    danhMucQTKT: { type: Array, default: [] }
+    danhMucQTKT: { type: Array, default: [] },
+    daoTaoNganHan: { type: Array, default: [] }
 });
 const DeptDataModel = mongoose.model('DeptData', DeptDataSchema);
 
@@ -56,7 +58,7 @@ async function khoiTaoDuLieuGoc() {
     for (let ten of DANH_SACH_KHOA) {
         await DeptDataModel.findOneAndUpdate(
             { tenKhoa: ten }, 
-            { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [] } }, 
+            { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [], daoTaoNganHan: [] } }, 
             { upsert: true, returnDocument: 'after' }
         );
     }
@@ -71,7 +73,6 @@ try {
     driveService = google.drive({ version: 'v3', auth: oauth2Client });
 } catch (error) { console.error("❌ Lỗi Drive:", error.message); }
 
-// 🟢 ĐÃ VÁ LỖI: TỰ ĐỘNG TẠO THƯ MỤC UPLOADS ĐỂ KHÔNG BỊ SẬP TRÊN RENDER
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) { fs.mkdirSync(uploadDir, { recursive: true }); }
 
@@ -99,10 +100,35 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
                 const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
                 await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id' });
                 fs.unlinkSync(req.file.path);
-            } catch (e) { console.log("Lỗi nhỏ khi up backup lên Drive, dữ liệu Web đã lưu thành công."); }
+            } catch (e) { console.log("Lỗi up backup lên Drive."); }
         }
         res.json({ message: `Lưu dữ liệu cho bảng [${tabName}] thành công!` });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi lưu dữ liệu" }); }
+});
+
+// 🟢 API MỚI: XỬ LÝ NHẬP EXCEL KẾ HOẠCH ĐÀO TẠO
+app.post('/api/upload-dtnh', async (req, res) => {
+    try {
+        const payload = req.body.payload; 
+        const year = req.body.year;
+        
+        for (let khoa in payload) {
+            const dept = await DeptDataModel.findOne({ tenKhoa: khoa });
+            if (dept) {
+                // Xóa dữ liệu cũ của NĂM ĐÓ trong khoa đó để cập nhật mới
+                let filtered = dept.daoTaoNganHan.filter(item => String(item.nam) !== String(year));
+                // Thêm dữ liệu mới
+                filtered.push(...payload[khoa]);
+                dept.daoTaoNganHan = filtered;
+                dept.markModified('daoTaoNganHan');
+                await dept.save();
+            }
+        }
+        res.json({ message: `Đã cập nhật Kế hoạch Đào tạo ngắn hạn (Năm ${year}) thành công cho các khoa!` });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: "Lỗi lưu dữ liệu đào tạo." });
+    }
 });
 
 app.post('/api/login', async (req, res) => {
@@ -233,7 +259,6 @@ app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => 
         res.json({ message: "Nộp quy trình thành công! Đang chờ P.KHTH duyệt." });
     } catch (error) { 
         console.error(error); 
-        // 🟢 ĐÃ VÁ LỖI: BÁO RÕ LÝ DO NẾU DRIVE TỪ CHỐI
         res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
     }
 });
