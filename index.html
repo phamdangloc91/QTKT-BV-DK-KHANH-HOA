@@ -433,6 +433,7 @@
         result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); return result;
     }
 
+    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT
     const normalize = (t) => t ? t.toString().normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function prepareKeywords() {
@@ -1004,7 +1005,7 @@
         const giaArea = document.getElementById('dtGiaDVArea'); const giaBVArea = document.getElementById('dtMaDVBVArea');
 
         let matchedPrices = database.GiaDV.filter(priceItem => {
-            let isNameMatch = false; if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') { if (ten.toLowerCase().trim() === priceItem.tenKyThuat.toLowerCase().trim()) isNameMatch = true; }
+            let isNameMatch = false; if (ten && priceItem.tenKyThuat) { if (String(ten).toLowerCase().trim() === String(priceItem.tenKyThuat).toLowerCase().trim()) isNameMatch = true; }
             return isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
         });
 
@@ -1026,13 +1027,126 @@
         moModal('detailModal');
     }
 
+    async function bocQuyTrinh(ma) { if(!currentUser) return; const item = database[currentTab].find(x => String(x.ma) === String(ma) || String(x.maLienKet) === String(ma)); if(!item) return; showLoading(true); try { const res = await fetch('/api/dept-data/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item }) }); const data = await res.json(); if(res.ok) { let toast = document.createElement("div"); toast.innerText = "✅ " + data.message; toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); await layDuLieu(); } else alert("⚠️ " + data.message); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
+    async function xoaQuyTrinh(ma, tenKhoa) { if(!confirm(`Bạn muốn xóa TOÀN BỘ dữ liệu quy trình này khỏi ${tenKhoa.toUpperCase()} không?\n\n(Hệ thống sẽ tự động dọn dẹp xóa luôn các file trên Drive)`)) return; showLoading(true); try { const res = await fetch('/api/dept-data/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma }) }); const data = await res.json(); if(res.ok) { alert(data.message); await layDuLieu(); } else alert("Lỗi khi xóa!"); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
+
+    function apDungLoc() { 
+        const search = document.getElementById('searchBox').value.toLowerCase();
+        
+        // 🟢 BỘ LỌC AN TOÀN ÉP KIỂU CHUỖI
+        const safeStr = (val) => val ? String(val).toLowerCase() : '';
+        
+        if (currentTabType === 'DTNH') {
+            const filterNam = document.getElementById('filterNamDT').value;
+            let deptObj = database.depts.find(d => d.tenKhoa === currentTab);
+            let sourceList = deptObj ? (deptObj.daoTaoNganHan || []) : [];
+            
+            const filtered = sourceList.filter(item => {
+                let matchSearch = (safeStr(item.noiDung).includes(search) || safeStr(item.kyThuat).includes(search));
+                let matchYear = filterNam === "" || String(item.nam) === String(filterNam);
+                return matchSearch && matchYear;
+            });
+            renderTable(filtered);
+            
+            if(currentUser && (currentUser.role === 'admin' || currentUser.tenKhoa === currentTab)) {
+                document.getElementById('btnSaveDTNH').style.display = 'inline-block';
+            } else { document.getElementById('btnSaveDTNH').style.display = 'none'; }
+            return;
+        } else { document.getElementById('btnSaveDTNH').style.display = 'none'; }
+
+        if (currentTab === 'KHTH_CHUA_AP_GIA') {
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
+            let sourceList = database.PL1.filter(qt => {
+                if (!qt.quyetDinh || qt.quyetDinh.trim() === '') return false; 
+                return !database.MaDVBV.some(dv => isCodeMatch(dv.maTuongDuong, qt.ma)); 
+            }).map(qt => {
+                let matchedGia = database.GiaDV.filter(g => {
+                    let isNameMatch = false; 
+                    if (qt.ten && g.tenKyThuat) { 
+                        if (String(qt.ten).toLowerCase().trim() === String(g.tenKyThuat).toLowerCase().trim()) isNameMatch = true; 
+                    }
+                    return isCodeMatch(g.maTuongDuong, qt.ma) || isNameMatch;
+                });
+                return {
+                    ...qt,
+                    tt23_ma: matchedGia.map(g => g.maTuongDuong).join(' '),
+                    tt23_ten: matchedGia.map(g => g.tenDichVu || g.tenKyThuat).join(' '),
+                    matchedGia: matchedGia
+                };
+            });
+            
+            const filtered = sourceList.filter(item => {
+                return (safeStr(item.ma).includes(search) || 
+                        safeStr(item.ten).includes(search) || 
+                        safeStr(item.tt23_ma).includes(search) || 
+                        safeStr(item.tt23_ten).includes(search));
+            });
+            renderTable(filtered); 
+            return;
+        }
+
+        if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
+            document.getElementById('lblSearch').innerText = currentTab === 'GiaDV' ? 'TÌM KIẾM MÃ HOẶC TÊN DỊCH VỤ' : 'TÌM KIẾM MÃ DV, MÃ TĐ HOẶC TÊN DV';
+            let sourceList = currentTab === 'GiaDV' ? database.GiaDV : database.MaDVBV;
+            const filtered = sourceList.filter(item => {
+                if (currentTab === 'GiaDV') return (safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenKyThuat).includes(search) || safeStr(item.tenDichVu).includes(search));
+                else return (safeStr(item.maDichVu).includes(search) || safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenDichVu).includes(search));
+            });
+            renderTable(filtered); return;
+        } else { document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG'; }
+
+        const loaiSelect = document.getElementById('filterLoai').value, qd = document.getElementById('filterQuyetDinh').value; 
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; 
+        if (isSuperTab) { sourceList = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); sourceList = deptObj ? deptObj.danhMucQTKT : []; } else { sourceList = database[currentTab] || []; } 
+        const filtered = sourceList.filter(item => { const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); const matchQD = qd === "" || item.quyetDinh === qd; let matchLoai = true; if (loaiSelect !== "") { const val = item.phanLoai ? String(item.phanLoai).toUpperCase().trim() : ""; if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); } return matchSearch && matchLoai && matchQD; }); 
+        renderTable(filtered); 
+    }
+    
+    function capNhatDanhSachQuyetDinh() { 
+        if (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
+        const select = document.getElementById('filterQuyetDinh'); const currentVal = select.value; const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; if(isSuperTab) sourceList = getAggregatedList(currentTab); else if(isDeptTab) sourceList = database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []; else sourceList = database[currentTab] || []; const dsQD = [...new Set(sourceList.map(item => item.quyetDinh).filter(i => i))]; select.innerHTML = '<option value="">-- Tất cả quyết định --</option>'; dsQD.sort().forEach(qd => { const opt = document.createElement('option'); opt.value = qd; opt.innerText = qd; if(qd === currentVal) opt.selected = true; select.appendChild(opt); }); 
+    }
+    
+    function capNhatTieuDe() {
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = "";
+        if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`;
+        
+        const batchToolbar = document.getElementById('batchToolbar');
+        if (currentUser && currentUser.role === 'admin' && (currentTab === 'KHTH_CHO_DUYET' || isDeptTab) && currentTabType !== 'DTNH') { batchToolbar.style.display = 'flex'; } 
+        else { batchToolbar.style.display = 'none'; isMultiSelectMode = false; } 
+
+        document.getElementById('groupPhanLoai').style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+        document.getElementById('groupQuyetDinh').style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+        document.getElementById('groupNamDT').style.display = currentTabType === 'DTNH' ? 'flex' : 'none';
+
+        if (currentTabType === 'DTNH') {
+            document.getElementById('tabTitle').innerText = `KẾ HOẠCH ĐÀO TẠO NGẮN HẠN - ${currentTab.toUpperCase()}`;
+            document.getElementById('tabDesc').innerText = `Quản lý kế hoạch cử nhân sự đi học tập nâng cao chuyên môn ${textRole}`;
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM NỘI DUNG HOẶC KỸ THUẬT';
+        }
+        else if (currentTab === 'KHTH_CHUA_AP_GIA') { document.getElementById('tabTitle').innerText = "QTKT BỆNH VIỆN CHƯA ÁP GIÁ"; document.getElementById('tabDesc').innerText = `Danh sách các Kỹ thuật đã có Quyết định nhưng chưa được gán Mã Dịch vụ BV ${textRole}`; document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV'; }
+        else if (currentTab === 'PL1') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'PL2') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 2"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'GiaDV') { document.getElementById('tabTitle').innerText = "BẢNG GIÁ DỊCH VỤ"; document.getElementById('tabDesc').innerText = `Thông tư 23/2024 ${textRole}`; } 
+        else if (currentTab === 'MaDVBV') { document.getElementById('tabTitle').innerText = "MÃ DỊCH VỤ BỆNH VIỆN"; document.getElementById('tabDesc').innerText = `Bảng giá dịch vụ áp dụng tại Bệnh viện ${textRole}`; } 
+        else if (currentTab === 'KHTH_CHO_DUYET') { document.getElementById('tabTitle').innerText = "DANH MỤC CHỜ DUYỆT - P.KHTH"; document.getElementById('tabDesc').innerText = `Các quy trình khoa đã nộp bản nháp, chờ Admin duyệt ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_BO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP BỘ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Trung ương (Đang cập nhật) ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_SO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP SỞ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Tỉnh (Đang cập nhật) ${textRole}`; }
+        else { document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`; if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`; else document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`; } 
+    }
+
+    function switchTab(tab, type = 'QTKT') { 
+        currentTab = tab; currentTabType = type; capNhatTieuDe(); 
+        document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; document.getElementById('filterNamDT').value = "";
+        apDungLoc(); 
+    }
+    
     function exportToExcel() { 
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
 
-        // 🟢 NẾU LÀ TAB CHƯA ÁP GIÁ -> XUẤT EXCEL ĐẸP (HTML TO XLS)
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
             let table = document.querySelector('.table-container table').cloneNode(true);
             
