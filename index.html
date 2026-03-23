@@ -433,7 +433,6 @@
         result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); return result;
     }
 
-    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT
     const normalize = (t) => t ? t.toString().normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function prepareKeywords() {
@@ -466,18 +465,24 @@
         btn.closest('.suggestion-box').remove();
     }
 
+    // 🟢 HÀM CHUẨN HÓA MÃ CỰC NHANH (BẢO VỆ ÉP KIỂU STRING)
+    function normalizeCodeFast(code) {
+        if (!code) return '';
+        let strCode = String(code);
+        let parts = strCode.split('.');
+        if (parts.length >= 2) {
+            let a = parseInt(parts[0], 10);
+            let b = parseInt(parts[1], 10);
+            if (!isNaN(a) && !isNaN(b)) return a + '.' + b;
+        }
+        return strCode.trim();
+    }
+
+    // 🟢 HÀM SO SÁNH CHUỖI AN TOÀN TUYỆT ĐỐI CHỐNG LỖI TOLOWERCASE
+    const safeStr = (val) => val ? String(val).toLowerCase().trim() : '';
+
     function isCodeMatch(maTuongDuong, targetMa) {
-        if (!targetMa || !maTuongDuong || typeof maTuongDuong !== 'string') return false; 
-        let parts = maTuongDuong.split('.'); 
-        if (parts.length >= 2) { 
-            let a = parseInt(parts[0], 10); 
-            let b = parseInt(parts[1], 10); 
-            if (!isNaN(a) && !isNaN(b)) { 
-                let reconstructed = a + '.' + b; 
-                if (reconstructed === targetMa.trim()) return true; 
-            } 
-        } 
-        return false;
+        return normalizeCodeFast(maTuongDuong) === normalizeCodeFast(targetMa);
     }
 
     async function layDuLieu() {
@@ -490,12 +495,6 @@
             apDungLoc(); 
         } catch (error) { console.log(error); }
         showLoading(false);
-    }
-
-    function getQtMaFromMaTuongDuong(mtd) {
-        if (!mtd) return null; let parts = mtd.toString().split('.');
-        if (parts.length >= 2) { let a = parseInt(parts[0], 10); let b = parseInt(parts[1], 10); if (!isNaN(a) && !isNaN(b)) return a + '.' + b; }
-        return mtd.toString().trim();
     }
 
     function toggleMultiSelect(state) {
@@ -1027,14 +1026,8 @@
         moModal('detailModal');
     }
 
-    async function bocQuyTrinh(ma) { if(!currentUser) return; const item = database[currentTab].find(x => String(x.ma) === String(ma) || String(x.maLienKet) === String(ma)); if(!item) return; showLoading(true); try { const res = await fetch('/api/dept-data/add', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: item }) }); const data = await res.json(); if(res.ok) { let toast = document.createElement("div"); toast.innerText = "✅ " + data.message; toast.style.cssText = "position:fixed; bottom:20px; right:20px; background:#28a745; color:white; padding:15px; border-radius:5px; z-index:9999;"; document.body.appendChild(toast); setTimeout(() => toast.remove(), 2000); await layDuLieu(); } else alert("⚠️ " + data.message); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
-    async function xoaQuyTrinh(ma, tenKhoa) { if(!confirm(`Bạn muốn xóa TOÀN BỘ dữ liệu quy trình này khỏi ${tenKhoa.toUpperCase()} không?\n\n(Hệ thống sẽ tự động dọn dẹp xóa luôn các file trên Drive)`)) return; showLoading(true); try { const res = await fetch('/api/dept-data/remove', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma }) }); const data = await res.json(); if(res.ok) { alert(data.message); await layDuLieu(); } else alert("Lỗi khi xóa!"); } catch(e) { alert("Lỗi mạng!"); } showLoading(false); }
-
     function apDungLoc() { 
-        const search = document.getElementById('searchBox').value.toLowerCase();
-        
-        // 🟢 BỘ LỌC AN TOÀN ÉP KIỂU CHUỖI
-        const safeStr = (val) => val ? String(val).toLowerCase() : '';
+        const search = safeStr(document.getElementById('searchBox').value);
         
         if (currentTabType === 'DTNH') {
             const filterNam = document.getElementById('filterNamDT').value;
@@ -1054,32 +1047,54 @@
             return;
         } else { document.getElementById('btnSaveDTNH').style.display = 'none'; }
 
+        // 🟢 BỘ LỌC TỐI ƯU HÓA HIỆU NĂNG SIÊU NHANH CHO TAB CHƯA ÁP GIÁ (O(N))
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
             document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
-            let sourceList = database.PL1.filter(qt => {
-                if (!qt.quyetDinh || qt.quyetDinh.trim() === '') return false; 
-                return !database.MaDVBV.some(dv => isCodeMatch(dv.maTuongDuong, qt.ma)); 
-            }).map(qt => {
-                let matchedGia = database.GiaDV.filter(g => {
-                    let isNameMatch = false; 
-                    if (qt.ten && g.tenKyThuat) { 
-                        if (String(qt.ten).toLowerCase().trim() === String(g.tenKyThuat).toLowerCase().trim()) isNameMatch = true; 
-                    }
-                    return isCodeMatch(g.maTuongDuong, qt.ma) || isNameMatch;
-                });
-                return {
+            
+            const maDvbvSet = new Set();
+            database.MaDVBV.forEach(dv => { if (dv.maTuongDuong) maDvbvSet.add(normalizeCodeFast(dv.maTuongDuong)); });
+
+            const giaDvByCode = new Map();
+            const giaDvByName = new Map();
+            
+            database.GiaDV.forEach(g => {
+                if (g.maTuongDuong) {
+                    let code = normalizeCodeFast(g.maTuongDuong);
+                    if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
+                    giaDvByCode.get(code).push(g);
+                }
+                if (g.tenKyThuat) {
+                    let name = safeStr(g.tenKyThuat);
+                    if (!giaDvByName.has(name)) giaDvByName.set(name, []);
+                    giaDvByName.get(name).push(g);
+                }
+            });
+
+            let sourceList = [];
+            database.PL1.forEach(qt => {
+                if (!qt.quyetDinh || qt.quyetDinh.trim() === '') return; 
+                let normCode = normalizeCodeFast(qt.ma);
+                
+                if (maDvbvSet.has(normCode)) return;
+
+                let matchedGiaMap = new Map(); 
+                if (giaDvByCode.has(normCode)) { giaDvByCode.get(normCode).forEach(g => matchedGiaMap.set(g, g)); }
+                if (qt.ten) {
+                    let normName = safeStr(qt.ten);
+                    if (giaDvByName.has(normName)) { giaDvByName.get(normName).forEach(g => matchedGiaMap.set(g, g)); }
+                }
+
+                let matchedGia = Array.from(matchedGiaMap.values());
+                sourceList.push({
                     ...qt,
                     tt23_ma: matchedGia.map(g => g.maTuongDuong).join(' '),
                     tt23_ten: matchedGia.map(g => g.tenDichVu || g.tenKyThuat).join(' '),
                     matchedGia: matchedGia
-                };
+                });
             });
             
             const filtered = sourceList.filter(item => {
-                return (safeStr(item.ma).includes(search) || 
-                        safeStr(item.ten).includes(search) || 
-                        safeStr(item.tt23_ma).includes(search) || 
-                        safeStr(item.tt23_ten).includes(search));
+                return (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tt23_ma).includes(search) || safeStr(item.tt23_ten).includes(search));
             });
             renderTable(filtered); 
             return;
