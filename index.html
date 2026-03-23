@@ -50,8 +50,10 @@
         .table-container { background: white; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); overflow: auto; max-height: calc(100vh - 300px); border: 1px solid #eaeaea;}
         table { width: 100%; border-collapse: collapse; min-width: 1300px; }
         th { background: #f8f9fa; color: #333; padding: 12px; text-align: left; border-bottom: 2px solid #ddd; position: sticky; top: 0; z-index: 10; font-size: 13px;}
-        td { padding: 10px; border-bottom: 1px solid #eee; font-size: 13px; vertical-align: middle; }
-        tr:hover { background-color: #f1f8ff; }
+        /* CẬP NHẬT CSS: Xử lý Border cho Cell gộp */
+        td { padding: 10px; border-bottom: 1px solid #eee; border-right: 1px solid #eee; font-size: 13px; vertical-align: middle; }
+        td:last-child { border-right: none; }
+        tr:hover td { background-color: #f9fcff; }
         
         .badge { padding: 4px 8px; border-radius: 4px; font-weight: bold; font-size: 11px; display: inline-block; margin-bottom: 4px;}
         .badge-type { background: #e7f3ff; color: #007bff; border: 1px solid #b3d7ff; }
@@ -213,74 +215,12 @@
 <div id="adminModal" class="modal"><div class="modal-content large"><span class="close-btn" onclick="dongModal('adminModal')">&times;</span><h3>Quản Lý Tài Khoản</h3><div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;"><div style="display:flex; gap:10px; align-items:center;"><input type="text" id="newUsername" placeholder="Tên đăng nhập" style="margin:0; flex:1; min-width:0;"><input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0; flex:1; min-width:0;"><select id="newTenKhoa" style="margin:0; flex:1.5; min-width:0; padding:10px; border:1px solid #ccc; border-radius:4px;"><option value="">-- Chọn Phân quyền --</option><optgroup label="Quyền Quản Trị"><option value="ROLE_ADMIN">Admin (Phòng KHTH)</option></optgroup><optgroup label="Quyền Khoa Phòng" id="optGroupKhoa"></optgroup></select><button class="btn" style="background:var(--success); font-size:14px; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button></div></div><div style="overflow-x: auto; max-height: 350px;"><table class="user-table"><thead><tr><th>STT</th><th>Tên Khoa / Quyền</th><th>Tên đăng nhập</th><th>Mật khẩu</th><th>Thao tác</th></tr></thead><tbody id="userListBody"></tbody></table></div></div></div>
 <div id="uploadSinglePdfModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="dongModal('uploadSinglePdfModal')">&times;</span><h3>Tải lên File PDF Chính thức</h3><p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload" style="color: var(--primary);"></b></p><div class="upload-box"><label>File QTKT Chính thức đã ký (Chỉ PDF)</label><input type="file" id="fPdfChinhThuc" accept=".pdf"></div><button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button></div></div>
 <div id="uploadBatchModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="dongModal('uploadBatchModal')">&times;</span><h3>Đính kèm Quyết định & Biên bản</h3><p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount" style="font-size: 16px;"></b> kỹ thuật đã chọn.</p><div class="upload-box"><label>1. Quyết định phê duyệt QTKT (PDF/Word)</label><input type="file" id="fQuyetDinhBatch" accept=".pdf,.doc,.docx"></div><div class="upload-box"><label>2. Biên bản họp Hội đồng KHKT (PDF/Word)</label><input type="file" id="fBienBanBatch" accept=".pdf,.doc,.docx"></div><button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button></div></div>
-
-<div id="detailModal" class="modal">
-    <div class="modal-content large">
-        <span class="close-btn" onclick="dongModal('detailModal')">&times;</span>
-        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3>
-        <h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4>
-        <p style="font-size: 14px;">Mã KT: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b> | Quyết định: <b id="dtQuyetDinh"></b></p>
-        
-        <div style="margin-top: 15px;">
-            <b>1. Các khoa đăng ký áp dụng:</b>
-            <table class="user-table" style="margin-top: 5px;">
-                <thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead>
-                <tbody id="dtKhoaBody"></tbody>
-            </table>
-        </div>
-
-        <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;">
-            <b>2. Tài liệu Phê duyệt (Xem Online):</b>
-            <div id="dtFilesArea" style="margin-top: 15px;"></div>
-        </div>
-
-        <div style="margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
-            <b style="color: #856404;">3. Áp giá Dịch vụ tương đương (TT 23/2024):</b>
-            <div id="dtGiaDVArea" style="margin-top: 10px; font-size: 14px;"></div>
-        </div>
-
-        <div style="margin-top: 20px; background: #d1ecf1; padding: 15px; border-radius: 8px; border: 1px solid #bee5eb;">
-            <b style="color: #0c5460;">4. Giá Dịch vụ tại Bệnh viện:</b>
-            <div id="dtMaDVBVArea" style="margin-top: 10px; font-size: 14px;"></div>
-        </div>
-    </div>
-</div>
-
-<div id="detailDVModal" class="modal">
-    <div class="modal-content large">
-        <span class="close-btn" onclick="dongModal('detailDVModal')">&times;</span>
-        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN DỊCH VỤ BỆNH VIỆN</h3>
-        <h4 id="dvTenDV" style="color: var(--info); margin-top: 5px;"></h4>
-        <p style="font-size: 14px;">Mã Dịch vụ BV: <b id="dvMaDV"></b></p>
-
-        <div style="margin-top: 15px; background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #ccc;">
-            <b style="color: #333;">1. Quy trình Kỹ thuật liên kết (Theo Mã Tương đương):</b>
-            <div id="dvQTKTArea" style="margin-top: 10px; font-size: 14px;"></div>
-        </div>
-
-        <div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
-            <b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b>
-            <div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div>
-        </div>
-
-        <div style="margin-top: 15px;">
-            <b>3. Các khoa đăng ký áp dụng Quy trình này:</b>
-            <table class="user-table" style="margin-top: 5px;">
-                <thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead>
-                <tbody id="dvKhoaBody"></tbody>
-            </table>
-        </div>
-
-        <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;">
-            <b>4. Tài liệu Phê duyệt Chính thức (Của Quy trình liên kết):</b>
-            <div id="dvFilesArea" style="margin-top: 10px; font-size: 14px; line-height: 1.6;"></div>
-        </div>
-    </div>
-</div>
+<div id="detailModal" class="modal"><div class="modal-content large"><span class="close-btn" onclick="dongModal('detailModal')">&times;</span><h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3><h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4><p style="font-size: 14px;">Mã KT: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b> | Quyết định: <b id="dtQuyetDinh"></b></p><div style="margin-top: 15px;"><b>1. Các khoa đăng ký áp dụng:</b><table class="user-table" style="margin-top: 5px;"><thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead><tbody id="dtKhoaBody"></tbody></table></div><div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;"><b>2. Tài liệu Phê duyệt (Xem Online):</b><div id="dtFilesArea" style="margin-top: 15px;"></div></div><div style="margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;"><b style="color: #856404;">3. Áp giá Dịch vụ tương đương (TT 23/2024):</b><div id="dtGiaDVArea" style="margin-top: 10px; font-size: 14px;"></div></div><div style="margin-top: 20px; background: #d1ecf1; padding: 15px; border-radius: 8px; border: 1px solid #bee5eb;"><b style="color: #0c5460;">4. Giá Dịch vụ tại Bệnh viện:</b><div id="dtMaDVBVArea" style="margin-top: 10px; font-size: 14px;"></div></div></div></div>
+<div id="detailDVModal" class="modal"><div class="modal-content large"><span class="close-btn" onclick="dongModal('detailDVModal')">&times;</span><h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN DỊCH VỤ BỆNH VIỆN</h3><h4 id="dvTenDV" style="color: var(--info); margin-top: 5px;"></h4><p style="font-size: 14px;">Mã Dịch vụ BV: <b id="dvMaDV"></b></p><div style="margin-top: 15px; background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #ccc;"><b style="color: #333;">1. Quy trình Kỹ thuật liên kết (Theo Mã Tương đương):</b><div id="dvQTKTArea" style="margin-top: 10px; font-size: 14px;"></div></div><div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;"><b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b><div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div></div><div style="margin-top: 15px;"><b>3. Các khoa đăng ký áp dụng Quy trình này:</b><table class="user-table" style="margin-top: 5px;"><thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead><tbody id="dvKhoaBody"></tbody></table></div><div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;"><b>4. Tài liệu Phê duyệt Chính thức (Của Quy trình liên kết):</b><div id="dvFilesArea" style="margin-top: 10px; font-size: 14px; line-height: 1.6;"></div></div></div></div>
 
 <script>
     let currentTab = 'PL1';
-    let currentTabType = 'QTKT'; // Quản lý Tab là QTKT hay Đào Tạo Ngắn Hạn (DTNH)
+    let currentTabType = 'QTKT'; 
     
     let database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
     let currentFilteredData = [];
@@ -411,7 +351,6 @@
         const confirmPwd = document.getElementById('confirmPwd').value;
         if(!oldPwd || !newPwd || !confirmPwd) return alert("Vui lòng nhập đủ thông tin!");
         if(newPwd !== confirmPwd) return alert("Mật khẩu xác nhận không khớp!");
-        
         showLoading(true);
         try {
             const res = await fetch('/api/users/password', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, oldPassword: oldPwd, newPassword: newPwd }) });
@@ -420,10 +359,7 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
-    async function moQuanLyTaiKhoan() {
-        moModal('adminModal');
-        await loadDanhSachTaiKhoan();
-    }
+    async function moQuanLyTaiKhoan() { moModal('adminModal'); await loadDanhSachTaiKhoan(); }
 
     async function loadDanhSachTaiKhoan() {
         try {
@@ -443,14 +379,9 @@
     }
 
     async function taoTaiKhoan() {
-        const u = document.getElementById('newUsername').value;
-        const p = document.getElementById('newPassword').value;
-        const k = document.getElementById('newTenKhoa').value;
+        const u = document.getElementById('newUsername').value; const p = document.getElementById('newPassword').value; const k = document.getElementById('newTenKhoa').value;
         if(!u || !p || !k) return alert("Vui lòng nhập đủ thông tin!");
-        
-        let role = k === 'ROLE_ADMIN' ? 'admin' : 'khoa';
-        let tenKhoa = k === 'ROLE_ADMIN' ? 'Phòng Kế hoạch tổng hợp' : k;
-
+        let role = k === 'ROLE_ADMIN' ? 'admin' : 'khoa'; let tenKhoa = k === 'ROLE_ADMIN' ? 'Phòng Kế hoạch tổng hợp' : k;
         showLoading(true);
         try {
             const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p, role: role, tenKhoa: tenKhoa }) });
@@ -460,10 +391,8 @@
     }
 
     async function suaTaiKhoan(id) {
-        const u = document.getElementById(`edit-user-${id}`).value;
-        const p = document.getElementById(`edit-pass-${id}`).value;
+        const u = document.getElementById(`edit-user-${id}`).value; const p = document.getElementById(`edit-pass-${id}`).value;
         if(!u || !p) return alert("Không được để trống tên đăng nhập và mật khẩu!");
-        
         showLoading(true);
         try {
             const res = await fetch('/api/users/admin-update', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, newUsername: u, newPassword: p }) });
@@ -475,8 +404,7 @@
         if(!confirm(`Xác nhận xóa tài khoản của ${tenKhoa}?`)) return;
         showLoading(true);
         try {
-            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' });
-            const data = await res.json(); alert(data.message);
+            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' }); const data = await res.json(); alert(data.message);
             if(res.ok) await loadDanhSachTaiKhoan();
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
@@ -486,24 +414,19 @@
         database.depts.forEach(d => {
             d.danhMucQTKT.forEach(qt => {
                 let pushIt = false;
-                let ttRaw = qt.trangThai || 'CHUA_NOP';
-                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
+                let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
                 if (tabName === 'KHTH_CHO_DUYET' && tt === 'CHO_DUYET') pushIt = true;
                 if (pushIt) { result.push({ ...qt, tenKhoaChuQuan: d.tenKhoa, trangThaiFix: tt }); }
             });
         });
-        result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan));
-        return result;
+        result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); return result;
     }
 
     async function layDuLieu() {
         showLoading(true);
         try {
             const resData = await fetch('/api/data'); const mainData = await resData.json(); 
-            database.PL1 = mainData.PL1 || []; 
-            database.PL2 = mainData.PL2 || []; 
-            database.GiaDV = mainData.GiaDV || []; 
-            database.MaDVBV = mainData.MaDVBV || []; 
+            database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || []; database.GiaDV = mainData.GiaDV || []; database.MaDVBV = mainData.MaDVBV || []; 
             const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
             apDungLoc(); 
         } catch (error) { console.log(error); }
@@ -513,27 +436,18 @@
     const normalize = (t) => t ? t.toString().toLowerCase().replace(/\n/g,"").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function getQtMaFromMaTuongDuong(mtd) {
-        if (!mtd) return null;
-        let parts = mtd.toString().split('.');
-        if (parts.length >= 2) {
-            let a = parseInt(parts[0], 10);
-            let b = parseInt(parts[1], 10);
-            if (!isNaN(a) && !isNaN(b)) { return a + '.' + b; }
-        }
+        if (!mtd) return null; let parts = mtd.toString().split('.');
+        if (parts.length >= 2) { let a = parseInt(parts[0], 10); let b = parseInt(parts[1], 10); if (!isNaN(a) && !isNaN(b)) return a + '.' + b; }
         return mtd.toString().trim();
     }
 
     function toggleMultiSelect(state) {
         isMultiSelectMode = state; selectedTechniques = [];
         if (isMultiSelectMode) {
-            document.getElementById('btnStartBatch').style.display = 'none';
-            document.getElementById('btnConfirmBatch').style.display = 'inline-block';
-            document.getElementById('btnCancelBatch').style.display = 'inline-block';
+            document.getElementById('btnStartBatch').style.display = 'none'; document.getElementById('btnConfirmBatch').style.display = 'inline-block'; document.getElementById('btnCancelBatch').style.display = 'inline-block';
             document.getElementById('batchStatusText').innerHTML = `<b style="color:var(--danger)">Vui lòng TICK CHỌN các ô vuông trong bảng bên dưới.</b>`;
         } else {
-            document.getElementById('btnStartBatch').style.display = 'inline-block';
-            document.getElementById('btnConfirmBatch').style.display = 'none';
-            document.getElementById('btnCancelBatch').style.display = 'none';
+            document.getElementById('btnStartBatch').style.display = 'inline-block'; document.getElementById('btnConfirmBatch').style.display = 'none'; document.getElementById('btnCancelBatch').style.display = 'none';
             document.getElementById('batchStatusText').innerHTML = `<b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.`;
         }
         apDungLoc(); 
@@ -549,7 +463,7 @@
         const isSuperTab = currentTab.startsWith('KHTH_');
         let list = [];
         
-        // 🟢 BẢNG HIỂN THỊ ĐÀO TẠO NGẮN HẠN
+        // 🟢 BẢNG HIỂN THỊ ĐÀO TẠO NGẮN HẠN (CÓ GỘP Ô ROWSPAN VÀ KHÔNG CÓ CỘT NĂM)
         if (currentTabType === 'DTNH') {
             if (data) { list = data; } 
             else { 
@@ -560,7 +474,7 @@
             
             const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
             let htmlHead = `<tr>
-                <th>STT</th>
+                <th style="width:40px; text-align:center;">STT</th>
                 <th style="width:25%">Nội dung đào tạo</th>
                 <th style="width:25%">Kỹ thuật cụ thể</th>
                 <th>Thời gian</th>
@@ -570,25 +484,45 @@
                 <th style="text-align:center;" title="Điều dưỡng">ĐD</th>
                 <th style="text-align:center;" title="Bác sĩ">BS</th>
                 <th>Đơn vị chủ trì</th>
-                <th>Kinh phí (Tr)</th>
+                <th style="text-align:right;">Kinh phí (Tr)</th>
             </tr>`;
             thead.innerHTML = htmlHead; tbody.innerHTML = '';
             
+            let sttCounter = 1;
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
-                row.innerHTML = `
-                    <td>${index + 1}</td>
-                    <td>${item.noiDung || ''}</td>
-                    <td style="color:var(--primary); font-weight:bold;">${item.kyThuat || ''}</td>
-                    <td>${item.thoiGian || ''}</td>
-                    <td style="text-align:center; color:#555;">${item.cns || ''}</td>
-                    <td style="text-align:center; color:#555;">${item.nhs || ''}</td>
-                    <td style="text-align:center; color:#555;">${item.ktv || ''}</td>
-                    <td style="text-align:center; color:#555;">${item.dd || ''}</td>
-                    <td style="text-align:center; color:red; font-weight:bold;">${item.bs || ''}</td>
-                    <td>${item.donVi || ''}</td>
-                    <td>${item.kinhPhi || ''}</td>
-                `;
+                
+                // Thuật toán kiểm tra số dòng cần Gộp (Rowspan)
+                let isFirst = false;
+                let rowspan = 1;
+                if (index === 0 || item.groupId !== list[index - 1].groupId) {
+                    isFirst = true;
+                    for (let j = index + 1; j < list.length; j++) {
+                        if (list[j].groupId === item.groupId) rowspan++;
+                        else break;
+                    }
+                }
+
+                if (isFirst) {
+                    row.innerHTML = `
+                        <td rowspan="${rowspan}" style="text-align:center; font-weight:bold; background-color: white;">${sttCounter++}</td>
+                        <td rowspan="${rowspan}" style="background-color: white;">${item.noiDung || ''}</td>
+                        <td style="color:var(--primary); font-weight:bold;">${item.kyThuat || ''}</td>
+                        <td rowspan="${rowspan}" style="background-color: white; text-align:center;">${item.thoiGian || ''}</td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white;">${item.cns || ''}</td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white;">${item.nhs || ''}</td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white;">${item.ktv || ''}</td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white;">${item.dd || ''}</td>
+                        <td rowspan="${rowspan}" style="text-align:center; color:red; font-weight:bold; background-color: white;">${item.bs || ''}</td>
+                        <td rowspan="${rowspan}" style="background-color: white;">${item.donVi || ''}</td>
+                        <td rowspan="${rowspan}" style="text-align:right; font-weight:bold; color:var(--success); background-color: white;">${item.kinhPhi || ''}</td>
+                    `;
+                } else {
+                    // Các dòng bên dưới của Ô Gộp thì chỉ in Cột Kỹ Thuật
+                    row.innerHTML = `
+                        <td style="color:var(--primary); font-weight:bold;">${item.kyThuat || ''}</td>
+                    `;
+                }
             });
             return;
         }
@@ -832,19 +766,12 @@
     }
 
     function moChiTietDV(maDichVu, maTuongDuong, tenDichVu) {
-        document.getElementById('dvTenDV').innerText = tenDichVu || '';
-        document.getElementById('dvMaDV').innerText = maDichVu || '';
+        document.getElementById('dvTenDV').innerText = tenDichVu || ''; document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
         let qtktInfo = database.PL1.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa)) || 
                        database.PL2.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
-        
-        if (!qtktInfo) {
-            for (let d of database.depts) {
-                let found = d.danhMucQTKT.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
-                if (found) { qtktInfo = found; break; }
-            }
-        }
+        if (!qtktInfo) { for (let d of database.depts) { let found = d.danhMucQTKT.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa)); if (found) { qtktInfo = found; break; } } }
 
         let qtHtml = '';
         if (qtktInfo) {
@@ -857,21 +784,14 @@
         } else { qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-        let giaDVInfo = database.GiaDV.find(x => String(x.maTuongDuong) === String(maTuongDuong));
-        let bhytHtml = '';
+        let giaDVInfo = database.GiaDV.find(x => String(x.maTuongDuong) === String(maTuongDuong)); let bhytHtml = '';
         if (giaDVInfo) {
             let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
-            bhytHtml = `<table class="user-table" style="width:100%;">
-                <tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr>
-                <tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr>
-                <tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr>
-            </table>`;
+            bhytHtml = `<table class="user-table" style="width:100%;"><tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr></table>`;
         } else { bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; }
         document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
-        const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = '';
-        let fileHtml = ''; let coBaoCao = false;
-
+        const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = ''; let fileHtml = ''; let coBaoCao = false;
         if (qtMa) {
             database.depts.forEach(d => {
                 const qt = d.danhMucQTKT.find(x => String(x.ma) === String(qtMa) || String(x.maLienKet) === String(qtMa));
@@ -879,19 +799,13 @@
                     coBaoCao = true;
                     let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
                     let ttStr = "Chưa nộp"; let col = "gray";
-                    if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; }
-                    else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; }
-                    else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
-                    
+                    if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
                     tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
-
                     if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
                         fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
                         if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
                         if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
-                        if(qt.filePdfChinhThuc) {
-                            fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
-                        }
+                        if(qt.filePdfChinhThuc) fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                         fileHtml += `</div>`;
                     }
                 }
@@ -900,30 +814,20 @@
         if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký quy trình kỹ thuật liên kết.</td></tr>`;
         const fileArea = document.getElementById('dvFilesArea');
         if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Chưa có tài liệu phê duyệt nào.</span>`;
-
         moModal('detailDVModal');
     }
 
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
-        document.getElementById('dtTenQT').innerText = ten || ''; 
-        document.getElementById('dtMaQT').innerText = ma; 
-        document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL';
-        document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
-
-        const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = '';
-        let fileHtml = ''; let coBaoCao = false;
+        document.getElementById('dtTenQT').innerText = ten || ''; document.getElementById('dtMaQT').innerText = ma; document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL'; document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
+        const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = ''; let fileHtml = ''; let coBaoCao = false;
 
         database.depts.forEach(d => {
             const qt = d.danhMucQTKT.find(x => String(x.ma) === String(ma) || String(x.maLienKet) === String(ma));
             if(qt) {
                 coBaoCao = true;
                 let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-
                 let ttStr = "Chưa nộp"; let col = "gray";
-                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; }
-                else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; }
-                else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
-                
+                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
                 tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
 
                 if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
@@ -931,12 +835,8 @@
                     if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
                     if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
                     if(qt.filePdfChinhThuc) {
-                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;">`;
-                        fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
-                        
-                        if (currentUser && currentUser.role === 'admin') {
-                            fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${ten.replace(/['"`\n\r]/g, "")}')">🔄 Cập nhật PDF</button>`;
-                        }
+                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                        if (currentUser && currentUser.role === 'admin') fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${ten.replace(/['"`\n\r]/g, "")}')">🔄 Cập nhật PDF</button>`;
                         fileHtml += `</div>`;
                     }
                     fileHtml += `</div>`;
@@ -944,70 +844,35 @@
             }
         });
         if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
-        const fileArea = document.getElementById('dtFilesArea');
-        if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
+        const fileArea = document.getElementById('dtFilesArea'); if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
 
-        const giaArea = document.getElementById('dtGiaDVArea');
-        const giaBVArea = document.getElementById('dtMaDVBVArea');
+        const giaArea = document.getElementById('dtGiaDVArea'); const giaBVArea = document.getElementById('dtMaDVBVArea');
 
         function isCodeMatch(maTuongDuong, targetMa) {
-            if (!targetMa || !maTuongDuong || typeof maTuongDuong !== 'string') return false;
-            let parts = maTuongDuong.split('.'); 
-            if (parts.length >= 2) {
-                let a = parseInt(parts[0], 10);
-                let b = parseInt(parts[1], 10);
-                if (!isNaN(a) && !isNaN(b)) {
-                    let reconstructed = a + '.' + b; 
-                    if (reconstructed === targetMa.trim()) return true;
-                }
-            }
-            return false;
+            if (!targetMa || !maTuongDuong || typeof maTuongDuong !== 'string') return false; let parts = maTuongDuong.split('.'); 
+            if (parts.length >= 2) { let a = parseInt(parts[0], 10); let b = parseInt(parts[1], 10); if (!isNaN(a) && !isNaN(b)) { let reconstructed = a + '.' + b; if (reconstructed === targetMa.trim()) return true; } } return false;
         }
 
         let matchedPrices = database.GiaDV.filter(priceItem => {
-            let isNameMatch = false;
-            if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') {
-                if (ten.toLowerCase().trim() === priceItem.tenKyThuat.toLowerCase().trim()) isNameMatch = true;
-            }
+            let isNameMatch = false; if (ten && priceItem.tenKyThuat && typeof priceItem.tenKyThuat === 'string') { if (ten.toLowerCase().trim() === priceItem.tenKyThuat.toLowerCase().trim()) isNameMatch = true; }
             return isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
         });
 
         if (matchedPrices.length > 0) {
-            let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;">`;
-            htmlGia += `<thead><tr><th>Mã tương đương</th><th>Tên Dịch vụ BHYT</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
-            matchedPrices.forEach(p => {
-                let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
-                htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`;
-            });
-            htmlGia += `</tbody></table>`;
-            giaArea.innerHTML = htmlGia;
+            let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã tương đương</th><th>Tên Dịch vụ BHYT</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
+            matchedPrices.forEach(p => { let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá'; htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`; });
+            htmlGia += `</tbody></table>`; giaArea.innerHTML = htmlGia;
         } else { giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; }
 
         let matchedBVPrices = database.MaDVBV.filter(priceItem => isCodeMatch(priceItem.maTuongDuong, ma));
-        
         if (matchedBVPrices.length > 0) {
-            let htmlGiaBV = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;">`;
-            htmlGiaBV += `<thead><tr><th>Mã dịch vụ</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá NN</th></tr></thead><tbody>`;
+            let htmlGiaBV = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã dịch vụ</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá NN</th></tr></thead><tbody>`;
             matchedBVPrices.forEach(p => {
-                let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-';
-                let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-';
-                let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-';
-                let gNN = p.giaNuocNgoai ? Number(p.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '-';
-                htmlGiaBV += `<tr>
-                    <td style="text-align:center;"><b>${p.maDichVu || ''}</b></td>
-                    <td>${p.tenDichVu || ''}</td>
-                    <td style="text-align:right; color:green; font-weight:bold;">${gBHYT}</td>
-                    <td style="text-align:right; color:blue; font-weight:bold;">${gVP}</td>
-                    <td style="text-align:right; color:purple; font-weight:bold;">${gYC}</td>
-                    <td style="text-align:right; color:red; font-weight:bold;">${gNN}</td>
-                </tr>`;
+                let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-'; let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-'; let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-'; let gNN = p.giaNuocNgoai ? Number(p.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '-';
+                htmlGiaBV += `<tr><td style="text-align:center;"><b>${p.maDichVu || ''}</b></td><td>${p.tenDichVu || ''}</td><td style="text-align:right; color:green; font-weight:bold;">${gBHYT}</td><td style="text-align:right; color:blue; font-weight:bold;">${gVP}</td><td style="text-align:right; color:purple; font-weight:bold;">${gYC}</td><td style="text-align:right; color:red; font-weight:bold;">${gNN}</td></tr>`;
             });
-            htmlGiaBV += `</tbody></table>`;
-            giaBVArea.innerHTML = htmlGiaBV;
-        } else {
-            giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`;
-        }
-
+            htmlGiaBV += `</tbody></table>`; giaBVArea.innerHTML = htmlGiaBV;
+        } else { giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; }
         moModal('detailModal');
     }
 
@@ -1017,7 +882,6 @@
     function apDungLoc() { 
         const search = document.getElementById('searchBox').value.toLowerCase();
         
-        // 🟢 BỘ LỌC CHO ĐÀO TẠO NGẮN HẠN
         if (currentTabType === 'DTNH') {
             const filterNam = document.getElementById('filterNamDT').value;
             let deptObj = database.depts.find(d => d.tenKhoa === currentTab);
@@ -1034,17 +898,13 @@
 
         if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
             document.getElementById('lblSearch').innerText = currentTab === 'GiaDV' ? 'TÌM KIẾM MÃ HOẶC TÊN DỊCH VỤ' : 'TÌM KIẾM MÃ DV, MÃ TĐ HOẶC TÊN DV';
-            
             let sourceList = currentTab === 'GiaDV' ? database.GiaDV : database.MaDVBV;
             const filtered = sourceList.filter(item => {
                 if (currentTab === 'GiaDV') return (item.maTuongDuong?.toLowerCase().includes(search) || item.tenKyThuat?.toLowerCase().includes(search) || item.tenDichVu?.toLowerCase().includes(search));
                 else return (item.maDichVu?.toLowerCase().includes(search) || item.maTuongDuong?.toLowerCase().includes(search) || item.tenDichVu?.toLowerCase().includes(search));
             });
-            renderTable(filtered);
-            return;
-        } else {
-            document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG';
-        }
+            renderTable(filtered); return;
+        } else { document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG'; }
 
         const loaiSelect = document.getElementById('filterLoai').value, qd = document.getElementById('filterQuyetDinh').value; 
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; 
@@ -1086,28 +946,20 @@
     }
 
     function switchTab(tab, type = 'QTKT') { 
-        currentTab = tab; 
-        currentTabType = type;
-        capNhatTieuDe(); 
-        document.getElementById('searchBox').value = ''; 
-        document.getElementById('filterLoai').value = ""; 
-        document.getElementById('filterQuyetDinh').value = ""; 
-        document.getElementById('filterNamDT').value = "";
+        currentTab = tab; currentTabType = type; capNhatTieuDe(); 
+        document.getElementById('searchBox').value = ''; document.getElementById('filterLoai').value = ""; document.getElementById('filterQuyetDinh').value = ""; document.getElementById('filterNamDT').value = "";
         apDungLoc(); 
     }
     
-    // 🟢 THUẬT TOÁN ĐỌC EXCEL THÔNG MINH MỚI
+    // 🟢 THUẬT TOÁN ĐỌC EXCEL 2 TẦNG, LẤY ĐẦY ĐỦ KINH PHÍ CHO Ô GỘP
     async function importFromExcel() { 
-        const fileInput = document.getElementById('fileExcel'); 
-        const file = fileInput.files[0]; 
-        if (!file) return; 
+        const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; 
 
         if (currentTabType === 'DTNH') {
             const selectedYear = document.getElementById('filterNamDT').value;
             if (!selectedYear) {
                 alert("⚠️ VUI LÒNG CHỌN [NĂM ĐÀO TẠO] Ở THANH TÌM KIẾM PHÍA TRÊN TRƯỚC KHI TẢI FILE LÊN!");
-                fileInput.value = '';
-                return;
+                fileInput.value = ''; return;
             }
         }
 
@@ -1124,20 +976,14 @@
                     let headerRowIndex = -1;
                     
                     for (let i = 0; i < rawData.length; i++) {
-                        let rowData = rawData[i];
-                        if(!rowData || rowData.length === 0) continue;
-                        
+                        let rowData = rawData[i]; if(!rowData || rowData.length === 0) continue;
                         let rowStr = rowData.map(c => c ? c.toString().toLowerCase() : "").join(" ");
                         if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
-                            headerRowIndex = i;
-                            break;
+                            headerRowIndex = i; break;
                         }
                     }
 
-                    if (headerRowIndex === -1) {
-                        alert("Không tìm thấy dòng Tiêu đề chuẩn (Khoa, Nội dung đào tạo...). Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!");
-                        showLoading(false); return;
-                    }
+                    if (headerRowIndex === -1) { alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!"); showLoading(false); return; }
 
                     let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
                     let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
@@ -1165,17 +1011,18 @@
                     });
 
                     let parsedDataByKhoa = {};
-                    let currentKhoaInFile = ""; // Dùng để điền tự động cho ô Merge
+                    let currentKhoaInFile = ""; 
+                    
+                    // Các biến dùng để Tự động điền (Fill Down) khi gặp ô bị Merge
+                    let currentNoiDung = "", currentThoiGian = "", currentDonVi = "", currentKinhPhi = "";
+                    let currentCNSH = "", currentNHS = "", currentKTV = "", currentDD = "", currentBS = "";
+                    let currentGroupId = 0;
 
                     for (let i = headerRowIndex + 2; i < rawData.length; i++) {
-                        let rowData = rawData[i];
-                        if (!rowData || rowData.length === 0) continue;
+                        let rowData = rawData[i]; if (!rowData || rowData.length === 0) continue;
                         
                         let tenKhoaRaw = rowData[colKhoa];
-                        if (tenKhoaRaw && tenKhoaRaw.toString().trim() !== "") {
-                            currentKhoaInFile = normalize(tenKhoaRaw.toString());
-                        }
-
+                        if (tenKhoaRaw && tenKhoaRaw.toString().trim() !== "") { currentKhoaInFile = normalize(tenKhoaRaw.toString()); }
                         if (!currentKhoaInFile) continue;
 
                         let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
@@ -1183,63 +1030,63 @@
 
                         let noiDung = rowData[colNoiDung];
                         let kyThuat = rowData[colKyThuat];
-                        if (!noiDung && !kyThuat) continue; 
+                        
+                        // KHI GẶP NỘI DUNG MỚI (TỨC LÀ Ô ĐẦU TIÊN CỦA MERGE CELL) -> CẬP NHẬT BIẾN FILL DOWN
+                        if (noiDung && noiDung.toString().trim() !== "") {
+                            currentGroupId++;
+                            currentNoiDung = noiDung;
+                            currentThoiGian = rowData[colThoiGian] || "";
+                            currentDonVi = rowData[colDonVi] || "";
+                            currentKinhPhi = rowData[colKinhPhi] || "";
+                            currentCNSH = rowData[colCNSH] || "";
+                            currentNHS = rowData[colNHS] || "";
+                            currentKTV = rowData[colKTV] || "";
+                            currentDD = rowData[colDD] || "";
+                            currentBS = rowData[colBS] || "";
+                        } else if (!kyThuat || kyThuat.toString().trim() === "") {
+                            continue; // Dòng trắng tinh thì bỏ qua
+                        }
 
                         if (!parsedDataByKhoa[matchedKhoa]) parsedDataByKhoa[matchedKhoa] = [];
                         
+                        // LƯU DỮ LIỆU ĐÃ ĐƯỢC FILL DOWN ĐẦY ĐỦ VÀO DATABASE
                         parsedDataByKhoa[matchedKhoa].push({
+                            groupId: currentGroupId,
                             nam: selectedYear,
-                            noiDung: noiDung || "",
+                            noiDung: currentNoiDung,
                             kyThuat: kyThuat || "",
-                            thoiGian: rowData[colThoiGian] || "",
-                            donVi: rowData[colDonVi] || "",
-                            kinhPhi: rowData[colKinhPhi] || "",
-                            cns: rowData[colCNSH] || "",
-                            nhs: rowData[colNHS] || "",
-                            ktv: rowData[colKTV] || "",
-                            dd: rowData[colDD] || "",
-                            bs: rowData[colBS] || ""
+                            thoiGian: currentThoiGian,
+                            donVi: currentDonVi,
+                            kinhPhi: currentKinhPhi,
+                            cns: currentCNSH,
+                            nhs: currentNHS,
+                            ktv: currentKTV,
+                            dd: currentDD,
+                            bs: currentBS
                         });
                     }
 
-                    const response = await fetch('/api/upload-dtnh', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ payload: parsedDataByKhoa, year: selectedYear }) 
-                    }); 
-                    const result = await response.json(); 
-                    alert(result.message); 
-                    await layDuLieu(); 
+                    const response = await fetch('/api/upload-dtnh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: parsedDataByKhoa, year: selectedYear }) }); 
+                    const result = await response.json(); alert(result.message); await layDuLieu(); 
                 } 
                 else {
-                    let headerRowIndex = -1;
-                    let headers = [];
-                    
+                    let headerRowIndex = -1; let headers = [];
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = rawData[i].map(c => c ? c.toString().toLowerCase() : "").join(" ");
                         if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương")) {
-                            headerRowIndex = i;
-                            headers = rawData[i].map(normalize);
-                            break;
+                            headerRowIndex = i; headers = rawData[i].map(normalize); break;
                         }
                     }
 
-                    if (headerRowIndex === -1) {
-                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!");
-                        showLoading(false); return;
-                    }
+                    if (headerRowIndex === -1) { alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); showLoading(false); return; }
 
                     let parsedData = [];
                     for (let i = headerRowIndex + 1; i < rawData.length; i++) {
-                        let rowData = rawData[i];
-                        if (!rowData || rowData.length === 0) continue; 
-                        
+                        let rowData = rawData[i]; if (!rowData || rowData.length === 0) continue; 
                         let item = {}; let hasData = false;
 
                         headers.forEach((k, colIndex) => { 
-                            if (!k) return;
-                            let v = rowData[colIndex]; 
-                            if (v !== undefined && v !== null && v !== "") hasData = true;
+                            if (!k) return; let v = rowData[colIndex]; if (v !== undefined && v !== null && v !== "") hasData = true;
                             
                             if (currentTab === 'GiaDV') {
                                 if (k === "mã tương đương" || k.includes("mã tương đương")) item.maTuongDuong = v; 
@@ -1268,9 +1115,7 @@
                     } 
                     
                     database[currentTab] = parsedData;
-                    
-                    const formData = new FormData(); formData.append('fileExcel', file); 
-                    formData.append('tabName', currentTab); formData.append('tabData', JSON.stringify(database[currentTab])); 
+                    const formData = new FormData(); formData.append('fileExcel', file); formData.append('tabName', currentTab); formData.append('tabData', JSON.stringify(database[currentTab])); 
                     const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
                     const result = await response.json(); alert(result.message); renderTable(); 
                 }
@@ -1281,33 +1126,43 @@
     
     function jumpToPL1(ma) { if(!ma) return; switchTab('PL1', 'QTKT'); document.getElementById('searchBox').value = ma; apDungLoc(); }
     
+    // 🟢 CẬP NHẬT CHỨC NĂNG XUẤT EXCEL: Ẩn bớt các trường trùng lặp để mô phỏng Merge Cells
     function exportToExcel() { 
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
         const isSuperTab = currentTab.startsWith('KHTH_');
+        
+        let prevGroupId = null;
+        let sttCounterExport = 1;
 
         const cleanData = currentFilteredData.map((item, index) => {
-            let row = { "STT": index + 1 };
+            let row = {};
             
             if (currentTabType === 'DTNH') {
-                row["KHOA"] = currentTab.toUpperCase();
-                row["NỘI DUNG ĐÀO TẠO"] = item.noiDung || "";
+                let isFirst = item.groupId !== prevGroupId;
+                prevGroupId = item.groupId;
+
+                row["STT"] = isFirst ? (sttCounterExport++) : "";
+                row["KHOA"] = isFirst ? currentTab.toUpperCase() : "";
+                row["NỘI DUNG ĐÀO TẠO"] = isFirst ? (item.noiDung || "") : "";
                 row["KỸ THUẬT CỤ THỂ"] = item.kyThuat || "";
-                row["THỜI GIAN"] = item.thoiGian || "";
-                row["CỬ NHÂN SH"] = item.cns || "";
-                row["NỮ HỘ SINH"] = item.nhs || "";
-                row["KTV"] = item.ktv || "";
-                row["ĐIỀU DƯỠNG"] = item.dd || "";
-                row["BÁC SĨ"] = item.bs || "";
-                row["ĐƠN VỊ CHỦ TRÌ"] = item.donVi || "";
-                row["DỰ KIẾN KINH PHÍ"] = item.kinhPhi || "";
+                row["THỜI GIAN"] = isFirst ? (item.thoiGian || "") : "";
+                row["CỬ NHÂN SH"] = isFirst ? (item.cns || "") : "";
+                row["NỮ HỘ SINH"] = isFirst ? (item.nhs || "") : "";
+                row["KTV"] = isFirst ? (item.ktv || "") : "";
+                row["ĐIỀU DƯỠNG"] = isFirst ? (item.dd || "") : "";
+                row["BÁC SĨ"] = isFirst ? (item.bs || "") : "";
+                row["ĐƠN VỊ CHỦ TRÌ"] = isFirst ? (item.donVi || "") : "";
+                row["DỰ KIẾN KINH PHÍ"] = isFirst ? (item.kinhPhi || "") : "";
             } else if (currentTab === 'GiaDV') {
+                row["STT"] = index + 1;
                 row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
                 row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
                 row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
                 row["GIÁ PHÊ DUYỆT (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
             } else if (currentTab === 'MaDVBV') {
+                row["STT"] = index + 1;
                 row["MÃ DỊCH VỤ"] = item.maDichVu || "";
                 row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
                 row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
@@ -1316,6 +1171,7 @@
                 row["GIÁ YÊU CẦU"] = item.giaYeuCau ? Number(item.giaYeuCau) : "";
                 row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
             } else {
+                row["STT"] = index + 1;
                 if (isSuperTab) {
                     row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
                     row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
