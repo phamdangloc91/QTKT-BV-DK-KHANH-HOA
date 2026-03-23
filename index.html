@@ -177,9 +177,9 @@
             </select>
         </div>
         <div class="filter-group" id="groupNamDT" style="display: none;">
-            <label>NĂM ĐÀO TẠO</label>
-            <select id="filterNamDT" onchange="apDungLoc()">
-                <option value="">-- Tất cả năm --</option>
+            <label style="color:var(--danger);">* NĂM ĐÀO TẠO</label>
+            <select id="filterNamDT" onchange="apDungLoc()" style="border: 2px solid var(--danger);">
+                <option value="">-- Bắt buộc Chọn Năm --</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
@@ -279,9 +279,8 @@
 </div>
 
 <script>
-    // 🟢 QUẢN LÝ TRẠNG THÁI HIỂN THỊ
     let currentTab = 'PL1';
-    let currentTabType = 'QTKT'; // Trạng thái 'QTKT' hoặc 'DTNH' (Đào tạo ngắn hạn)
+    let currentTabType = 'QTKT'; // Quản lý Tab là QTKT hay Đào Tạo Ngắn Hạn (DTNH)
     
     let database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
     let currentFilteredData = [];
@@ -301,7 +300,6 @@
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
-    // MEGA MENU
     window.addEventListener('DOMContentLoaded', () => {
         const optGroupKhoa = document.getElementById('optGroupKhoa');
         const menuCacKhoa = document.getElementById('menuCacKhoa');
@@ -347,7 +345,6 @@
 
             const linkNganHan = document.createElement('a');
             linkNganHan.href = "#"; linkNganHan.innerText = "Ngắn hạn";
-            // 🟢 CHUYỂN TAB SANG CHẾ ĐỘ ĐÀO TẠO NGẮN HẠN
             linkNganHan.onclick = (e) => { e.preventDefault(); switchTab(khoa, 'DTNH'); };
 
             trainSubmenu.appendChild(linkDaiHan);
@@ -552,7 +549,7 @@
         const isSuperTab = currentTab.startsWith('KHTH_');
         let list = [];
         
-        // 🟢 NẾU LÀ TAB ĐÀO TẠO NGẮN HẠN
+        // 🟢 BẢNG HIỂN THỊ ĐÀO TẠO NGẮN HẠN
         if (currentTabType === 'DTNH') {
             if (data) { list = data; } 
             else { 
@@ -574,7 +571,6 @@
                 <th style="text-align:center;" title="Bác sĩ">BS</th>
                 <th>Đơn vị chủ trì</th>
                 <th>Kinh phí (Tr)</th>
-                <th>Năm</th>
             </tr>`;
             thead.innerHTML = htmlHead; tbody.innerHTML = '';
             
@@ -592,13 +588,12 @@
                     <td style="text-align:center; color:red; font-weight:bold;">${item.bs || ''}</td>
                     <td>${item.donVi || ''}</td>
                     <td>${item.kinhPhi || ''}</td>
-                    <td><span class="badge badge-warning">${item.nam || ''}</span></td>
                 `;
             });
             return;
         }
 
-        // 🟢 CÁC BẢNG BÌNH THƯỜNG
+        // BẢNG BÌNH THƯỜNG
         if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); list = deptObj ? deptObj.danhMucQTKT : []; } else { list = database[currentTab] || []; }
         currentFilteredData = list;
 
@@ -607,8 +602,7 @@
         
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead;
-            tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
@@ -637,8 +631,7 @@
 
         if (currentTab === 'MaDVBV') {
             htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead;
-            tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; tbody.innerHTML = '';
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
@@ -813,8 +806,7 @@
     }
 
     function chuanBiUpSinglePdf(ma, tenKhoa, tenQuyTrinh) {
-        dongModal('detailModal'); 
-        dongModal('detailDVModal');
+        dongModal('detailModal'); dongModal('detailDVModal');
         targetUpload = { ma: ma, tenKhoa: tenKhoa };
         document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadSinglePdfModal');
     }
@@ -1025,6 +1017,7 @@
     function apDungLoc() { 
         const search = document.getElementById('searchBox').value.toLowerCase();
         
+        // 🟢 BỘ LỌC CHO ĐÀO TẠO NGẮN HẠN
         if (currentTabType === 'DTNH') {
             const filterNam = document.getElementById('filterNamDT').value;
             let deptObj = database.depts.find(d => d.tenKhoa === currentTab);
@@ -1049,8 +1042,10 @@
             });
             renderTable(filtered);
             return;
-        } 
-        
+        } else {
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG';
+        }
+
         const loaiSelect = document.getElementById('filterLoai').value, qd = document.getElementById('filterQuyetDinh').value; 
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; 
         if (isSuperTab) { sourceList = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); sourceList = deptObj ? deptObj.danhMucQTKT : []; } else { sourceList = database[currentTab] || []; } 
@@ -1063,7 +1058,6 @@
         const select = document.getElementById('filterQuyetDinh'); const currentVal = select.value; const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; if(isSuperTab) sourceList = getAggregatedList(currentTab); else if(isDeptTab) sourceList = database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []; else sourceList = database[currentTab] || []; const dsQD = [...new Set(sourceList.map(item => item.quyetDinh).filter(i => i))]; select.innerHTML = '<option value="">-- Tất cả quyết định --</option>'; dsQD.sort().forEach(qd => { const opt = document.createElement('option'); opt.value = qd; opt.innerText = qd; if(qd === currentVal) opt.selected = true; select.appendChild(opt); }); 
     }
     
-    // 🟢 CẬP NHẬT GIAO DIỆN KHI CHUYỂN TAB (ẨN/HIỆN NÚT CHỌN NĂM)
     function capNhatTieuDe() {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = "";
         if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`;
@@ -1102,40 +1096,39 @@
         apDungLoc(); 
     }
     
-    // 🟢 THUẬT TOÁN ĐỌC EXCEL 2 TẦNG CHO BẢNG ĐÀO TẠO NGẮN HẠN
+    // 🟢 THUẬT TOÁN ĐỌC EXCEL THÔNG MINH MỚI
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); 
         const file = fileInput.files[0]; 
         if (!file) return; 
+
+        if (currentTabType === 'DTNH') {
+            const selectedYear = document.getElementById('filterNamDT').value;
+            if (!selectedYear) {
+                alert("⚠️ VUI LÒNG CHỌN [NĂM ĐÀO TẠO] Ở THANH TÌM KIẾM PHÍA TRÊN TRƯỚC KHI TẢI FILE LÊN!");
+                fileInput.value = '';
+                return;
+            }
+        }
+
         showLoading(true); 
         const reader = new FileReader(); 
         reader.onload = async function(e) { 
             try { 
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                
-                // Đọc thô toàn bộ bảng dưới dạng Mảng 2 chiều
                 const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); 
                 
                 if (currentTabType === 'DTNH') {
-                    let yearMatch = null;
+                    const selectedYear = document.getElementById('filterNamDT').value;
                     let headerRowIndex = -1;
                     
-                    // 1. Quét tìm Năm và Dòng Tiêu đề
-                    for (let i = 0; i < Math.min(15, rawData.length); i++) {
+                    for (let i = 0; i < rawData.length; i++) {
                         let rowData = rawData[i];
                         if(!rowData || rowData.length === 0) continue;
                         
-                        let rowStr = rowData.map(c => c ? c.toString().toUpperCase() : "").join(" ");
-                        
-                        // Tìm chữ NĂM 202X ở các dòng đầu
-                        if (!yearMatch) {
-                            let m = rowStr.match(/NĂM\s*(\d{4})/);
-                            if (m) yearMatch = m[1];
-                        }
-                        
-                        // Tìm dòng chứa Nội dung đào tạo
-                        if (rowStr.includes("NỘI DUNG ĐÀO TẠO") && rowStr.includes("KHOA")) {
+                        let rowStr = rowData.map(c => c ? c.toString().toLowerCase() : "").join(" ");
+                        if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
                             headerRowIndex = i;
                             break;
                         }
@@ -1146,10 +1139,6 @@
                         showLoading(false); return;
                     }
 
-                    // Ưu tiên năm trong file, nếu không có thì lấy năm ở bộ lọc, nếu không thì lấy năm hiện tại
-                    let finalYear = yearMatch || document.getElementById('filterNamDT').value || new Date().getFullYear();
-
-                    // 2. Xác định vị trí các Cột (Dựa vào Tầng 1 và Tầng 2)
                     let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
                     let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
 
@@ -1168,36 +1157,38 @@
 
                     headRow2.forEach((k, idx) => {
                         if (!k) return;
-                        if (k.includes("sinh học")) colCNSH = idx;
-                        if (k.includes("hộ sinh")) colNHS = idx;
-                        if (k === "ktv") colKTV = idx;
-                        if (k === "đd") colDD = idx;
-                        if (k === "bs") colBS = idx;
+                        if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
+                        if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
+                        if (k === "ktv" || k.includes("kỹ thuật viên")) colKTV = idx;
+                        if (k === "đd" || k.includes("điều dưỡng")) colDD = idx;
+                        if (k === "bs" || k.includes("bác sĩ")) colBS = idx;
                     });
 
-                    // 3. Quét Dữ liệu
                     let parsedDataByKhoa = {};
-                    
-                    // Dữ liệu thực sự bắt đầu từ dòng sau HeadRow2
+                    let currentKhoaInFile = ""; // Dùng để điền tự động cho ô Merge
+
                     for (let i = headerRowIndex + 2; i < rawData.length; i++) {
                         let rowData = rawData[i];
                         if (!rowData || rowData.length === 0) continue;
                         
                         let tenKhoaRaw = rowData[colKhoa];
-                        if (!tenKhoaRaw) continue; // Bỏ qua nếu không ghi tên Khoa
-                        
-                        // Tìm tên Khoa chuẩn trong danh sách
-                        let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k) === normalize(tenKhoaRaw));
-                        if (!matchedKhoa) continue; // Khoa không hợp lệ
+                        if (tenKhoaRaw && tenKhoaRaw.toString().trim() !== "") {
+                            currentKhoaInFile = normalize(tenKhoaRaw.toString());
+                        }
+
+                        if (!currentKhoaInFile) continue;
+
+                        let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
+                        if (!matchedKhoa) continue; 
 
                         let noiDung = rowData[colNoiDung];
                         let kyThuat = rowData[colKyThuat];
-                        if (!noiDung && !kyThuat) continue; // Dòng trống
+                        if (!noiDung && !kyThuat) continue; 
 
                         if (!parsedDataByKhoa[matchedKhoa]) parsedDataByKhoa[matchedKhoa] = [];
                         
                         parsedDataByKhoa[matchedKhoa].push({
-                            nam: finalYear,
+                            nam: selectedYear,
                             noiDung: noiDung || "",
                             kyThuat: kyThuat || "",
                             thoiGian: rowData[colThoiGian] || "",
@@ -1211,18 +1202,16 @@
                         });
                     }
 
-                    // Gửi lên Server để gom nhóm và lưu
                     const response = await fetch('/api/upload-dtnh', { 
                         method: 'POST', 
                         headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ payload: parsedDataByKhoa, year: finalYear }) 
+                        body: JSON.stringify({ payload: parsedDataByKhoa, year: selectedYear }) 
                     }); 
                     const result = await response.json(); 
                     alert(result.message); 
-                    await layDuLieu(); // Tải lại toàn bộ dữ liệu mới nhất
+                    await layDuLieu(); 
                 } 
                 else {
-                    // Logic Đọc Excel Cũ cho Danh mục và Giá
                     let headerRowIndex = -1;
                     let headers = [];
                     
@@ -1285,7 +1274,7 @@
                     const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
                     const result = await response.json(); alert(result.message); renderTable(); 
                 }
-            } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng cột."); console.error(error); } finally { fileInput.value = ''; showLoading(false); } 
+            } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); console.error(error); } finally { fileInput.value = ''; showLoading(false); } 
         }; 
         reader.readAsArrayBuffer(file); 
     }
@@ -1313,7 +1302,6 @@
                 row["BÁC SĨ"] = item.bs || "";
                 row["ĐƠN VỊ CHỦ TRÌ"] = item.donVi || "";
                 row["DỰ KIẾN KINH PHÍ"] = item.kinhPhi || "";
-                row["NĂM"] = item.nam || "";
             } else if (currentTab === 'GiaDV') {
                 row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
                 row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
