@@ -216,6 +216,11 @@
     </div>
 </div>
 
+<footer class="site-footer">
+    <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
+</footer>
+
 <div id="loginModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
@@ -706,7 +711,7 @@
         showLoading(false);
     }
 
-    // LỚP BẢO VỆ 2: CHỐNG LỖI KHI TÌM KIẾM THEO NHÓM
+    // LỚP BẢO VỆ 2: CHỐNG LỖI TỪ DỮ LIỆU RỖNG
     function getAggregatedList(tabName) {
         let result = [];
         if(!database.depts) return result;
@@ -727,7 +732,6 @@
     }
 
     function prepareKeywords() {
-        // Bảo vệ vòng lặp chống lỗi null data
         let validPL = [...database.PL1, ...database.PL2].filter(x => x && x.ten);
         plKeywords = validPL.map(x => {
             return { 
@@ -775,18 +779,26 @@
             const resData = await fetch('/api/data'); 
             const mainData = await resData.json(); 
             
-            database.PL1 = mainData.PL1 || []; 
-            database.PL2 = mainData.PL2 || []; 
-            database.GiaDV = mainData.GiaDV || []; 
-            database.MaDVBV = mainData.MaDVBV || []; 
+            database.PL1 = (mainData.PL1 || []).filter(Boolean); 
+            database.PL2 = (mainData.PL2 || []).filter(Boolean); 
+            database.GiaDV = (mainData.GiaDV || []).filter(Boolean); 
+            database.MaDVBV = (mainData.MaDVBV || []).filter(Boolean); 
             
             const resDepts = await fetch('/api/dept-data'); 
-            database.depts = await resDepts.json();
+            let rawDepts = await resDepts.json();
+            
+            database.depts = (rawDepts || []).filter(Boolean).map(d => {
+                if(d) {
+                    d.danhMucQTKT = (d.danhMucQTKT || []).filter(Boolean);
+                    d.daoTaoNganHan = (d.daoTaoNganHan || []).filter(Boolean);
+                }
+                return d;
+            });
             
             prepareKeywords();
             apDungLoc(); 
         } catch (error) { 
-            console.log(error); 
+            console.log("Lỗi khi lấy dữ liệu:", error); 
         }
         showLoading(false);
     }
@@ -1033,12 +1045,12 @@
         const tbody = document.getElementById('dataBody');
         let htmlHead = `<tr>`;
         
+        // 🟢 BẢN VÁ LỖI HIỆU NĂNG TẢI SIÊU TỐC CHO BẢNG GIÁ DV
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
             thead.innerHTML = htmlHead; 
             tbody.innerHTML = '';
             
-            // 🟢 THUẬT TOÁN BĂM DỮ LIỆU TỐI ƯU HÓA HIỆU NĂNG BẢNG GIÁ DV (BẢO VỆ CHỐNG LỖI)
             let qtktMap = new Map();
             let addTolist = (i) => {
                 if(!i) return;
@@ -1778,9 +1790,9 @@
                         }
                         if (!currentKhoaInFile) continue;
 
-                        // 🟢 TỰ ĐỘNG PHÂN PHỐI DỮ LIỆU ĐÚNG NGĂN KÉO CỦA TỪNG KHOA
                         let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
                         if (!matchedKhoa) continue; 
+                        if (matchedKhoa !== currentTab) continue;
 
                         let noiDung = rowData[colNoiDung];
                         let kyThuat = rowData[colKyThuat];
@@ -1934,13 +1946,13 @@
                 ]);
             });
 
-            let ws = XLSX.utils.aoa_to_sheet(excelData);
-            ws['!merges'] = [
+            let wsChuaApGia = XLSX.utils.aoa_to_sheet(excelData);
+            wsChuaApGia['!merges'] = [
                 { s: {r:0, c:0}, e: {r:0, c:5} },
                 { s: {r:1, c:0}, e: {r:1, c:5} }
             ];
-            ws['!cols'] = [{wch: 5}, {wch: 15}, {wch: 30}, {wch: 50}, {wch: 15}, {wch: 50}];
-            XLSX.utils.book_append_sheet(wb, ws, "ChuaApGia");
+            wsChuaApGia['!cols'] = [{wch: 5}, {wch: 15}, {wch: 30}, {wch: 50}, {wch: 15}, {wch: 50}];
+            XLSX.utils.book_append_sheet(wb, wsChuaApGia, "ChuaApGia");
             XLSX.writeFile(wb, `QTKT_ChuaApGia_${new Date().getTime()}.xlsx`);
             return;
         }
@@ -2003,10 +2015,10 @@
                 }
             });
 
-            let ws = XLSX.utils.aoa_to_sheet(excelData);
-            ws['!merges'] = merges;
-            ws['!cols'] = [{wch: 5}, {wch: 35}, {wch: 40}, {wch: 15}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 25}, {wch: 15}];
-            XLSX.utils.book_append_sheet(wb, ws, "DaoTaoNganHan");
+            let wsDtnh = XLSX.utils.aoa_to_sheet(excelData);
+            wsDtnh['!merges'] = merges;
+            wsDtnh['!cols'] = [{wch: 5}, {wch: 35}, {wch: 40}, {wch: 15}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 25}, {wch: 15}];
+            XLSX.utils.book_append_sheet(wb, wsDtnh, "DaoTaoNganHan");
             XLSX.writeFile(wb, `KeHoachDaoTao_${currentTab.replace(/ /g, '_')}_${selectedYear}.xlsx`);
             return;
         }
@@ -2061,7 +2073,7 @@
             return row;
         });
 
-        let ws = XLSX.utils.json_to_sheet(cleanData); 
+        let wsMain = XLSX.utils.json_to_sheet(cleanData); 
         
         const colWidths = [];
         const keys = Object.keys(cleanData[0] || {});
@@ -2078,9 +2090,9 @@
             });
             colWidths.push({ wch: Math.min(maxLen + 2, 60) });
         });
-        ws['!cols'] = colWidths; 
+        wsMain['!cols'] = colWidths; 
 
-        XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
+        XLSX.utils.book_append_sheet(wb, wsMain, "Danh_Muc"); 
         let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; 
         XLSX.writeFile(wb, fileName); 
     }
