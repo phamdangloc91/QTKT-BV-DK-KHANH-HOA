@@ -216,6 +216,11 @@
     </div>
 </div>
 
+<footer class="site-footer">
+    <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
+</footer>
+
 <div id="loginModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
@@ -1024,23 +1029,22 @@
             thead.innerHTML = htmlHead; 
             tbody.innerHTML = '';
             
+            // 🟢 THUẬT TOÁN BĂM DỮ LIỆU TỐI ƯU HÓA HIỆU NĂNG BẢNG GIÁ DV
+            let qtktMap = new Map();
+            let addTolist = (i) => {
+                let m1 = normalizeCodeFast(i.ma); 
+                let m2 = normalizeCodeFast(i.maLienKet);
+                if (m1 && !qtktMap.has(m1)) qtktMap.set(m1, i);
+                if (m2 && !qtktMap.has(m2)) qtktMap.set(m2, i);
+            };
+            database.PL1.forEach(addTolist); 
+            database.PL2.forEach(addTolist);
+
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
                 
                 let qtMa = normalizeCodeFast(item.maTuongDuong);
-                
-                // 🟢 THUẬT TOÁN BĂM DỮ LIỆU (MAPPED TỐI ƯU HÓA)
-                let qtktMap = new Map();
-                let addTolist = (i) => {
-                    let m1 = normalizeCodeFast(i.ma); 
-                    let m2 = normalizeCodeFast(i.maLienKet);
-                    if (m1 && !qtktMap.has(m1)) qtktMap.set(m1, i);
-                    if (m2 && !qtktMap.has(m2)) qtktMap.set(m2, i);
-                };
-                database.PL1.forEach(addTolist); 
-                database.PL2.forEach(addTolist);
-
                 let qtktInfo = qtMa ? qtktMap.get(qtMa) : null;
 
                 let safeTenKT = item.tenKyThuat ? String(item.tenKyThuat).replace(/["'`\n\r]/g, "") : "";
@@ -1751,6 +1755,7 @@
                         }
                         if (!currentKhoaInFile) continue;
 
+                        // 🟢 TỰ ĐỘNG PHÂN PHỐI DỮ LIỆU ĐÚNG NGĂN KÉO CỦA TỪNG KHOA
                         let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
                         if (!matchedKhoa) continue; 
 
@@ -1886,6 +1891,90 @@
 
         let wb = XLSX.utils.book_new();
 
+        let prevGroupId = null;
+        let sttCounterExport = 1;
+
+        const cleanData = currentFilteredData.map((item, index) => {
+            let row = {};
+            
+            if (currentTabType === 'DTNH') {
+                let isFirst = item.groupId !== prevGroupId;
+                prevGroupId = item.groupId;
+
+                row["STT"] = isFirst ? (sttCounterExport++) : "";
+                row["NỘI DUNG ĐÀO TẠO"] = isFirst ? (item.noiDung || "") : "";
+                row["KỸ THUẬT CỤ THỂ"] = item.kyThuat || "";
+                row["THỜI GIAN"] = isFirst ? (item.thoiGian || "") : "";
+                row["CỬ NHÂN SH"] = isFirst ? (item.cns || "") : "";
+                row["NỮ HỘ SINH"] = isFirst ? (item.nhs || "") : "";
+                row["KTV"] = isFirst ? (item.ktv || "") : "";
+                row["ĐIỀU DƯỠNG"] = isFirst ? (item.dd || "") : "";
+                row["BÁC SĨ"] = isFirst ? (item.bs || "") : "";
+                row["ĐƠN VỊ CHỦ TRÌ"] = isFirst ? (item.donVi || "") : "";
+                row["DỰ KIẾN KINH PHÍ"] = isFirst ? (item.kinhPhi || "") : "";
+            } else if (currentTab === 'KHTH_CHUA_AP_GIA') {
+                row["STT"] = index + 1;
+                row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                row["TÊN CHƯƠNG"] = item.chuong || "";
+                row["TÊN KỸ THUẬT"] = item.ten || "";
+                if (item.matchedGia && item.matchedGia.length > 0) {
+                    row["MÃ TƯƠNG ĐƯƠNG"] = item.matchedGia.map(g => g.maTuongDuong || "").join('\n');
+                    row["TÊN DỊCH VỤ BHYT"] = item.matchedGia.map(g => g.tenDichVu || g.tenKyThuat || "").join('\n');
+                } else {
+                    row["MÃ TƯƠNG ĐƯƠNG"] = "";
+                    row["TÊN DỊCH VỤ BHYT"] = "Chưa có trong TT23";
+                }
+            } else if (currentTab === 'GiaDV') {
+                row["STT"] = index + 1;
+                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
+                row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
+                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
+                row["GIÁ PHÊ DUYỆT (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
+            } else if (currentTab === 'MaDVBV') {
+                row["STT"] = index + 1;
+                row["MÃ DỊCH VỤ"] = item.maDichVu || "";
+                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
+                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
+                row["GIÁ BHYT"] = item.giaBHYT ? Number(item.giaBHYT) : "";
+                row["GIÁ VIỆN PHÍ"] = item.giaVienPhi ? Number(item.giaVienPhi) : "";
+                row["GIÁ YÊU CẦU"] = item.giaYeuCau ? Number(item.giaYeuCau) : "";
+                row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
+            } else {
+                row["STT"] = index + 1;
+                if (isSuperTab) {
+                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
+                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                    
+                    let ttRaw = item.trangThai || 'CHUA_NOP';
+                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
+                    if(tt === 'CHO_DUYET') row["TRẠNG THÁI"] = "Chờ KHTH duyệt";
+                    else if(tt === 'KHONG_DUYET') row["TRẠNG THÁI"] = "Bị KHTH từ chối";
+                    else if(tt === 'DA_PHE_DUYET') row["TRẠNG THÁI"] = "Đã phê duyệt chính thức";
+                    else row["TRẠNG THÁI"] = "Chưa nộp";
+
+                } else if (currentTab === 'PL1' || isDeptTab) {
+                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                    row["TÊN CHƯƠNG"] = item.chuong || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                } else { // PL2
+                    row["MÃ CHƯƠNG"] = item.maChuong || "";
+                    row["TÊN CHƯƠNG"] = item.chuong || "";
+                    row["MÃ LIÊN KẾT"] = item.maLienKet || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                }
+            }
+            return row;
+        });
+
+        let ws; // Khai báo an toàn trên cùng
+        
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
             let excelData = [
                 ["DANH SÁCH QUY TRÌNH KỸ THUẬT CHƯA ÁP MÃ DỊCH VỤ BỆNH VIỆN"],
@@ -1895,17 +1984,20 @@
             ];
             
             currentFilteredData.forEach((item, index) => {
+                let textMa = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(g => g.maTuongDuong || "").join('\n') : "";
+                let textTen = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(g => g.tenDichVu || g.tenKyThuat || "").join('\n') : "Chưa có trong TT23";
+                
                 excelData.push([
                     index + 1,
                     item.ma || item.maLienKet || "",
                     item.chuong || "",
                     item.ten || "",
-                    item.tt23_ma || "",
-                    item.tt23_ten || "Chưa có trong TT23"
+                    textMa,
+                    textTen
                 ]);
             });
 
-            let ws = XLSX.utils.aoa_to_sheet(excelData);
+            ws = XLSX.utils.aoa_to_sheet(excelData);
             ws['!merges'] = [
                 { s: {r:0, c:0}, e: {r:0, c:5} },
                 { s: {r:1, c:0}, e: {r:1, c:5} }
@@ -1930,8 +2022,8 @@
                 { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }
             ];
 
-            let prevGroupId = null;
-            let sttCounterExport = 1;
+            prevGroupId = null;
+            sttCounterExport = 1;
             let startRowIndex = -1;
 
             currentFilteredData.forEach((item, idx) => {
@@ -1973,7 +2065,7 @@
                 }
             });
 
-            let ws = XLSX.utils.aoa_to_sheet(excelData);
+            ws = XLSX.utils.aoa_to_sheet(excelData);
             ws['!merges'] = merges;
             ws['!cols'] = [{wch: 5}, {wch: 35}, {wch: 40}, {wch: 15}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 25}, {wch: 15}];
             XLSX.utils.book_append_sheet(wb, ws, "DaoTaoNganHan");
@@ -1981,55 +2073,7 @@
             return;
         }
 
-        const cleanData = currentFilteredData.map((item, index) => {
-            let row = { "STT": index + 1 };
-            if (currentTab === 'GiaDV') {
-                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
-                row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
-                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
-                row["GIÁ PHÊ DUYỆT (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
-            } else if (currentTab === 'MaDVBV') {
-                row["MÃ DỊCH VỤ"] = item.maDichVu || "";
-                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
-                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
-                row["GIÁ BHYT"] = item.giaBHYT ? Number(item.giaBHYT) : "";
-                row["GIÁ VIỆN PHÍ"] = item.giaVienPhi ? Number(item.giaVienPhi) : "";
-                row["GIÁ YÊU CẦU"] = item.giaYeuCau ? Number(item.giaYeuCau) : "";
-                row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
-            } else {
-                if (isSuperTab) {
-                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
-                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
-                    row["TÊN KỸ THUẬT"] = item.ten || "";
-                    row["PHÂN LOẠI"] = item.phanLoai || "";
-                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
-                    
-                    let ttRaw = item.trangThai || 'CHUA_NOP';
-                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
-                    if(tt === 'CHO_DUYET') row["TRẠNG THÁI"] = "Chờ KHTH duyệt";
-                    else if(tt === 'KHONG_DUYET') row["TRẠNG THÁI"] = "Bị KHTH từ chối";
-                    else if(tt === 'DA_PHE_DUYET') row["TRẠNG THÁI"] = "Đã phê duyệt chính thức";
-                    else row["TRẠNG THÁI"] = "Chưa nộp";
-
-                } else if (currentTab === 'PL1' || isDeptTab) {
-                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
-                    row["TÊN CHƯƠNG"] = item.chuong || "";
-                    row["TÊN KỸ THUẬT"] = item.ten || "";
-                    row["PHÂN LOẠI"] = item.phanLoai || "";
-                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
-                } else { 
-                    row["MÃ CHƯƠNG"] = item.maChuong || "";
-                    row["TÊN CHƯƠNG"] = item.chuong || "";
-                    row["MÃ LIÊN KẾT"] = item.maLienKet || "";
-                    row["TÊN KỸ THUẬT"] = item.ten || "";
-                    row["PHÂN LOẠI"] = item.phanLoai || "";
-                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
-                }
-            }
-            return row;
-        });
-
-        let ws = XLSX.utils.json_to_sheet(cleanData); 
+        ws = XLSX.utils.json_to_sheet(cleanData); 
         
         const colWidths = [];
         const keys = Object.keys(cleanData[0] || {});
