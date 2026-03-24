@@ -5,8 +5,9 @@
     <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script>
+        // HỆ THỐNG BÁO LỖI THÔNG MINH - GIÚP TÌM LỖI TRONG 1 GIÂY NẾU CÓ SỰ CỐ
         window.onerror = function(msg, url, lineNo, columnNo, error) {
-            alert("⚠️ HỆ THỐNG PHÁT HIỆN LỖI:\n\n" + msg + "\n\nDòng lỗi: " + lineNo + "\nCột: " + columnNo + "\n\nXin vui lòng chụp màn hình này gửi cho đội ngũ kỹ thuật.");
+            alert("⚠️ HỆ THỐNG PHÁT HIỆN LỖI TRÌNH DUYỆT:\n\n" + msg + "\n\nDòng lỗi: " + lineNo + "\nCột: " + columnNo + "\n\nXin vui lòng chụp màn hình này gửi cho đội ngũ kỹ thuật.");
             return false;
         };
     </script>
@@ -1079,7 +1080,7 @@
                 list = getAggregatedList(currentTab); 
             } else if (isDeptTab) { 
                 let deptObj = null;
-                if(database.depts && Array.isArray(database.depts)) {
+                if(Array.isArray(database.depts)) {
                     deptObj = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; }); 
                 }
                 list = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
@@ -1202,7 +1203,7 @@
             let myDeptCart = [];
             if (currentUser && currentUser.role === 'khoa') {
                 let myDept = null;
-                if(database.depts && Array.isArray(database.depts)) {
+                if(Array.isArray(database.depts)) {
                     myDept = database.depts.find(function(d){ return d && d.tenKhoa === currentUser.tenKhoa; });
                 }
                 if (myDept && Array.isArray(myDept.danhMucQTKT)) myDeptCart = myDept.danhMucQTKT;
@@ -1515,10 +1516,8 @@
                         if (qt.filePdfChinhThuc) {
                             fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                             
-                            // 🟢 ĐÃ VÁ LỖI CẬP NHẬT PDF Ở ĐÂY: SỬ DỤNG HÀM normalizeCodeFast và biến an toàn
                             let safeQtTen = qt.ten ? String(qt.ten).replace(/['"`\n\r\\]/g, "") : "";
                             let safeQtMa = qt.ma || qt.maLienKet || qtMa;
-                            
                             if (currentUser && currentUser.role === 'admin') {
                                 fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${safeQtMa}', '${d.tenKhoa}', '${safeQtTen}')">🔄 Cập nhật PDF</button>`;
                             }
@@ -1550,7 +1549,6 @@
         let fileHtml = ''; 
         let coBaoCao = false;
 
-        // Định nghĩa safeTenParam ngay từ đầu để sử dụng an toàn trong nút bấm Admin
         let safeTenParam = ten ? String(ten).replace(/['"`\n\r\\]/g, "") : "";
 
         if(Array.isArray(database.depts)) {
@@ -1577,7 +1575,6 @@
                         if (qt.filePdfChinhThuc) {
                             fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                             
-                            // Nút này đã được bảo vệ biến
                             if (currentUser && currentUser.role === 'admin') fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${safeTenParam}')">🔄 Cập nhật PDF</button>`;
                             
                             fileHtml += `</div>`;
