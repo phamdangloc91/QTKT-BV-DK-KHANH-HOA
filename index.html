@@ -5,6 +5,7 @@
     <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script>
+        // HỆ THỐNG BÁO LỖI THÔNG MINH - GIÚP TÌM LỖI TRONG 1 GIÂY NẾU CÓ SỰ CỐ
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             alert("⚠️ HỆ THỐNG PHÁT HIỆN LỖI TRÌNH DUYỆT:\n\n" + msg + "\n\nDòng lỗi: " + lineNo + "\nCột: " + columnNo + "\n\nXin vui lòng chụp màn hình này gửi cho đội ngũ kỹ thuật.");
             return false;
@@ -222,6 +223,11 @@
     </div>
 </div>
 
+<footer class="site-footer">
+    <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
+</footer>
+
 <div id="loginModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
@@ -406,6 +412,7 @@
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
+    // LỚP BẢO VỆ 1: CHUẨN HÓA KIỂU DỮ LIỆU CHỐNG CRASH
     const safeStr = function(val) {
         return val ? String(val).toLowerCase().trim() : '';
     };
@@ -504,6 +511,7 @@
         });
     }); 
 
+    // LỚP BẢO VỆ ĐĂNG NHẬP: CHỐNG LỖI TÀN DƯ LOCALSTORAGE
     window.onload = function() {
         try {
             const savedUser = localStorage.getItem('hospital_user');
@@ -726,6 +734,70 @@
         showLoading(false);
     }
 
+    // 🟢 CÁC HÀM XỬ LÝ NÚT BẤM (ĐÃ ĐƯỢC PHỤC HỒI)
+    async function bocQuyTrinh(ma) {
+        if(!currentUser || currentUser.role !== 'khoa') return;
+        
+        let qtInfo = null;
+        if(Array.isArray(database.PL1)) {
+            qtInfo = database.PL1.find(function(x) { return x && (isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma)); });
+        }
+        if(!qtInfo && Array.isArray(database.PL2)) {
+            qtInfo = database.PL2.find(function(x) { return x && (isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma)); });
+        }
+        
+        if(!qtInfo) return alert("Không tìm thấy thông tin kỹ thuật!");
+        
+        // Optimistic UI update
+        let myDept = database.depts.find(function(d) { return d && d.tenKhoa === currentUser.tenKhoa; });
+        if (myDept) {
+            let newQt = JSON.parse(JSON.stringify(qtInfo));
+            newQt.trangThai = "CHUA_NOP";
+            if (!Array.isArray(myDept.danhMucQTKT)) myDept.danhMucQTKT = [];
+            myDept.danhMucQTKT.push(newQt);
+        }
+        apDungLoc(); 
+
+        try {
+            fetch('/api/dept-data/add', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo })
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    async function xoaQuyTrinh(ma, tenKhoa) {
+        if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
+        
+        // Optimistic UI update
+        let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
+        if (targetDept && Array.isArray(targetDept.danhMucQTKT)) {
+            targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) {
+                return qt && !(isCodeMatch(qt.ma, ma) || isCodeMatch(qt.maLienKet, ma));
+            });
+        }
+        apDungLoc(); 
+
+        try {
+            fetch('/api/dept-data/remove', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma })
+            });
+        } catch(e) { console.error(e); }
+    }
+
+    function jumpToPL1(maLienKet) {
+        switchTab('PL1', 'QTKT');
+        let sBox = document.getElementById('searchBox');
+        if(sBox) {
+            sBox.value = maLienKet;
+            apDungLoc();
+        }
+    }
+
+    // LỚP BẢO VỆ 2: CHỐNG LỖI TỪ DỮ LIỆU RỖNG
     function getAggregatedList(tabName) {
         let result = [];
         if(!database.depts || !Array.isArray(database.depts)) return result;
@@ -921,63 +993,6 @@
             console.error(error); 
         } finally { 
             showLoading(false); 
-        }
-    }
-
-    // 🔴 3 HÀM CŨ ĐƯỢC PHỤC HỒI ĐỂ GIẢI QUYẾT LỖI
-    async function bocQuyTrinh(ma) {
-        if(!currentUser || currentUser.role !== 'khoa') return;
-        
-        let qtInfo = null;
-        if(Array.isArray(database.PL1)) {
-            qtInfo = database.PL1.find(function(x) { return x.ma === ma || x.maLienKet === ma; });
-        }
-        if(!qtInfo && Array.isArray(database.PL2)) {
-            qtInfo = database.PL2.find(function(x) { return x.ma === ma || x.maLienKet === ma; });
-        }
-        
-        if(!qtInfo) return alert("Không tìm thấy thông tin kỹ thuật!");
-        
-        showLoading(true);
-        try {
-            const res = await fetch('/api/dept-data/add', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo })
-            });
-            const data = await res.json();
-            alert(data.message);
-            if(res.ok) await layDuLieu();
-        } catch(e) {
-            alert("Lỗi mạng!");
-        }
-        showLoading(false);
-    }
-
-    async function xoaQuyTrinh(ma, tenKhoa) {
-        if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
-        showLoading(true);
-        try {
-            const res = await fetch('/api/dept-data/remove', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma })
-            });
-            const data = await res.json();
-            alert(data.message);
-            if(res.ok) await layDuLieu();
-        } catch(e) {
-            alert("Lỗi mạng!");
-        }
-        showLoading(false);
-    }
-
-    function jumpToPL1(maLienKet) {
-        switchTab('PL1', 'QTKT');
-        let sBox = document.getElementById('searchBox');
-        if(sBox) {
-            sBox.value = maLienKet;
-            apDungLoc();
         }
     }
 
