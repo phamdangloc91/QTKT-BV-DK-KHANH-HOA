@@ -433,6 +433,7 @@
         result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); return result;
     }
 
+    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT CHỐNG LỖI TÌM KIẾM
     const normalize = (t) => t ? String(t).normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
 
     function prepareKeywords() {
@@ -465,6 +466,7 @@
         btn.closest('.suggestion-box').remove();
     }
 
+    // 🟢 HÀM ÉP KIỂU STRING BẢO VỆ CHỐNG LỖI TOLOWERCASE VÀ LỖI HIỂN THỊ
     const safeStr = (val) => val ? String(val).toLowerCase().trim() : '';
 
     function normalizeCodeFast(code) {
@@ -493,6 +495,12 @@
             apDungLoc(); 
         } catch (error) { console.log(error); }
         showLoading(false);
+    }
+
+    function getQtMaFromMaTuongDuong(mtd) {
+        if (!mtd) return null; let parts = mtd.toString().split('.');
+        if (parts.length >= 2) { let a = parseInt(parts[0], 10); let b = parseInt(parts[1], 10); if (!isNaN(a) && !isNaN(b)) return a + '.' + b; }
+        return mtd.toString().trim();
     }
 
     function toggleMultiSelect(state) {
@@ -1075,7 +1083,6 @@
                 if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
                 
                 let normCode = normalizeCodeFast(qt.ma);
-                
                 if (maDvbvSet.has(normCode)) return;
 
                 let matchedGiaMap = new Map(); 
@@ -1257,10 +1264,6 @@
             return;
         }
 
-        // BẢNG BÌNH THƯỜNG (PL1, PL2, GiaDV, MaDVBV)
-        const isSuperTab = currentTab.startsWith('KHTH_');
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
-
         const cleanData = currentFilteredData.map((item, index) => {
             let row = { "STT": index + 1 };
             if (currentTab === 'GiaDV') {
@@ -1309,7 +1312,7 @@
             return row;
         });
 
-        const ws = XLSX.utils.json_to_sheet(cleanData); 
+        let ws = XLSX.utils.json_to_sheet(cleanData); 
         
         const colWidths = [];
         const keys = Object.keys(cleanData[0] || {});
@@ -1328,6 +1331,7 @@
         });
         ws['!cols'] = colWidths; 
 
+        let wb = XLSX.utils.book_new(); 
         XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
         let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; 
         XLSX.writeFile(wb, fileName); 
