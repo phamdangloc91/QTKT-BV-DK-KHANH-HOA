@@ -4,6 +4,13 @@
     <meta charset="UTF-8">
     <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <script>
+        // HỆ THỐNG BÁO LỖI THÔNG MINH - GIÚP TÌM LỖI TRONG 1 GIÂY NẾU CÓ SỰ CỐ
+        window.onerror = function(msg, url, lineNo, columnNo, error) {
+            alert("⚠️ HỆ THỐNG PHÁT HIỆN LỖI TRÌNH DUYỆT:\n\n" + msg + "\n\nDòng lỗi: " + lineNo + "\nCột: " + columnNo + "\n\nXin vui lòng chụp màn hình này gửi cho đội ngũ kỹ thuật.");
+            return false;
+        };
+    </script>
     <style>
         :root { --primary: #0056b3; --bg: #f8f9fa; --success: #28a745; --danger: #dc3545; --warning: #ffc107; --purple: #6f42c1; --info: #17a2b8; }
         body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg); margin: 0; display: flex; flex-direction: column; min-height: 100vh; }
@@ -406,9 +413,11 @@
     ]; 
 
     // LỚP BẢO VỆ 1: CHUẨN HÓA KIỂU DỮ LIỆU
-    const safeStr = (val) => val ? String(val).toLowerCase().trim() : '';
+    const safeStr = function(val) {
+        return val ? String(val).toLowerCase().trim() : '';
+    };
 
-    const normalize = (t) => {
+    const normalize = function(t) {
         return t ? String(t).normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
     };
 
@@ -428,11 +437,11 @@
         return normalizeCodeFast(maTuongDuong) === normalizeCodeFast(targetMa);
     }
 
-    window.addEventListener('DOMContentLoaded', () => {
+    window.addEventListener('DOMContentLoaded', function() {
         const optGroupKhoa = document.getElementById('optGroupKhoa');
         const menuCacKhoa = document.getElementById('menuCacKhoa');
         
-        DANH_SACH_KHOA.forEach((khoa) => {
+        DANH_SACH_KHOA.forEach(function(khoa) {
             if (optGroupKhoa) { 
                 const opt = document.createElement('option'); 
                 opt.value = opt.textContent = khoa; 
@@ -453,17 +462,17 @@
                 const linkQTKT = document.createElement('a');
                 linkQTKT.href = "#"; 
                 linkQTKT.innerText = "Quy trình kỹ thuật";
-                linkQTKT.onclick = (e) => { e.preventDefault(); switchTab(khoa, 'QTKT'); };
+                linkQTKT.onclick = function(e) { e.preventDefault(); switchTab(khoa, 'QTKT'); };
                 
                 const linkNhanLuc = document.createElement('a');
                 linkNhanLuc.href = "#"; 
                 linkNhanLuc.innerText = "Nhân lực";
-                linkNhanLuc.onclick = (e) => { e.preventDefault(); alert("Chức năng [Nhân lực] đang được phát triển!"); };
+                linkNhanLuc.onclick = function(e) { e.preventDefault(); alert("Chức năng [Nhân lực] đang được phát triển!"); };
 
                 const linkVatTu = document.createElement('a');
                 linkVatTu.href = "#"; 
                 linkVatTu.innerText = "Vật tư - Trang thiết bị";
-                linkVatTu.onclick = (e) => { e.preventDefault(); alert("Chức năng [Vật tư - Trang thiết bị] đang được phát triển!"); };
+                linkVatTu.onclick = function(e) { e.preventDefault(); alert("Chức năng [Vật tư - Trang thiết bị] đang được phát triển!"); };
 
                 const trainWrapper = document.createElement('div');
                 trainWrapper.className = 'train-item';
@@ -478,12 +487,12 @@
                 const linkDaiHan = document.createElement('a');
                 linkDaiHan.href = "#"; 
                 linkDaiHan.innerText = "Dài hạn";
-                linkDaiHan.onclick = (e) => { e.preventDefault(); alert("Chức năng [Đào tạo Dài hạn] đang được phát triển!"); };
+                linkDaiHan.onclick = function(e) { e.preventDefault(); alert("Chức năng [Đào tạo Dài hạn] đang được phát triển!"); };
 
                 const linkNganHan = document.createElement('a');
                 linkNganHan.href = "#"; 
                 linkNganHan.innerText = "Ngắn hạn";
-                linkNganHan.onclick = (e) => { e.preventDefault(); switchTab(khoa, 'DTNH'); };
+                linkNganHan.onclick = function(e) { e.preventDefault(); switchTab(khoa, 'DTNH'); };
 
                 trainSubmenu.appendChild(linkDaiHan);
                 trainSubmenu.appendChild(linkNganHan);
@@ -626,7 +635,7 @@
             const tbody = document.getElementById('userListBody'); 
             tbody.innerHTML = '';
             
-            users.forEach((u, i) => { 
+            users.forEach(function(u, i) { 
                 tbody.innerHTML += `<tr>
                     <td>${i+1}</td><td>[Khoa] <b>${u.tenKhoa}</b></td>
                     <td><input type="text" id="edit-user-${u._id}" class="inline-input" value="${u.username}"></td>
@@ -714,11 +723,11 @@
     // LỚP BẢO VỆ 2: CHỐNG LỖI TỪ DỮ LIỆU RỖNG
     function getAggregatedList(tabName) {
         let result = [];
-        if(!database.depts) return result;
+        if(!database.depts || !Array.isArray(database.depts)) return result;
         
-        database.depts.forEach(d => {
-            if(!d || !d.danhMucQTKT) return;
-            d.danhMucQTKT.forEach(qt => {
+        database.depts.forEach(function(d) {
+            if(!d || !d.danhMucQTKT || !Array.isArray(d.danhMucQTKT)) return;
+            d.danhMucQTKT.forEach(function(qt) {
                 if(!qt) return;
                 let pushIt = false;
                 let ttRaw = qt.trangThai || 'CHUA_NOP'; 
@@ -727,13 +736,20 @@
                 if (pushIt) { result.push({ ...qt, tenKhoaChuQuan: d.tenKhoa, trangThaiFix: tt }); }
             });
         });
-        result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); 
+        result.sort(function(a, b) {
+            return String(a.tenKhoaChuQuan).localeCompare(String(b.tenKhoaChuQuan));
+        }); 
         return result;
     }
 
     function prepareKeywords() {
-        let validPL = [...database.PL1, ...database.PL2].filter(x => x && x.ten);
-        plKeywords = validPL.map(x => {
+        let validPL = [];
+        if(Array.isArray(database.PL1)) validPL = validPL.concat(database.PL1);
+        if(Array.isArray(database.PL2)) validPL = validPL.concat(database.PL2);
+        
+        validPL = validPL.filter(function(x) { return x && x.ten; });
+        
+        plKeywords = validPL.map(function(x) {
             return { 
                 ten: x.ten, 
                 words: new Set(normalize(x.ten).split(" ").filter(Boolean)) 
@@ -779,18 +795,19 @@
             const resData = await fetch('/api/data'); 
             const mainData = await resData.json(); 
             
-            database.PL1 = (mainData.PL1 || []).filter(Boolean); 
-            database.PL2 = (mainData.PL2 || []).filter(Boolean); 
-            database.GiaDV = (mainData.GiaDV || []).filter(Boolean); 
-            database.MaDVBV = (mainData.MaDVBV || []).filter(Boolean); 
+            database.PL1 = (mainData && Array.isArray(mainData.PL1) ? mainData.PL1 : []).filter(Boolean); 
+            database.PL2 = (mainData && Array.isArray(mainData.PL2) ? mainData.PL2 : []).filter(Boolean); 
+            database.GiaDV = (mainData && Array.isArray(mainData.GiaDV) ? mainData.GiaDV : []).filter(Boolean); 
+            database.MaDVBV = (mainData && Array.isArray(mainData.MaDVBV) ? mainData.MaDVBV : []).filter(Boolean); 
             
             const resDepts = await fetch('/api/dept-data'); 
             let rawDepts = await resDepts.json();
             
-            database.depts = (rawDepts || []).filter(Boolean).map(d => {
+            let arrDepts = Array.isArray(rawDepts) ? rawDepts : [];
+            database.depts = arrDepts.filter(Boolean).map(function(d) {
                 if(d) {
-                    d.danhMucQTKT = (d.danhMucQTKT || []).filter(Boolean);
-                    d.daoTaoNganHan = (d.daoTaoNganHan || []).filter(Boolean);
+                    d.danhMucQTKT = Array.isArray(d.danhMucQTKT) ? d.danhMucQTKT.filter(Boolean) : [];
+                    d.daoTaoNganHan = Array.isArray(d.daoTaoNganHan) ? d.daoTaoNganHan.filter(Boolean) : [];
                 }
                 return d;
             });
@@ -823,14 +840,17 @@
 
     function toggleSelectRow(checkbox, tenKhoa, ma) {
         if (checkbox.checked) { 
-            selectedTechniques.push({ tenKhoa, maQuyTrinh: ma }); 
+            selectedTechniques.push({ tenKhoa: tenKhoa, maQuyTrinh: ma }); 
         } else { 
-            selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma)); 
+            selectedTechniques = selectedTechniques.filter(function(item) {
+                return !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma);
+            }); 
         }
     }
 
     async function saveDTNH() {
-        const selectedYear = document.getElementById('filterNamDT').value;
+        let selectNamDT = document.getElementById('filterNamDT');
+        const selectedYear = selectNamDT ? selectNamDT.value : "";
         if (!selectedYear) return alert("Vui lòng chọn Năm đào tạo!");
         
         let savedData = [];
@@ -900,359 +920,386 @@
     }
 
     function renderTable(data = null) {
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
-        const isSuperTab = currentTab.startsWith('KHTH_');
-        let list = [];
-        
-        let canEdit = false;
-        if (currentUser && currentUser.role === 'admin') canEdit = true;
-        if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) canEdit = true;
+        try {
+            const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+            const isSuperTab = currentTab.startsWith('KHTH_');
+            let list = [];
+            
+            let canEdit = false;
+            if (currentUser && currentUser.role === 'admin') canEdit = true;
+            if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) canEdit = true;
 
-        if (currentTabType === 'DTNH') {
-            if (data) { 
-                list = data; 
-            } else { 
-                const deptObj = database.depts.find(d => d && d.tenKhoa === currentTab); 
-                list = (deptObj && deptObj.daoTaoNganHan) ? deptObj.daoTaoNganHan : []; 
-            }
-            currentFilteredData = list;
-            
-            const thead = document.getElementById('tableHead'); 
-            const tbody = document.getElementById('dataBody');
-            let htmlHead = `<tr>
-                <th style="width:40px; text-align:center;">STT</th>
-                <th style="width:25%">Nội dung đào tạo</th>
-                <th style="width:25%">Kỹ thuật cụ thể (Click xem liên kết QTKT)</th>
-                <th>Thời gian</th>
-                <th style="text-align:center;" title="Cử nhân Sinh học">CN.SH</th>
-                <th style="text-align:center;" title="Nữ hộ sinh">NHS</th>
-                <th style="text-align:center;" title="Kỹ thuật viên">KTV</th>
-                <th style="text-align:center;" title="Điều dưỡng">ĐD</th>
-                <th style="text-align:center;" title="Bác sĩ">BS</th>
-                <th>Đơn vị chủ trì</th>
-                <th style="text-align:right;">Kinh phí (Tr)</th>
-            </tr>`;
-            thead.innerHTML = htmlHead; 
-            tbody.innerHTML = '';
-            
-            let sttCounter = 1;
-            list.forEach((item, index) => {
-                if(!item) return;
-                const row = tbody.insertRow();
-                
-                let isFirst = false; 
-                let rowspan = 1;
-                
-                if (index === 0 || item.groupId !== list[index - 1]?.groupId) {
-                    isFirst = true;
-                    for (let j = index + 1; j < list.length; j++) {
-                        if (list[j] && list[j].groupId === item.groupId) rowspan++; 
-                        else break;
+            if (currentTabType === 'DTNH') {
+                if (data) { 
+                    list = data; 
+                } else { 
+                    let deptObj = null;
+                    if(database.depts && Array.isArray(database.depts)) {
+                        deptObj = database.depts.find(function(d) { return d && d.tenKhoa === currentTab; });
                     }
+                    list = (deptObj && deptObj.daoTaoNganHan) ? deptObj.daoTaoNganHan : []; 
                 }
-
-                let kyThuatHtml = ''; 
-                let suggestionHtml = ''; 
-                let rawKT = item.kyThuat || '';
-
-                if (rawKT.trim() !== '') {
-                    let normName = normalize(rawKT);
-                    let matchedQT = database.PL1.find(x => x && normalize(x.ten) === normName) || 
-                                    database.PL2.find(x => x && normalize(x.ten) === normName);
+                currentFilteredData = list;
+                
+                const thead = document.getElementById('tableHead'); 
+                const tbody = document.getElementById('dataBody');
+                let htmlHead = `<tr>
+                    <th style="width:40px; text-align:center;">STT</th>
+                    <th style="width:25%">Nội dung đào tạo</th>
+                    <th style="width:25%">Kỹ thuật cụ thể (Click xem liên kết QTKT)</th>
+                    <th>Thời gian</th>
+                    <th style="text-align:center;" title="Cử nhân Sinh học">CN.SH</th>
+                    <th style="text-align:center;" title="Nữ hộ sinh">NHS</th>
+                    <th style="text-align:center;" title="Kỹ thuật viên">KTV</th>
+                    <th style="text-align:center;" title="Điều dưỡng">ĐD</th>
+                    <th style="text-align:center;" title="Bác sĩ">BS</th>
+                    <th>Đơn vị chủ trì</th>
+                    <th style="text-align:right;">Kinh phí (Tr)</th>
+                </tr>`;
+                thead.innerHTML = htmlHead; 
+                tbody.innerHTML = '';
+                
+                let sttCounter = 1;
+                list.forEach(function(item, index) {
+                    if(!item) return;
+                    const row = tbody.insertRow();
                     
-                    if (matchedQT) {
-                        let safeTen = matchedQT.ten ? String(matchedQT.ten).replace(/["'`\n\r\\]/g, "") : "";
-                        let safePL = matchedQT.phanLoai ? String(matchedQT.phanLoai).replace(/["'`\n\r\\]/g, "") : "";
-                        let safeQD = matchedQT.quyetDinh ? String(matchedQT.quyetDinh).replace(/["'`\n\r\\]/g, "") : "";
-                        let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
-                        kyThuatHtml = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
-                    } else {
-                        kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${rawKT}</span>`;
-                        if (canEdit) {
-                            let suggested = getSuggestion(rawKT);
-                            if (suggested) {
-                                let safeSug = String(suggested).replace(/"/g, '&quot;');
-                                suggestionHtml = `<div class="suggestion-box">💡 Ý bạn là: <button class="suggestion-btn" data-suggestion="${safeSug}" onclick="acceptSuggestion(this)">${suggested}</button>?</div>`;
+                    let isFirst = false; 
+                    let rowspan = 1;
+                    
+                    let prevItem = list[index - 1];
+                    if (index === 0 || !prevItem || item.groupId !== prevItem.groupId) {
+                        isFirst = true;
+                        for (let j = index + 1; j < list.length; j++) {
+                            if (list[j] && list[j].groupId === item.groupId) rowspan++; 
+                            else break;
+                        }
+                    }
+
+                    let kyThuatHtml = ''; 
+                    let suggestionHtml = ''; 
+                    let rawKT = item.kyThuat || '';
+
+                    if (rawKT.trim() !== '') {
+                        let normName = normalize(rawKT);
+                        let matchedQT = null;
+                        if(Array.isArray(database.PL1)) {
+                            let found = database.PL1.find(function(x) { return x && normalize(x.ten) === normName; });
+                            if(found) matchedQT = found;
+                        }
+                        if(!matchedQT && Array.isArray(database.PL2)) {
+                            let found = database.PL2.find(function(x) { return x && normalize(x.ten) === normName; });
+                            if(found) matchedQT = found;
+                        }
+                        
+                        if (matchedQT) {
+                            let safeTen = matchedQT.ten ? String(matchedQT.ten).replace(/['"`\n\r\\]/g, "") : "";
+                            let safePL = matchedQT.phanLoai ? String(matchedQT.phanLoai).replace(/['"`\n\r\\]/g, "") : "";
+                            let safeQD = matchedQT.quyetDinh ? String(matchedQT.quyetDinh).replace(/['"`\n\r\\]/g, "") : "";
+                            let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
+                            kyThuatHtml = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
+                        } else {
+                            kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${rawKT}</span>`;
+                            if (canEdit) {
+                                let suggested = getSuggestion(rawKT);
+                                if (suggested) {
+                                    let safeSug = String(suggested).replace(/"/g, '&quot;');
+                                    suggestionHtml = `<div class="suggestion-box">💡 Ý bạn là: <button class="suggestion-btn" data-suggestion="${safeSug}" onclick="acceptSuggestion(this)">${suggested}</button>?</div>`;
+                                }
                             }
                         }
                     }
-                }
 
-                if (isFirst) {
-                    row.innerHTML = `
-                        <td rowspan="${rowspan}" style="text-align:center; font-weight:bold; background-color: white; border-right: 1px solid #eee;">${sttCounter++}</td>
-                        <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.noiDung || ''}</div></td>
-                        <td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td>
-                        <td rowspan="${rowspan}" style="background-color: white; text-align:center; border-left: 1px solid #eee; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.thoiGian || ''}</div></td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.cns || ''}</div></td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.nhs || ''}</div></td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.ktv || ''}</div></td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.dd || ''}</div></td>
-                        <td rowspan="${rowspan}" style="text-align:center; color:red; font-weight:bold; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.bs || ''}</div></td>
-                        <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.donVi || ''}</div></td>
-                        <td rowspan="${rowspan}" style="text-align:right; font-weight:bold; color:var(--success); background-color: white;"><div class="editable-cell" contenteditable="${canEdit}">${item.kinhPhi || ''}</div></td>
-                    `;
-                } else {
-                    row.innerHTML = `<td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td>`;
-                }
-            });
-            return;
-        }
+                    if (isFirst) {
+                        row.innerHTML = `
+                            <td rowspan="${rowspan}" style="text-align:center; font-weight:bold; background-color: white; border-right: 1px solid #eee;">${sttCounter++}</td>
+                            <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.noiDung || ''}</div></td>
+                            <td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td>
+                            <td rowspan="${rowspan}" style="background-color: white; text-align:center; border-left: 1px solid #eee; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.thoiGian || ''}</div></td>
+                            <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.cns || ''}</div></td>
+                            <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.nhs || ''}</div></td>
+                            <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.ktv || ''}</div></td>
+                            <td rowspan="${rowspan}" style="text-align:center; color:#555; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.dd || ''}</div></td>
+                            <td rowspan="${rowspan}" style="text-align:center; color:red; font-weight:bold; background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.bs || ''}</div></td>
+                            <td rowspan="${rowspan}" style="background-color: white; border-right: 1px solid #eee;"><div class="editable-cell" contenteditable="${canEdit}">${item.donVi || ''}</div></td>
+                            <td rowspan="${rowspan}" style="text-align:right; font-weight:bold; color:var(--success); background-color: white;"><div class="editable-cell" contenteditable="${canEdit}">${item.kinhPhi || ''}</div></td>
+                        `;
+                    } else {
+                        row.innerHTML = `<td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td>`;
+                    }
+                });
+                return;
+            }
 
-        if (currentTab === 'KHTH_CHUA_AP_GIA') {
-            if (!data) return apDungLoc();
-            currentFilteredData = data; 
-            list = data;
+            if (currentTab === 'KHTH_CHUA_AP_GIA') {
+                if (!data) return apDungLoc();
+                currentFilteredData = data; 
+                list = data;
+
+                const thead = document.getElementById('tableHead'); 
+                const tbody = document.getElementById('dataBody');
+                
+                let htmlHead = `<tr><th>STT</th><th style="width:10%">Mã kỹ thuật</th><th style="width:15%">Tên chương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th style="width:10%; text-align:center;">Mã tương đương</th><th style="width:25%">Tên Dịch vụ BHYT</th></tr>`;
+                thead.innerHTML = htmlHead; 
+                tbody.innerHTML = '';
+                
+                list.forEach(function(item, index) {
+                    if(!item) return;
+                    const row = tbody.insertRow();
+                    let safeTen = item.ten ? String(item.ten).replace(/['"`\n\r\\]/g, "") : ""; 
+                    let safePL = item.phanLoai ? String(item.phanLoai).replace(/['"`\n\r\\]/g, "") : ""; 
+                    let safeQD = item.quyetDinh ? String(item.quyetDinh).replace(/['"`\n\r\\]/g, "") : "";
+                    
+                    let tenClickable = `<a href="#" onclick="moChiTiet('${item.ma || item.maLienKet || ''}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
+
+                    let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`; }).join('<br><br>') : '';
+                    let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat || ''; }).join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
+
+                    row.innerHTML = `<td>${index + 1}</td><td><b>${item.ma || item.maLienKet || ''}</b></td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td style="text-align:center; background:#fff3cd;">${td_ma}</td><td style="background:#fff3cd;">${td_ten}</td>`;
+                });
+                return;
+            }
+
+            if (data) { 
+                list = data; 
+            } else if (isSuperTab) { 
+                list = getAggregatedList(currentTab); 
+            } else if (isDeptTab) { 
+                let deptObj = null;
+                if(database.depts && Array.isArray(database.depts)) {
+                    deptObj = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; }); 
+                }
+                list = deptObj ? deptObj.danhMucQTKT : []; 
+            } else { 
+                list = database[currentTab] || []; 
+            }
+            
+            currentFilteredData = list;
 
             const thead = document.getElementById('tableHead'); 
             const tbody = document.getElementById('dataBody');
+            let htmlHead = `<tr>`;
             
-            let htmlHead = `<tr><th>STT</th><th style="width:10%">Mã kỹ thuật</th><th style="width:15%">Tên chương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th style="width:10%; text-align:center;">Mã tương đương</th><th style="width:25%">Tên Dịch vụ BHYT</th></tr>`;
-            thead.innerHTML = htmlHead; 
-            tbody.innerHTML = '';
-            
-            list.forEach((item, index) => {
-                if(!item) return;
-                const row = tbody.insertRow();
-                let safeTen = item.ten ? String(item.ten).replace(/["'`\n\r\\]/g, "") : ""; 
-                let safePL = item.phanLoai ? String(item.phanLoai).replace(/["'`\n\r\\]/g, "") : ""; 
-                let safeQD = item.quyetDinh ? String(item.quyetDinh).replace(/["'`\n\r\\]/g, "") : "";
+            if (currentTab === 'GiaDV') {
+                htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
+                thead.innerHTML = htmlHead; 
+                tbody.innerHTML = '';
                 
-                let tenClickable = `<a href="#" onclick="moChiTiet('${item.ma || item.maLienKet || ''}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
+                let qtktMap = new Map();
+                let addTolist = function(i) {
+                    if(!i) return;
+                    let m1 = normalizeCodeFast(i.ma); 
+                    let m2 = normalizeCodeFast(i.maLienKet);
+                    if (m1 && !qtktMap.has(m1)) qtktMap.set(m1, i);
+                    if (m2 && !qtktMap.has(m2)) qtktMap.set(m2, i);
+                };
+                if(Array.isArray(database.PL1)) database.PL1.forEach(addTolist); 
+                if(Array.isArray(database.PL2)) database.PL2.forEach(addTolist);
 
-                let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(g => `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`).join('<br><br>') : '';
-                let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(g => g.tenDichVu || g.tenKyThuat || '').join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
+                list.forEach(function(item, index) {
+                    if(!item) return;
+                    const row = tbody.insertRow();
+                    let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
+                    
+                    let qtMa = normalizeCodeFast(item.maTuongDuong);
+                    let qtktInfo = qtMa ? qtktMap.get(qtMa) : null;
 
-                row.innerHTML = `<td>${index + 1}</td><td><b>${item.ma || item.maLienKet || ''}</b></td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td style="text-align:center; background:#fff3cd;">${td_ma}</td><td style="background:#fff3cd;">${td_ten}</td>`;
-            });
-            return;
-        }
+                    let safeTenKT = item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "";
+                    let safePL = qtktInfo && qtktInfo.phanLoai ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "";
+                    let safeQD = qtktInfo && qtktInfo.quyetDinh ? String(qtktInfo.quyetDinh).replace(/['"`\n\r\\]/g, "") : "";
+                    let maPass = qtktInfo ? (qtktInfo.ma || qtktInfo.maLienKet) : qtMa;
 
-        if (data) { 
-            list = data; 
-        } else if (isSuperTab) { 
-            list = getAggregatedList(currentTab); 
-        } else if (isDeptTab) { 
-            const deptObj = database.depts.find(d => d && d.tenKhoa === currentTab); 
-            list = deptObj ? deptObj.danhMucQTKT : []; 
-        } else { 
-            list = database[currentTab] || []; 
-        }
-        
-        currentFilteredData = list;
+                    let tenClickable = `<a href="#" onclick="moChiTiet('${maPass}', '${safeTenKT}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.tenKyThuat || ''}</a>`;
 
-        const thead = document.getElementById('tableHead'); 
-        const tbody = document.getElementById('dataBody');
-        let htmlHead = `<tr>`;
-        
-        // 🟢 BẢN VÁ LỖI HIỆU NĂNG TẢI SIÊU TỐC CHO BẢNG GIÁ DV
-        if (currentTab === 'GiaDV') {
-            htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead; 
-            tbody.innerHTML = '';
-            
-            let qtktMap = new Map();
-            let addTolist = (i) => {
-                if(!i) return;
-                let m1 = normalizeCodeFast(i.ma); 
-                let m2 = normalizeCodeFast(i.maLienKet);
-                if (m1 && !qtktMap.has(m1)) qtktMap.set(m1, i);
-                if (m2 && !qtktMap.has(m2)) qtktMap.set(m2, i);
-            };
-            database.PL1.forEach(addTolist); 
-            database.PL2.forEach(addTolist);
-
-            list.forEach((item, index) => {
-                if(!item) return;
-                const row = tbody.insertRow();
-                let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
-                
-                let qtMa = normalizeCodeFast(item.maTuongDuong);
-                let qtktInfo = qtMa ? qtktMap.get(qtMa) : null;
-
-                let safeTenKT = item.tenKyThuat ? String(item.tenKyThuat).replace(/["'`\n\r\\]/g, "") : "";
-                let safePL = qtktInfo && qtktInfo.phanLoai ? String(qtktInfo.phanLoai).replace(/["'`\n\r\\]/g, "") : "";
-                let safeQD = qtktInfo && qtktInfo.quyetDinh ? String(qtktInfo.quyetDinh).replace(/["'`\n\r\\]/g, "") : "";
-                let maPass = qtktInfo ? (qtktInfo.ma || qtktInfo.maLienKet) : qtMa;
-
-                let tenClickable = `<a href="#" onclick="moChiTiet('${maPass}', '${safeTenKT}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.tenKyThuat || ''}</a>`;
-
-                row.innerHTML = `<td>${index + 1}</td><td><b>${item.maTuongDuong || ''}</b></td><td>${tenClickable}</td><td>${item.tenDichVu || ''}</td><td style="color:red; font-weight:bold; text-align:right;">${formattedPrice}</td>`;
-            });
-            return;
-        }
-
-        if (currentTab === 'MaDVBV') {
-            htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead; 
-            tbody.innerHTML = '';
-            
-            list.forEach((item, index) => {
-                if(!item) return;
-                const row = tbody.insertRow();
-                let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
-                let gVP = item.giaVienPhi ? Number(item.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '';
-                let gYC = item.giaYeuCau ? Number(item.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '';
-                let gNN = item.giaNuocNgoai ? Number(item.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '';
-
-                let safeTenDV = item.tenDichVu ? String(item.tenDichVu).replace(/["'`\n\r\\]/g, "") : "";
-                let safeMaTD = item.maTuongDuong ? String(item.maTuongDuong).replace(/["'`\n\r\\]/g, "") : "";
-                let safeMaDV = item.maDichVu ? String(item.maDichVu).replace(/["'`\n\r\\]/g, "") : "";
-                let tenClickable = `<a href="#" onclick="moChiTietDV('${safeMaDV}', '${safeMaTD}', '${safeTenDV}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.tenDichVu || ''}</a>`;
-
-                row.innerHTML = `<td>${index + 1}</td>
-                                 <td><b>${item.maDichVu || ''}</b></td>
-                                 <td>${item.maTuongDuong || ''}</td>
-                                 <td>${tenClickable}</td>
-                                 <td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td>
-                                 <td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td>
-                                 <td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td>
-                                 <td style="color:red; text-align:right; font-weight:bold;">${gNN}</td>`;
-            });
-            return;
-        }
-
-        if (isMultiSelectMode) {
-            htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
-        }
-        
-        htmlHead += `<th>STT</th>`;
-        
-        if (isSuperTab) {
-            htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        } else if (currentTab === 'PL1' || isDeptTab) {
-            htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        } else {
-            htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        }
-
-        let canAddPL = false; 
-        let canRemovePL = false; 
-        let showFileCol = false;
-        
-        if (currentUser && currentUser.role === 'khoa') { 
-            if (!isDeptTab && !isSuperTab) canAddPL = true; 
-            if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; 
-        }
-        if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemovePL = true; 
-        if (isDeptTab || isSuperTab) showFileCol = true; 
-
-        if (showFileCol) {
-            htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`;
-        }
-        
-        if (canAddPL || canRemovePL) {
-            htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`;
-        }
-        
-        htmlHead += `</tr>`; 
-        thead.innerHTML = htmlHead;
-
-        tbody.innerHTML = ''; 
-        let currentKhoaGroup = ""; 
-
-        let myDeptCart = [];
-        if (currentUser && currentUser.role === 'khoa') {
-            const myDept = database.depts.find(d => d && d.tenKhoa === currentUser.tenKhoa);
-            if (myDept) myDeptCart = myDept.danhMucQTKT;
-        }
-
-        list.forEach((item, index) => {
-            if(!item) return;
-            let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
-            
-            if (isSuperTab && realTenKhoa !== currentKhoaGroup) {
-                currentKhoaGroup = realTenKhoa;
-                const groupRow = tbody.insertRow(); 
-                let colSpan = isMultiSelectMode ? 10 : 9;
-                groupRow.innerHTML = `<td colspan="${colSpan}" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td>`;
+                    row.innerHTML = `<td>${index + 1}</td><td><b>${item.maTuongDuong || ''}</b></td><td>${tenClickable}</td><td>${item.tenDichVu || ''}</td><td style="color:red; font-weight:bold; text-align:right;">${formattedPrice}</td>`;
+                });
+                return;
             }
 
-            const row = tbody.insertRow(); 
-            let maHienThi = item.ma || item.maLienKet || ''; 
-            let html = "";
-            
+            if (currentTab === 'MaDVBV') {
+                htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
+                thead.innerHTML = htmlHead; 
+                tbody.innerHTML = '';
+                
+                list.forEach(function(item, index) {
+                    if(!item) return;
+                    const row = tbody.insertRow();
+                    let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
+                    let gVP = item.giaVienPhi ? Number(item.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '';
+                    let gYC = item.giaYeuCau ? Number(item.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '';
+                    let gNN = item.giaNuocNgoai ? Number(item.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '';
+
+                    let safeTenDV = item.tenDichVu ? String(item.tenDichVu).replace(/['"`\n\r\\]/g, "") : "";
+                    let safeMaTD = item.maTuongDuong ? String(item.maTuongDuong).replace(/['"`\n\r\\]/g, "") : "";
+                    let safeMaDV = item.maDichVu ? String(item.maDichVu).replace(/['"`\n\r\\]/g, "") : "";
+                    let tenClickable = `<a href="#" onclick="moChiTietDV('${safeMaDV}', '${safeMaTD}', '${safeTenDV}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.tenDichVu || ''}</a>`;
+
+                    row.innerHTML = `<td>${index + 1}</td>
+                                     <td><b>${item.maDichVu || ''}</b></td>
+                                     <td>${item.maTuongDuong || ''}</td>
+                                     <td>${tenClickable}</td>
+                                     <td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td>
+                                     <td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td>
+                                     <td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td>
+                                     <td style="color:red; text-align:right; font-weight:bold;">${gNN}</td>`;
+                });
+                return;
+            }
+
             if (isMultiSelectMode) {
-                let isChecked = selectedTechniques.find(x => x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi) ? "checked" : "";
-                html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="toggleSelectRow(this, '${realTenKhoa}', '${maHienThi}')" ${isChecked}></td>`;
+                htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
             }
-
-            let safeTen = item.ten ? String(item.ten).replace(/["'`\n\r\\]/g, "") : "";
-            let safePL = item.phanLoai ? String(item.phanLoai).replace(/["'`\n\r\\]/g, "") : "";
-            let safeQD = item.quyetDinh ? String(item.quyetDinh).replace(/["'`\n\r\\]/g, "") : "";
-
-            let tenClickable = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
-
-            html += `<td>${index + 1}</td>`;
             
-            if (isSuperTab) { 
-                html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
+            htmlHead += `<th>STT</th>`;
+            
+            if (isSuperTab) {
+                htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
             } else if (currentTab === 'PL1' || isDeptTab) {
-                let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`;
-                html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
-            } else { 
-                html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${item.maLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
+                htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
+            } else {
+                htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
             }
+
+            let canAddPL = false; 
+            let canRemovePL = false; 
+            let showFileCol = false;
             
-            let ttRaw = item.trangThai || 'CHUA_NOP';
-            let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+            if (currentUser && currentUser.role === 'khoa') { 
+                if (!isDeptTab && !isSuperTab) canAddPL = true; 
+                if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; 
+            }
+            if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemovePL = true; 
+            if (isDeptTab || isSuperTab) showFileCol = true; 
 
             if (showFileCol) {
-                let fileHtml = '';
-                if (tt === 'DA_PHE_DUYET') {
-                    fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br>`;
-                    fileHtml += `<span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
-                    
-                    if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) {
-                        fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`;
-                    }
-                } else {
-                    if (tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`;
-                    else if (tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`;
-                    else if (tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
+                htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`;
+            }
+            
+            if (canAddPL || canRemovePL) {
+                htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`;
+            }
+            
+            htmlHead += `</tr>`; 
+            thead.innerHTML = htmlHead;
 
-                    if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
-                        if (item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
-                        if (tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
-                        if (tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
-                    } 
-                    else if (currentUser && currentUser.role === 'admin') {
-                        if (item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
+            tbody.innerHTML = ''; 
+            let currentKhoaGroup = ""; 
+
+            let myDeptCart = [];
+            if (currentUser && currentUser.role === 'khoa') {
+                let myDept = null;
+                if(database.depts && Array.isArray(database.depts)) {
+                    myDept = database.depts.find(function(d){ return d && d.tenKhoa === currentUser.tenKhoa; });
+                }
+                if (myDept) myDeptCart = myDept.danhMucQTKT;
+            }
+
+            list.forEach(function(item, index) {
+                if(!item) return;
+                let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
+                
+                if (isSuperTab && realTenKhoa !== currentKhoaGroup) {
+                    currentKhoaGroup = realTenKhoa;
+                    const groupRow = tbody.insertRow(); 
+                    let colSpan = isMultiSelectMode ? 10 : 9;
+                    groupRow.innerHTML = `<td colspan="${colSpan}" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td>`;
+                }
+
+                const row = tbody.insertRow(); 
+                let maHienThi = item.ma || item.maLienKet || ''; 
+                let html = "";
+                
+                if (isMultiSelectMode) {
+                    let isChecked = selectedTechniques.find(function(x) { return x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi; }) ? "checked" : "";
+                    html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="toggleSelectRow(this, '${realTenKhoa}', '${maHienThi}')" ${isChecked}></td>`;
+                }
+
+                let safeTen = item.ten ? String(item.ten).replace(/['"`\n\r\\]/g, "") : "";
+                let safePL = item.phanLoai ? String(item.phanLoai).replace(/['"`\n\r\\]/g, "") : "";
+                let safeQD = item.quyetDinh ? String(item.quyetDinh).replace(/['"`\n\r\\]/g, "") : "";
+
+                let safeMaLienKet = item.maLienKet ? String(item.maLienKet).replace(/['"`\n\r\\]/g, "") : "";
+
+                let tenClickable = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
+
+                html += `<td>${index + 1}</td>`;
+                
+                if (isSuperTab) { 
+                    html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
+                } else if (currentTab === 'PL1' || isDeptTab) {
+                    let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`;
+                    html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
+                } else { 
+                    html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${safeMaLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
+                }
+                
+                let ttRaw = item.trangThai || 'CHUA_NOP';
+                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+
+                if (showFileCol) {
+                    let fileHtml = '';
+                    if (tt === 'DA_PHE_DUYET') {
+                        fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br>`;
+                        fileHtml += `<span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
                         
-                        if (tt === 'CHO_DUYET' && !isMultiSelectMode) {
-                            fileHtml += `<button class="btn" style="background:var(--success);" onclick="chuanBiUpSinglePdf('${maHienThi}', '${realTenKhoa}', '${safeTen}')">📥 Tải File Chính Thức (PDF)</button> `;
-                            fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Từ chối</button>`;
+                        if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) {
+                            fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`;
+                        }
+                    } else {
+                        if (tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`;
+                        else if (tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`;
+                        else if (tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
+
+                        if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
+                            if (item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
+                            if (tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
+                            if (tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                        } 
+                        else if (currentUser && currentUser.role === 'admin') {
+                            if (item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
+                            
+                            if (tt === 'CHO_DUYET' && !isMultiSelectMode) {
+                                fileHtml += `<button class="btn" style="background:var(--success);" onclick="chuanBiUpSinglePdf('${maHienThi}', '${realTenKhoa}', '${safeTen}')">📥 Tải File Chính Thức (PDF)</button> `;
+                                fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Từ chối</button>`;
+                            }
                         }
                     }
+                    html += `<td>${fileHtml}</td>`;
                 }
-                html += `<td>${fileHtml}</td>`;
-            }
-            
-            if (canAddPL) { 
-                let itemInCart = myDeptCart.find(x => x && (isCodeMatch(x.ma, maHienThi) || isCodeMatch(x.maLienKet, maHienThi)));
-                if (itemInCart) {
-                    let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP';
-                    let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
-                    if (cartStatus === 'DA_PHE_DUYET') {
+                
+                if (canAddPL) { 
+                    let itemInCart = null;
+                    if(Array.isArray(myDeptCart)) {
+                        itemInCart = myDeptCart.find(function(x) { return x && (isCodeMatch(x.ma, maHienThi) || isCodeMatch(x.maLienKet, maHienThi)); });
+                    }
+                    if (itemInCart) {
+                        let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP';
+                        let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
+                        if (cartStatus === 'DA_PHE_DUYET') {
+                            html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
+                        } else {
+                            html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`;
+                        }
+                    } else {
+                        html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
+                    }
+                }
+                else if (canRemovePL) { 
+                    if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') {
                         html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
                     } else {
-                        html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`;
+                        html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`;
                     }
-                } else {
-                    html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
                 }
-            }
-            else if (canRemovePL) { 
-                if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') {
-                    html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`;
-                } else {
-                    html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`;
-                }
-            }
+                
+                row.innerHTML = html;
+            });
+            capNhatDanhSachQuyetDinh();
             
-            row.innerHTML = html;
-        });
-        capNhatDanhSachQuyetDinh();
+        } catch(e) {
+            console.error(e);
+            alert("Lỗi khi tải bảng dữ liệu: " + e.message);
+        }
     }
 
     function moModalBatch() {
@@ -1379,13 +1426,21 @@
         document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
-        let qtktInfo = database.PL1.find(x => x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa))) || 
-                       database.PL2.find(x => x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)));
+        
+        let qtktInfo = null;
+        if(Array.isArray(database.PL1)) {
+            let found = database.PL1.find(function(x){ return x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)); });
+            if(found) qtktInfo = found;
+        }
+        if(!qtktInfo && Array.isArray(database.PL2)) {
+            let found = database.PL2.find(function(x){ return x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)); });
+            if(found) qtktInfo = found;
+        }
                        
-        if (!qtktInfo) { 
+        if (!qtktInfo && Array.isArray(database.depts)) { 
             for (let d of database.depts) { 
-                if(!d || !d.danhMucQTKT) continue;
-                let found = d.danhMucQTKT.find(x => x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa))); 
+                if(!d || !Array.isArray(d.danhMucQTKT)) continue;
+                let found = d.danhMucQTKT.find(function(x){ return x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)); }); 
                 if (found) { qtktInfo = found; break; } 
             } 
         }
@@ -1403,7 +1458,11 @@
         }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-        let giaDVInfo = database.GiaDV.find(x => x && isCodeMatch(x.maTuongDuong, maTuongDuong)); 
+        let giaDVInfo = null;
+        if(Array.isArray(database.GiaDV)){
+            giaDVInfo = database.GiaDV.find(function(x){ return x && isCodeMatch(x.maTuongDuong, maTuongDuong); }); 
+        }
+        
         let bhytHtml = '';
         if (giaDVInfo) {
             let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
@@ -1418,10 +1477,10 @@
         let fileHtml = ''; 
         let coBaoCao = false;
         
-        if (qtMa) {
-            database.depts.forEach(d => {
-                if(!d || !d.danhMucQTKT) return;
-                const qt = d.danhMucQTKT.find(x => x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)));
+        if (qtMa && Array.isArray(database.depts)) {
+            database.depts.forEach(function(d) {
+                if(!d || !Array.isArray(d.danhMucQTKT)) return;
+                const qt = d.danhMucQTKT.find(function(x) { return x && (isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)); });
                 if(qt) {
                     coBaoCao = true;
                     let ttRaw = qt.trangThai || 'CHUA_NOP'; 
@@ -1465,35 +1524,37 @@
         let fileHtml = ''; 
         let coBaoCao = false;
 
-        database.depts.forEach(d => {
-            if(!d || !d.danhMucQTKT) return;
-            const qt = d.danhMucQTKT.find(x => x && (isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma)));
-            if(qt) {
-                coBaoCao = true;
-                let ttRaw = qt.trangThai || 'CHUA_NOP'; 
-                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                let ttStr = "Chưa nộp"; 
-                let col = "gray";
-                
-                if (tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } 
-                else if (tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } 
-                else if (tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
-                
-                tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
+        if(Array.isArray(database.depts)) {
+            database.depts.forEach(function(d) {
+                if(!d || !Array.isArray(d.danhMucQTKT)) return;
+                const qt = d.danhMucQTKT.find(function(x) { return x && (isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma)); });
+                if(qt) {
+                    coBaoCao = true;
+                    let ttRaw = qt.trangThai || 'CHUA_NOP'; 
+                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+                    let ttStr = "Chưa nộp"; 
+                    let col = "gray";
+                    
+                    if (tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } 
+                    else if (tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } 
+                    else if (tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                    
+                    tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
 
-                if (qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
-                    fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
-                    if (qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
-                    if (qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
-                    if (qt.filePdfChinhThuc) {
-                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
-                        if (currentUser && currentUser.role === 'admin') fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${String(ten).replace(/['"`\n\r\\]/g, "")}')">🔄 Cập nhật PDF</button>`;
+                    if (qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                        fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
+                        if (qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
+                        if (qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
+                        if (qt.filePdfChinhThuc) {
+                            fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                            if (currentUser && currentUser.role === 'admin') fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${String(ten).replace(/['"`\n\r\\]/g, "")}')">🔄 Cập nhật PDF</button>`;
+                            fileHtml += `</div>`;
+                        }
                         fileHtml += `</div>`;
                     }
-                    fileHtml += `</div>`;
                 }
-            }
-        });
+            });
+        }
         if (!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
         
         const fileArea = document.getElementById('dtFilesArea'); 
@@ -1503,18 +1564,21 @@
         const giaArea = document.getElementById('dtGiaDVArea'); 
         const giaBVArea = document.getElementById('dtMaDVBVArea');
 
-        let matchedPrices = database.GiaDV.filter(priceItem => {
-            if(!priceItem) return false;
-            let isNameMatch = false; 
-            if (ten && priceItem.tenKyThuat) { 
-                if (safeStr(ten) === safeStr(priceItem.tenKyThuat)) isNameMatch = true; 
-            }
-            return isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
-        });
+        let matchedPrices = [];
+        if(Array.isArray(database.GiaDV)) {
+            matchedPrices = database.GiaDV.filter(function(priceItem) {
+                if(!priceItem) return false;
+                let isNameMatch = false; 
+                if (ten && priceItem.tenKyThuat) { 
+                    if (safeStr(ten) === safeStr(priceItem.tenKyThuat)) isNameMatch = true; 
+                }
+                return isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
+            });
+        }
 
         if (matchedPrices.length > 0) {
             let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã tương đương</th><th>Tên Dịch vụ BHYT</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
-            matchedPrices.forEach(p => { 
+            matchedPrices.forEach(function(p) { 
                 let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá'; 
                 htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`; 
             });
@@ -1524,10 +1588,14 @@
             giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; 
         }
 
-        let matchedBVPrices = database.MaDVBV.filter(priceItem => priceItem && isCodeMatch(priceItem.maTuongDuong, ma));
+        let matchedBVPrices = [];
+        if(Array.isArray(database.MaDVBV)) {
+            matchedBVPrices = database.MaDVBV.filter(function(priceItem) { return priceItem && isCodeMatch(priceItem.maTuongDuong, ma); });
+        }
+        
         if (matchedBVPrices.length > 0) {
             let htmlGiaBV = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã dịch vụ</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá NN</th></tr></thead><tbody>`;
-            matchedBVPrices.forEach(p => {
+            matchedBVPrices.forEach(function(p) {
                 let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-'; 
                 let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-'; 
                 let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-'; 
@@ -1543,145 +1611,177 @@
     }
 
     function apDungLoc() { 
-        const search = safeStr(document.getElementById('searchBox').value);
-        
-        if (currentTabType === 'DTNH') {
-            const filterNam = document.getElementById('filterNamDT').value;
-            let deptObj = database.depts.find(d => d && d.tenKhoa === currentTab);
-            let sourceList = deptObj ? (deptObj.daoTaoNganHan || []) : [];
+        try {
+            const searchEl = document.getElementById('searchBox');
+            const search = searchEl ? safeStr(searchEl.value) : '';
             
-            const filtered = sourceList.filter(item => {
-                if(!item) return false;
-                let matchSearch = (safeStr(item.noiDung).includes(search) || safeStr(item.kyThuat).includes(search));
-                let matchYear = filterNam === "" || String(item.nam) === String(filterNam);
-                return matchSearch && matchYear;
-            });
-            renderTable(filtered);
-            
-            if (currentUser && (currentUser.role === 'admin' || currentUser.tenKhoa === currentTab)) {
-                document.getElementById('btnSaveDTNH').style.display = 'inline-block';
-            } else { 
-                document.getElementById('btnSaveDTNH').style.display = 'none'; 
-            }
-            return;
-        } else { 
-            document.getElementById('btnSaveDTNH').style.display = 'none'; 
-        }
-
-        if (currentTab === 'KHTH_CHUA_AP_GIA') {
-            document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
-            
-            const maDvbvSet = new Set();
-            database.MaDVBV.forEach(dv => { 
-                if (dv && dv.maTuongDuong) maDvbvSet.add(normalizeCodeFast(dv.maTuongDuong)); 
-            });
-
-            const giaDvByCode = new Map();
-            const giaDvByName = new Map();
-            
-            database.GiaDV.forEach(g => {
-                if(!g) return;
-                if (g.maTuongDuong) {
-                    let code = normalizeCodeFast(g.maTuongDuong);
-                    if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
-                    giaDvByCode.get(code).push(g);
-                }
-                if (g.tenKyThuat) {
-                    let name = safeStr(g.tenKyThuat);
-                    if (!giaDvByName.has(name)) giaDvByName.set(name, []);
-                    giaDvByName.get(name).push(g);
-                }
-            });
-
-            let sourceList = [];
-            database.PL1.forEach(qt => {
-                if(!qt) return;
-                let qdVal = qt.quyetDinh ? safeStr(qt.quyetDinh) : '';
-                if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
+            if (currentTabType === 'DTNH') {
+                let filterNamEl = document.getElementById('filterNamDT');
+                const filterNam = filterNamEl ? filterNamEl.value : "";
                 
-                let normCode = normalizeCodeFast(qt.ma);
-                if (maDvbvSet.has(normCode)) return;
-
-                let matchedGiaMap = new Map(); 
-                if (giaDvByCode.has(normCode)) { 
-                    giaDvByCode.get(normCode).forEach(g => matchedGiaMap.set(g, g)); 
+                let deptObj = null;
+                if(Array.isArray(database.depts)) {
+                    deptObj = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; });
                 }
-                if (qt.ten) {
-                    let normName = safeStr(qt.ten);
-                    if (giaDvByName.has(normName)) { 
-                        giaDvByName.get(normName).forEach(g => matchedGiaMap.set(g, g)); 
+                let sourceList = deptObj && Array.isArray(deptObj.daoTaoNganHan) ? deptObj.daoTaoNganHan : [];
+                
+                const filtered = sourceList.filter(function(item) {
+                    if(!item) return false;
+                    let matchSearch = (safeStr(item.noiDung).includes(search) || safeStr(item.kyThuat).includes(search));
+                    let matchYear = filterNam === "" || String(item.nam) === String(filterNam);
+                    return matchSearch && matchYear;
+                });
+                renderTable(filtered);
+                
+                let btnSave = document.getElementById('btnSaveDTNH');
+                if (btnSave) {
+                    if (currentUser && (currentUser.role === 'admin' || currentUser.tenKhoa === currentTab)) {
+                        btnSave.style.display = 'inline-block';
+                    } else { 
+                        btnSave.style.display = 'none'; 
                     }
                 }
+                return;
+            } else { 
+                let btnSave = document.getElementById('btnSaveDTNH');
+                if(btnSave) btnSave.style.display = 'none'; 
+            }
 
-                let matchedGia = Array.from(matchedGiaMap.values());
-                sourceList.push({
-                    ...qt,
-                    tt23_ma: matchedGia.map(g => g.maTuongDuong).join('\n'),
-                    tt23_ten: matchedGia.map(g => g.tenDichVu || g.tenKyThuat).join('\n'),
-                    matchedGia: matchedGia
+            if (currentTab === 'KHTH_CHUA_AP_GIA') {
+                document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
+                
+                const maDvbvSet = new Set();
+                if(Array.isArray(database.MaDVBV)) {
+                    database.MaDVBV.forEach(function(dv) { 
+                        if (dv && dv.maTuongDuong) maDvbvSet.add(normalizeCodeFast(dv.maTuongDuong)); 
+                    });
+                }
+
+                const giaDvByCode = new Map();
+                const giaDvByName = new Map();
+                
+                if(Array.isArray(database.GiaDV)) {
+                    database.GiaDV.forEach(function(g) {
+                        if(!g) return;
+                        if (g.maTuongDuong) {
+                            let code = normalizeCodeFast(g.maTuongDuong);
+                            if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
+                            giaDvByCode.get(code).push(g);
+                        }
+                        if (g.tenKyThuat) {
+                            let name = safeStr(g.tenKyThuat);
+                            if (!giaDvByName.has(name)) giaDvByName.set(name, []);
+                            giaDvByName.get(name).push(g);
+                        }
+                    });
+                }
+
+                let sourceList = [];
+                if(Array.isArray(database.PL1)) {
+                    database.PL1.forEach(function(qt) {
+                        if(!qt) return;
+                        let qdVal = qt.quyetDinh ? safeStr(qt.quyetDinh) : '';
+                        if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
+                        
+                        let normCode = normalizeCodeFast(qt.ma);
+                        if (maDvbvSet.has(normCode)) return;
+
+                        let matchedGiaMap = new Map(); 
+                        if (giaDvByCode.has(normCode)) { 
+                            giaDvByCode.get(normCode).forEach(function(g) { matchedGiaMap.set(g, g); }); 
+                        }
+                        if (qt.ten) {
+                            let normName = safeStr(qt.ten);
+                            if (giaDvByName.has(normName)) { 
+                                giaDvByName.get(normName).forEach(function(g) { matchedGiaMap.set(g, g); }); 
+                            }
+                        }
+
+                        let matchedGia = Array.from(matchedGiaMap.values());
+                        sourceList.push({
+                            ...qt,
+                            tt23_ma: matchedGia.map(function(g){ return g.maTuongDuong; }).join('\n'),
+                            tt23_ten: matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat; }).join('\n'),
+                            matchedGia: matchedGia
+                        });
+                    });
+                }
+                
+                const filtered = sourceList.filter(function(item) {
+                    if(!item) return false;
+                    return (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tt23_ma).includes(search) || safeStr(item.tt23_ten).includes(search));
                 });
-            });
-            
-            const filtered = sourceList.filter(item => {
-                if(!item) return false;
-                return (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tt23_ma).includes(search) || safeStr(item.tt23_ten).includes(search));
-            });
-            renderTable(filtered); 
-            return;
-        }
+                renderTable(filtered); 
+                return;
+            }
 
-        if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
-            document.getElementById('lblSearch').innerText = currentTab === 'GiaDV' ? 'TÌM KIẾM MÃ HOẶC TÊN DỊCH VỤ' : 'TÌM KIẾM MÃ DV, MÃ TĐ HOẶC TÊN DV';
-            let sourceList = currentTab === 'GiaDV' ? database.GiaDV : database.MaDVBV;
-            const filtered = sourceList.filter(item => {
-                if(!item) return false;
-                if (currentTab === 'GiaDV') return (safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenKyThuat).includes(search) || safeStr(item.tenDichVu).includes(search));
-                else return (safeStr(item.maDichVu).includes(search) || safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenDichVu).includes(search));
-            });
-            renderTable(filtered); 
-            return;
-        } else { 
-            document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG'; 
-        }
+            if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
+                document.getElementById('lblSearch').innerText = currentTab === 'GiaDV' ? 'TÌM KIẾM MÃ HOẶC TÊN DỊCH VỤ' : 'TÌM KIẾM MÃ DV, MÃ TĐ HOẶC TÊN DV';
+                let sourceList = currentTab === 'GiaDV' ? database.GiaDV : database.MaDVBV;
+                if(!Array.isArray(sourceList)) sourceList = [];
+                
+                const filtered = sourceList.filter(function(item) {
+                    if(!item) return false;
+                    if (currentTab === 'GiaDV') return (safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenKyThuat).includes(search) || safeStr(item.tenDichVu).includes(search));
+                    else return (safeStr(item.maDichVu).includes(search) || safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenDichVu).includes(search));
+                });
+                renderTable(filtered); 
+                return;
+            } else { 
+                document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG'; 
+            }
 
-        const loaiSelect = document.getElementById('filterLoai').value;
-        const qd = document.getElementById('filterQuyetDinh').value; 
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
-        const isSuperTab = currentTab.startsWith('KHTH_'); 
-        let sourceList = []; 
-        
-        if (isSuperTab) { 
-            sourceList = getAggregatedList(currentTab); 
-        } else if (isDeptTab) { 
-            const deptObj = database.depts.find(d => d && d.tenKhoa === currentTab); 
-            sourceList = deptObj ? deptObj.danhMucQTKT : []; 
-        } else { 
-            sourceList = database[currentTab] || []; 
-        } 
-        
-        const filtered = sourceList.filter(item => { 
-            if(!item) return false;
-            const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); 
-            const matchQD = qd === "" || item.quyetDinh === qd; 
-            let matchLoai = true; 
+            let filterLoaiEl = document.getElementById('filterLoai');
+            const loaiSelect = filterLoaiEl ? filterLoaiEl.value : "";
             
-            if (loaiSelect !== "") { 
-                const val = item.phanLoai ? String(item.phanLoai).toUpperCase().trim() : ""; 
-                if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); 
-                else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); 
-                else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); 
-                else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); 
-                else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); 
+            let filterQDEl = document.getElementById('filterQuyetDinh');
+            const qd = filterQDEl ? filterQDEl.value : ""; 
+            
+            const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
+            const isSuperTab = currentTab.startsWith('KHTH_'); 
+            let sourceList = []; 
+            
+            if (isSuperTab) { 
+                sourceList = getAggregatedList(currentTab); 
+            } else if (isDeptTab) { 
+                let deptObj = null;
+                if(Array.isArray(database.depts)) {
+                    deptObj = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; }); 
+                }
+                sourceList = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
+            } else { 
+                sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
             } 
-            return matchSearch && matchLoai && matchQD; 
-        }); 
-        
-        renderTable(filtered); 
+            
+            const filtered = sourceList.filter(function(item) { 
+                if(!item) return false;
+                const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); 
+                const matchQD = qd === "" || item.quyetDinh === qd; 
+                let matchLoai = true; 
+                
+                if (loaiSelect !== "") { 
+                    const val = item.phanLoai ? String(item.phanLoai).toUpperCase().trim() : ""; 
+                    if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); 
+                    else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); 
+                    else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); 
+                    else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); 
+                    else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); 
+                } 
+                return matchSearch && matchLoai && matchQD; 
+            }); 
+            
+            renderTable(filtered); 
+        } catch(e) {
+            console.error(e);
+            alert("Lỗi khi Lọc Dữ liệu: " + e.message);
+        }
     }
     
     function capNhatDanhSachQuyetDinh() { 
         if (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
         const select = document.getElementById('filterQuyetDinh'); 
+        if(!select) return;
+        
         const currentVal = select.value; 
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
         const isSuperTab = currentTab.startsWith('KHTH_'); 
@@ -1690,14 +1790,23 @@
         if (isSuperTab) {
             sourceList = getAggregatedList(currentTab); 
         } else if (isDeptTab) {
-            sourceList = database.depts.find(d => d && d.tenKhoa === currentTab)?.danhMucQTKT || []; 
+            let foundDept = null;
+            if(Array.isArray(database.depts)) {
+                foundDept = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; });
+            }
+            sourceList = foundDept && Array.isArray(foundDept.danhMucQTKT) ? foundDept.danhMucQTKT : []; 
         } else {
-            sourceList = database[currentTab] || []; 
+            sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
         }
         
-        const dsQD = [...new Set(sourceList.filter(i=>i).map(item => item.quyetDinh).filter(i => i))]; 
+        let validList = sourceList.filter(function(i){ return i && i.quyetDinh; });
+        const dsQD = [];
+        validList.forEach(function(item) {
+            if(dsQD.indexOf(item.quyetDinh) === -1) dsQD.push(item.quyetDinh);
+        });
+        
         select.innerHTML = '<option value="">-- Tất cả quyết định --</option>'; 
-        dsQD.sort().forEach(qd => { 
+        dsQD.sort().forEach(function(qd) { 
             const opt = document.createElement('option'); 
             opt.value = qd; 
             opt.innerText = qd; 
@@ -1706,218 +1815,52 @@
         }); 
     }
     
-    // 🟢 THUẬT TOÁN ĐỌC FILE EXCEL ĐÃ ĐƯỢC PHỤC HỒI NHẬN DIỆN MỌI KHOA
-    async function importFromExcel() { 
-        const fileInput = document.getElementById('fileExcel'); 
-        const file = fileInput.files[0]; 
-        if (!file) return; 
+    function capNhatTieuDe() {
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = "";
+        if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`;
+        
+        const batchToolbar = document.getElementById('batchToolbar');
+        if (currentUser && currentUser.role === 'admin' && (currentTab === 'KHTH_CHO_DUYET' || isDeptTab) && currentTabType !== 'DTNH') { 
+            if(batchToolbar) batchToolbar.style.display = 'flex'; 
+        } else { 
+            if(batchToolbar) batchToolbar.style.display = 'none'; 
+            isMultiSelectMode = false; 
+        } 
+
+        let grpPhanLoai = document.getElementById('groupPhanLoai');
+        let grpQuyetDinh = document.getElementById('groupQuyetDinh');
+        let grpNamDT = document.getElementById('groupNamDT');
+
+        if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+        if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+        if(grpNamDT) grpNamDT.style.display = currentTabType === 'DTNH' ? 'flex' : 'none';
 
         if (currentTabType === 'DTNH') {
-            const selectedYear = document.getElementById('filterNamDT').value;
-            if (!selectedYear) {
-                alert("⚠️ VUI LÒNG CHỌN [NĂM ĐÀO TẠO] Ở THANH TÌM KIẾM PHÍA TRÊN TRƯỚC KHI TẢI FILE LÊN!");
-                fileInput.value = ''; return;
-            }
+            document.getElementById('tabTitle').innerText = `KẾ HOẠCH ĐÀO TẠO NGẮN HẠN - ${currentTab.toUpperCase()}`;
+            document.getElementById('tabDesc').innerText = `Quản lý kế hoạch cử nhân sự đi học tập nâng cao chuyên môn ${textRole}`;
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM NỘI DUNG HOẶC KỸ THUẬT';
         }
-
-        showLoading(true); 
-        const reader = new FileReader(); 
-        reader.onload = async function(e) { 
-            try { 
-                const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
-                const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); 
-                
-                if (currentTabType === 'DTNH') {
-                    const selectedYear = document.getElementById('filterNamDT').value;
-                    let headerRowIndex = -1;
-                    
-                    for (let i = 0; i < Math.min(1000, rawData.length); i++) {
-                        let rowData = rawData[i]; 
-                        if (!rowData || rowData.length === 0) continue;
-                        let rowStr = rowData.map(c => c ? c.toString().toLowerCase() : "").join(" ");
-                        if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
-                            headerRowIndex = i; 
-                            break;
-                        }
-                    }
-
-                    if (headerRowIndex === -1) { 
-                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!"); 
-                        showLoading(false); 
-                        return; 
-                    }
-
-                    let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
-                    let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
-
-                    let headRow1 = rawData[headerRowIndex].map(normalize);
-                    let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(normalize) : [];
-
-                    headRow1.forEach((k, idx) => {
-                        if (!k) return;
-                        if (k === "khoa") colKhoa = idx;
-                        if (k.includes("nội dung đào tạo")) colNoiDung = idx;
-                        if (k.includes("kĩ thuật cụ thể") || k.includes("kỹ thuật cụ thể")) colKyThuat = idx;
-                        if (k.includes("thời gian")) colThoiGian = idx;
-                        if (k.includes("đơn vị chủ trì")) colDonVi = idx;
-                        if (k.includes("kinh phí")) colKinhPhi = idx;
-                    });
-
-                    headRow2.forEach((k, idx) => {
-                        if (!k) return;
-                        if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
-                        if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
-                        if (k === "ktv" || k.includes("kỹ thuật viên")) colKTV = idx;
-                        if (k === "đd" || k.includes("điều dưỡng")) colDD = idx;
-                        if (k === "bs" || k.includes("bác sĩ")) colBS = idx;
-                    });
-
-                    let parsedDataByKhoa = {};
-                    let currentKhoaInFile = ""; 
-                    
-                    let currentNoiDung = "", currentThoiGian = "", currentDonVi = "", currentKinhPhi = "";
-                    let currentCNSH = "", currentNHS = "", currentKTV = "", currentDD = "", currentBS = "";
-                    let currentGroupId = 0;
-
-                    for (let i = headerRowIndex + 2; i < rawData.length; i++) {
-                        let rowData = rawData[i]; 
-                        if (!rowData || rowData.length === 0) continue;
-                        
-                        let tenKhoaRaw = rowData[colKhoa];
-                        if (tenKhoaRaw && String(tenKhoaRaw).trim() !== "") { 
-                            currentKhoaInFile = normalize(String(tenKhoaRaw)); 
-                        }
-                        if (!currentKhoaInFile) continue;
-
-                        let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
-                        if (!matchedKhoa) continue; 
-                        if (matchedKhoa !== currentTab) continue;
-
-                        let noiDung = rowData[colNoiDung];
-                        let kyThuat = rowData[colKyThuat];
-                        
-                        if (noiDung && String(noiDung).trim() !== "") {
-                            currentGroupId++;
-                            currentNoiDung = noiDung;
-                            currentThoiGian = rowData[colThoiGian] || "";
-                            currentDonVi = rowData[colDonVi] || "";
-                            currentKinhPhi = rowData[colKinhPhi] || "";
-                            currentCNSH = rowData[colCNSH] || "";
-                            currentNHS = rowData[colNHS] || "";
-                            currentKTV = rowData[colKTV] || "";
-                            currentDD = rowData[colDD] || "";
-                            currentBS = rowData[colBS] || "";
-                        } else if (!kyThuat || String(kyThuat).trim() === "") {
-                            continue; 
-                        }
-
-                        if (!parsedDataByKhoa[matchedKhoa]) {
-                            parsedDataByKhoa[matchedKhoa] = [];
-                        }
-                        
-                        parsedDataByKhoa[matchedKhoa].push({
-                            groupId: currentGroupId,
-                            nam: selectedYear,
-                            noiDung: currentNoiDung,
-                            kyThuat: kyThuat || "",
-                            thoiGian: currentThoiGian,
-                            donVi: currentDonVi,
-                            kinhPhi: currentKinhPhi,
-                            cns: currentCNSH,
-                            nhs: currentNHS,
-                            ktv: currentKTV,
-                            dd: currentDD,
-                            bs: currentBS
-                        });
-                    }
-
-                    const response = await fetch('/api/upload-dtnh', { 
-                        method: 'POST', 
-                        headers: { 'Content-Type': 'application/json' }, 
-                        body: JSON.stringify({ payload: parsedDataByKhoa, year: selectedYear }) 
-                    }); 
-                    const result = await response.json(); 
-                    alert(result.message); 
-                    await layDuLieu(); 
-                } 
-                else {
-                    let headerRowIndex = -1; 
-                    let headers = [];
-                    for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                        let rowStr = rawData[i].map(c => c ? c.toString().toLowerCase() : "").join(" ");
-                        if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương")) {
-                            headerRowIndex = i; 
-                            headers = rawData[i].map(normalize); 
-                            break;
-                        }
-                    }
-
-                    if (headerRowIndex === -1) { 
-                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); 
-                        showLoading(false); 
-                        return; 
-                    }
-
-                    let parsedData = [];
-                    for (let i = headerRowIndex + 1; i < rawData.length; i++) {
-                        let rowData = rawData[i]; 
-                        if (!rowData || rowData.length === 0) continue; 
-                        let item = {}; 
-                        let hasData = false;
-
-                        headers.forEach((k, colIndex) => { 
-                            if (!k) return; 
-                            let v = rowData[colIndex]; 
-                            if (v !== undefined && v !== null && v !== "") hasData = true;
-                            
-                            if (currentTab === 'GiaDV') {
-                                if (k === "mã tương đương" || k.includes("mã tương đương")) item.maTuongDuong = v; 
-                                if (k === "tên kỹ thuật" || k.includes("tên kỹ thuật")) item.tenKyThuat = v; 
-                                if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("tên dv")) item.tenDichVu = v; 
-                                if (k === "giá phê duyệt" || k.includes("giá")) item.giaMax = v;
-                            } else if (currentTab === 'MaDVBV') {
-                                if (k === "mã dịch vụ" || k.includes("mã dịch vụ") || k.includes("ma_dichvu")) item.maDichVu = v;
-                                if (k === "mã tương đương" || k.includes("mã tương đương") || k.includes("ma_tuongduong")) item.maTuongDuong = v;
-                                if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("ten_dichvu")) item.tenDichVu = v;
-                                if (k === "giá bhyt" || k.includes("giá bhyt") || k.includes("gia_bhyt")) item.giaBHYT = v;
-                                if (k === "giá viện phí" || k.includes("giá viện phí") || k.includes("gia_vienphi")) item.giaVienPhi = v;
-                                if (k === "giá yêu cầu" || k.includes("giá yêu cầu") || k.includes("gia_yeucau")) item.giaYeuCau = v;
-                                if (k === "giá nước ngoài" || k.includes("giá nước ngoài") || k.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
-                            } else {
-                                if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v; 
-                                if (k.includes("stt của chương") || k === "machuong") item.maChuong = v; 
-                                if (k.includes("tên chương") || k === "chuong") item.chuong = v; 
-                                if (k.includes("mã liên kết") || k === "malienket") item.maLienKet = v; 
-                                if (k.includes("tên kỹ thuật") || k === "ten") item.ten = v; 
-                                if (k.includes("phân loại") || k === "phanloai") item.phanLoai = v; 
-                                if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v; 
-                            }
-                        }); 
-                        if (hasData) parsedData.push(item);
-                    } 
-                    
-                    database[currentTab] = parsedData;
-                    const formData = new FormData(); 
-                    formData.append('fileExcel', file); 
-                    formData.append('tabName', currentTab); 
-                    formData.append('tabData', JSON.stringify(database[currentTab])); 
-                    const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
-                    const result = await response.json(); 
-                    alert(result.message); 
-                    renderTable(); 
-                }
-            } catch (error) { 
-                alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); 
-                console.error(error); 
-            } finally { 
-                fileInput.value = ''; 
-                showLoading(false); 
-            } 
-        }; 
-        reader.readAsArrayBuffer(file); 
+        else if (currentTab === 'KHTH_CHUA_AP_GIA') { document.getElementById('tabTitle').innerText = "QTKT BỆNH VIỆN CHƯA ÁP GIÁ"; document.getElementById('tabDesc').innerText = `Danh sách các Kỹ thuật đã có Quyết định phê duyệt nhưng chưa được gán Mã Dịch vụ BV ${textRole}`; document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV'; }
+        else if (currentTab === 'PL1') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'PL2') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 2"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'GiaDV') { document.getElementById('tabTitle').innerText = "BẢNG GIÁ DỊCH VỤ"; document.getElementById('tabDesc').innerText = `Thông tư 23/2024 ${textRole}`; } 
+        else if (currentTab === 'MaDVBV') { document.getElementById('tabTitle').innerText = "MÃ DỊCH VỤ BỆNH VIỆN"; document.getElementById('tabDesc').innerText = `Bảng giá dịch vụ áp dụng tại Bệnh viện ${textRole}`; } 
+        else if (currentTab === 'KHTH_CHO_DUYET') { document.getElementById('tabTitle').innerText = "DANH MỤC CHỜ DUYỆT - P.KHTH"; document.getElementById('tabDesc').innerText = `Các quy trình khoa đã nộp bản nháp, chờ Admin duyệt ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_BO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP BỘ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Trung ương (Đang cập nhật) ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_SO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP SỞ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Tỉnh (Đang cập nhật) ${textRole}`; }
+        else { document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`; if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`; else document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`; } 
     }
 
+    function switchTab(tab, type) { 
+        if(!type) type = 'QTKT';
+        currentTab = tab; currentTabType = type; capNhatTieuDe(); 
+        let sBox = document.getElementById('searchBox'); if(sBox) sBox.value = ''; 
+        let fLoai = document.getElementById('filterLoai'); if(fLoai) fLoai.value = ""; 
+        let fQD = document.getElementById('filterQuyetDinh'); if(fQD) fQD.value = ""; 
+        let fNam = document.getElementById('filterNamDT'); if(fNam) fNam.value = "";
+        apDungLoc(); 
+    }
+    
     function exportToExcel() { 
         if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
@@ -1934,7 +1877,7 @@
                 ["STT", "MÃ KỸ THUẬT", "TÊN CHƯƠNG", "TÊN KỸ THUẬT", "MÃ TƯƠNG ĐƯƠNG", "TÊN DỊCH VỤ BHYT"]
             ];
             
-            currentFilteredData.forEach((item, index) => {
+            currentFilteredData.forEach(function(item, index) {
                 if(!item) return;
                 excelData.push([
                     index + 1,
@@ -1958,7 +1901,8 @@
         }
         
         if (currentTabType === 'DTNH') {
-            const selectedYear = document.getElementById('filterNamDT').value || "202X";
+            let filterNamEl = document.getElementById('filterNamDT');
+            const selectedYear = filterNamEl ? filterNamEl.value : "202X";
             let excelData = [
                 [`KẾ HOẠCH ĐÀO TẠO PHÁT TRIỂN CHUYÊN MÔN KỸ THUẬT NĂM ${selectedYear}`],
                 [`Khoa: ${currentTab.toUpperCase()}`],
@@ -1975,14 +1919,14 @@
             let sttCounterExport = 1;
             let startRowIndex = -1;
 
-            currentFilteredData.forEach((item, idx) => {
+            currentFilteredData.forEach(function(item, idx) {
                 if(!item) return;
                 let isFirst = item.groupId !== prevGroupId;
                 let currentRowExcel = excelData.length;
 
                 if (isFirst) {
                     if (prevGroupId !== null && (currentRowExcel - 1) > startRowIndex) {
-                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(colIdx => {
+                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(function(colIdx) {
                             merges.push({ s: { r: startRowIndex, c: colIdx }, e: { r: currentRowExcel - 1, c: colIdx } });
                         });
                     }
@@ -2008,7 +1952,7 @@
 
                 if (idx === currentFilteredData.length - 1) {
                     if (excelData.length - 1 > startRowIndex) {
-                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(colIdx => {
+                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(function(colIdx) {
                             merges.push({ s: { r: startRowIndex, c: colIdx }, e: { r: excelData.length - 1, c: colIdx } });
                         });
                     }
@@ -2023,7 +1967,7 @@
             return;
         }
 
-        const cleanData = currentFilteredData.map((item, index) => {
+        const cleanData = currentFilteredData.map(function(item, index) {
             let row = { "STT": index + 1 };
             if(!item) return row;
             
@@ -2077,13 +2021,13 @@
         
         const colWidths = [];
         const keys = Object.keys(cleanData[0] || {});
-        keys.forEach(key => {
+        keys.forEach(function(key) {
             let maxLen = key.length; 
-            cleanData.forEach(row => {
+            cleanData.forEach(function(row) {
                 let val = row[key];
                 if (val !== null && val !== undefined) {
                     let len = val.toString().length;
-                    if (val.toString().includes('\n')) len = Math.max(...val.toString().split('\n').map(l => l.length));
+                    if (val.toString().includes('\n')) len = Math.max.apply(null, val.toString().split('\n').map(function(l){ return l.length; }));
                     if (typeof val === 'number') len += 4; 
                     if (len > maxLen) maxLen = len;
                 }
@@ -2098,7 +2042,8 @@
     }
 
     function showLoading(status) { 
-        document.getElementById('loading').style.display = status ? 'flex' : 'none'; 
+        let ld = document.getElementById('loading');
+        if(ld) ld.style.display = status ? 'flex' : 'none'; 
     }
 </script>
 </body>
