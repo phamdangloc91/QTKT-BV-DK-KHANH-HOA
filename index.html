@@ -1440,7 +1440,7 @@
         document.getElementById('dvTenDV').innerText = tenDichVu || ''; 
         document.getElementById('dvMaDV').innerText = maDichVu || '';
         
-        let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
+        let qtMa = normalizeCodeFast(maTuongDuong);
         
         let qtktInfo = null;
         if(Array.isArray(database.PL1)) {
@@ -1516,7 +1516,7 @@
                         if (qt.filePdfChinhThuc) {
                             fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                             
-                            // Đã bọc an toàn tránh lỗi biến 'ten'
+                            // 🟢 ĐÃ VÁ LỖI HIỂN THỊ NÚT PDF Ở TAB MÃ DỊCH VỤ BV
                             let safeQtTen = qt.ten ? String(qt.ten).replace(/['"`\n\r\\]/g, "") : "";
                             let safeQtMa = qt.ma || qt.maLienKet || qtMa;
                             if (currentUser && currentUser.role === 'admin') {
