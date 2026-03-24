@@ -223,6 +223,11 @@
     </div>
 </div>
 
+<footer class="site-footer">
+    <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
+</footer>
+
 <div id="loginModal" class="modal">
     <div class="modal-content">
         <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
@@ -432,59 +437,6 @@
         return normalizeCodeFast(maTuongDuong) === normalizeCodeFast(targetMa);
     }
 
-    // 🟢 HÀM XÁC ĐỊNH TÊN KHOA GẦN ĐÚNG TRONG EXCEL
-    function timKhoaChinhXac(rawName) {
-        if (!rawName) return null;
-        let normRaw = normalize(rawName);
-        
-        let directMatch = DANH_SACH_KHOA.find(function(k) { return normalize(k) === normRaw || normRaw.includes(normalize(k)) || normalize(k).includes(normRaw); });
-        if (directMatch) return directMatch;
-
-        const tuDienKhoa = {
-            "Trung tâm Chấn thương Chỉnh hình và Bỏng": ["chan thuong", "chinh hinh", "ctch", "bong", "ngoai chan thuong"],
-            "Khoa Hồi sức Tích cực và Chống độc": ["hoi suc tich cuc", "chong doc", "hstc", "icu", "tich cuc"],
-            "Khoa Phẫu thuật - Gây mê Hồi sức": ["phau thuat", "gay me", "gmhs", "ptgmhs", "phong mo"],
-            "Khoa Vật lý Trị liệu - Phục hồi Chức năng": ["vat ly tri lieu", "phuc hoi chuc nang", "vltl", "phcn"],
-            "Khoa Nội Tổng hợp Thần kinh": ["noi tong hop", "noi than kinh", "noi thtk"],
-            "Khoa Nội Tim mạch Lão học": ["tim mach lao hoc", "noi tim mach"],
-            "Khoa Vi sinh - Ký sinh trùng": ["vi sinh", "ky sinh trung"]
-        };
-
-        for (let dept in tuDienKhoa) {
-            let keywords = tuDienKhoa[dept];
-            for (let i = 0; i < keywords.length; i++) {
-                if (normRaw.includes(keywords[i])) return dept;
-            }
-        }
-
-        let rawWords = normRaw.replace(/khoa|trung tam|phong|bệnh viện|bv/g, "").split(/\s+/).filter(function(w) { return w.length > 1; });
-        let bestMatch = null;
-        let maxScore = 0;
-
-        DANH_SACH_KHOA.forEach(function(dept) {
-            let deptWords = normalize(dept).replace(/khoa|trung tam|phong/g, "").split(/\s+/);
-            let score = 0;
-            rawWords.forEach(function(w) {
-                if (deptWords.includes(w)) score++;
-            });
-            
-            let isRawNgoai = rawWords.includes("ngoai");
-            let isRawNoi = rawWords.includes("noi");
-            let isDeptNgoai = deptWords.includes("ngoai");
-            let isDeptNoi = deptWords.includes("noi");
-
-            if ((isRawNgoai && !isDeptNgoai) || (!isRawNgoai && isDeptNgoai)) score -= 2;
-            if ((isRawNoi && !isDeptNoi) || (!isRawNoi && isDeptNoi)) score -= 2;
-
-            if (score > maxScore && score >= 2) { 
-                maxScore = score;
-                bestMatch = dept;
-            }
-        });
-
-        return bestMatch;
-    }
-
     window.addEventListener('DOMContentLoaded', function() {
         const optGroupKhoa = document.getElementById('optGroupKhoa');
         const menuCacKhoa = document.getElementById('menuCacKhoa');
@@ -559,6 +511,7 @@
         });
     }); 
 
+    // LỚP BẢO VỆ ĐĂNG NHẬP: CHỐNG LỖI TÀN DƯ LOCALSTORAGE
     window.onload = function() {
         try {
             const savedUser = localStorage.getItem('hospital_user');
@@ -787,10 +740,10 @@
         
         let qtInfo = null;
         if(Array.isArray(database.PL1)) {
-            qtInfo = database.PL1.find(function(x) { return x.ma === ma || x.maLienKet === ma; });
+            qtInfo = database.PL1.find(function(x) { return x && (isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma)); });
         }
         if(!qtInfo && Array.isArray(database.PL2)) {
-            qtInfo = database.PL2.find(function(x) { return x.ma === ma || x.maLienKet === ma; });
+            qtInfo = database.PL2.find(function(x) { return x && (isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma)); });
         }
         
         if(!qtInfo) return alert("Không tìm thấy thông tin kỹ thuật!");
@@ -844,6 +797,7 @@
         }
     }
 
+    // LỚP BẢO VỆ 2: CHỐNG LỖI TỪ DỮ LIỆU RỖNG
     function getAggregatedList(tabName) {
         let result = [];
         if(!database.depts || !Array.isArray(database.depts)) return result;
@@ -1774,6 +1728,42 @@
         apDungLoc(); 
     }
 
+    function capNhatTieuDe() {
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = "";
+        if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`;
+        
+        const batchToolbar = document.getElementById('batchToolbar');
+        if (currentUser && currentUser.role === 'admin' && (currentTab === 'KHTH_CHO_DUYET' || isDeptTab) && currentTabType !== 'DTNH') { 
+            if(batchToolbar) batchToolbar.style.display = 'flex'; 
+        } else { 
+            if(batchToolbar) batchToolbar.style.display = 'none'; 
+            isMultiSelectMode = false; 
+        } 
+
+        let grpPhanLoai = document.getElementById('groupPhanLoai');
+        let grpQuyetDinh = document.getElementById('groupQuyetDinh');
+        let grpNamDT = document.getElementById('groupNamDT');
+
+        if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+        if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+        if(grpNamDT) grpNamDT.style.display = currentTabType === 'DTNH' ? 'flex' : 'none';
+
+        if (currentTabType === 'DTNH') {
+            document.getElementById('tabTitle').innerText = `KẾ HOẠCH ĐÀO TẠO NGẮN HẠN - ${currentTab.toUpperCase()}`;
+            document.getElementById('tabDesc').innerText = `Quản lý kế hoạch cử nhân sự đi học tập nâng cao chuyên môn ${textRole}`;
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM NỘI DUNG HOẶC KỸ THUẬT';
+        }
+        else if (currentTab === 'KHTH_CHUA_AP_GIA') { document.getElementById('tabTitle').innerText = "QTKT BỆNH VIỆN CHƯA ÁP GIÁ"; document.getElementById('tabDesc').innerText = `Danh sách các Kỹ thuật đã có Quyết định nhưng chưa được gán Mã Dịch vụ BV ${textRole}`; document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV'; }
+        else if (currentTab === 'PL1') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'PL2') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 2"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; } 
+        else if (currentTab === 'GiaDV') { document.getElementById('tabTitle').innerText = "BẢNG GIÁ DỊCH VỤ"; document.getElementById('tabDesc').innerText = `Thông tư 23/2024 ${textRole}`; } 
+        else if (currentTab === 'MaDVBV') { document.getElementById('tabTitle').innerText = "MÃ DỊCH VỤ BỆNH VIỆN"; document.getElementById('tabDesc').innerText = `Bảng giá dịch vụ áp dụng tại Bệnh viện ${textRole}`; } 
+        else if (currentTab === 'KHTH_CHO_DUYET') { document.getElementById('tabTitle').innerText = "DANH MỤC CHỜ DUYỆT - P.KHTH"; document.getElementById('tabDesc').innerText = `Các quy trình khoa đã nộp bản nháp, chờ Admin duyệt ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_BO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP BỘ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Trung ương (Đang cập nhật) ${textRole}`; }
+        else if (currentTab === 'KHTH_NOP_SO') { document.getElementById('tabTitle').innerText = "QTKT CHỜ NỘP SỞ Y TẾ"; document.getElementById('tabDesc').innerText = `Dành cho Quyết định tuyến Tỉnh (Đang cập nhật) ${textRole}`; }
+        else { document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`; if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`; else document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`; } 
+    }
+
     function apDungLoc() { 
         try {
             const searchEl = document.getElementById('searchBox');
@@ -2062,7 +2052,7 @@
                         }
                         if (!currentKhoaInFile) continue;
 
-                        let matchedKhoa = timKhoaChinhXac(currentKhoaInFile);
+                        let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
                         if (!matchedKhoa) continue; 
                         
                         if (currentUser.role !== 'admin' && matchedKhoa !== currentTab) continue;
