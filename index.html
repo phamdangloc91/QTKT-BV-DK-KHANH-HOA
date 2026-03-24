@@ -1516,9 +1516,10 @@
                         if (qt.filePdfChinhThuc) {
                             fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                             
-                            // 🟢 ĐÃ VÁ LỖI HIỂN THỊ NÚT PDF Ở TAB MÃ DỊCH VỤ BV
+                            // 🟢 ĐÃ VÁ LỖI CẬP NHẬT PDF Ở ĐÂY: Dùng qt.ten thay vì ten, và định nghĩa sẵn biến an toàn
                             let safeQtTen = qt.ten ? String(qt.ten).replace(/['"`\n\r\\]/g, "") : "";
                             let safeQtMa = qt.ma || qt.maLienKet || qtMa;
+                            
                             if (currentUser && currentUser.role === 'admin') {
                                 fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${safeQtMa}', '${d.tenKhoa}', '${safeQtTen}')">🔄 Cập nhật PDF</button>`;
                             }
@@ -1640,6 +1641,27 @@
             giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; 
         }
         moModal('detailModal');
+    }
+
+    function switchTab(tab, type) { 
+        if (!type) type = 'QTKT';
+        currentTab = tab; 
+        currentTabType = type; 
+        capNhatTieuDe(); 
+        
+        let sBox = document.getElementById('searchBox'); 
+        if (sBox) sBox.value = ''; 
+        
+        let fLoai = document.getElementById('filterLoai'); 
+        if (fLoai) fLoai.value = ""; 
+        
+        let fQD = document.getElementById('filterQuyetDinh'); 
+        if (fQD) fQD.value = ""; 
+        
+        let fNam = document.getElementById('filterNamDT'); 
+        if (fNam) fNam.value = "";
+        
+        apDungLoc(); 
     }
 
     function apDungLoc() { 
