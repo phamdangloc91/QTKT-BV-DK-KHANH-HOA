@@ -175,7 +175,9 @@
             <select id="filterLoai" onchange="apDungLoc()">
                 <option value="">-- Tất cả loại --</option>
                 <option value="LDB">Đặc biệt</option>
-                <option value="L1">Loại 1</option><option value="L2">Loại 2</option><option value="L3">Loại 3</option>
+                <option value="L1">Loại 1</option>
+                <option value="L2">Loại 2</option>
+                <option value="L3">Loại 3</option>
                 <option value="KPL">KPL</option>
             </select>
         </div>
@@ -214,18 +216,166 @@
     </div>
 </div>
 
-<footer class="site-footer">
-    <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
-    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
-</footer>
+<div id="loginModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
+        <h3 style="text-align: center; margin-bottom: 20px;">Đăng Nhập Hệ Thống</h3>
+        <input type="text" id="username" placeholder="Tên đăng nhập...">
+        <input type="password" id="password" placeholder="Mật khẩu...">
+        <button class="btn" style="width:100%; background:var(--primary); font-size: 15px; padding: 12px; margin-top: 10px;" onclick="xuLyDangNhap()">Đăng Nhập</button>
+        <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:15px; text-align:center; font-weight:bold;"></p>
+    </div>
+</div>
 
-<div id="loginModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="dongModal('loginModal')">&times;</span><h3 style="text-align: center; margin-bottom: 20px;">Đăng Nhập Hệ Thống</h3><input type="text" id="username" placeholder="Tên đăng nhập..."><input type="password" id="password" placeholder="Mật khẩu..."><button class="btn" style="width:100%; background:var(--primary); font-size: 15px; padding: 12px; margin-top: 10px;" onclick="xuLyDangNhap()">Đăng Nhập</button><p id="loginError" style="color:red; font-size:13px; display:none; margin-top:15px; text-align:center; font-weight:bold;"></p></div></div>
-<div id="pwdModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="dongModal('pwdModal')">&times;</span><h3>Đổi Mật Khẩu Cá Nhân</h3><input type="password" id="oldPwd" placeholder="Mật khẩu cũ"><input type="password" id="newPwd" placeholder="Mật khẩu mới"><input type="password" id="confirmPwd" placeholder="Xác nhận mật khẩu mới"><button class="btn" style="width:100%; background:var(--primary); font-size: 14px; padding: 10px;" onclick="xuLyDoiMatKhau()">Lưu Mật Khẩu</button></div></div>
-<div id="adminModal" class="modal"><div class="modal-content large"><span class="close-btn" onclick="dongModal('adminModal')">&times;</span><h3>Quản Lý Tài Khoản</h3><div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;"><div style="display:flex; gap:10px; align-items:center;"><input type="text" id="newUsername" placeholder="Tên đăng nhập" style="margin:0; flex:1; min-width:0;"><input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0; flex:1; min-width:0;"><select id="newTenKhoa" style="margin:0; flex:1.5; min-width:0; padding:10px; border:1px solid #ccc; border-radius:4px;"><option value="">-- Chọn Phân quyền --</option><optgroup label="Quyền Quản Trị"><option value="ROLE_ADMIN">Admin (Phòng KHTH)</option></optgroup><optgroup label="Quyền Khoa Phòng" id="optGroupKhoa"></optgroup></select><button class="btn" style="background:var(--success); font-size:14px; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button></div></div><div style="overflow-x: auto; max-height: 350px;"><table class="user-table"><thead><tr><th>STT</th><th>Tên Khoa / Quyền</th><th>Tên đăng nhập</th><th>Mật khẩu</th><th>Thao tác</th></tr></thead><tbody id="userListBody"></tbody></table></div></div></div>
-<div id="uploadSinglePdfModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="dongModal('uploadSinglePdfModal')">&times;</span><h3>Tải lên File PDF Chính thức</h3><p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload" style="color: var(--primary);"></b></p><div class="upload-box"><label>File QTKT Chính thức đã ký (Chỉ PDF)</label><input type="file" id="fPdfChinhThuc" accept=".pdf"></div><button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button></div></div>
-<div id="uploadBatchModal" class="modal"><div class="modal-content"><span class="close-btn" onclick="dongModal('uploadBatchModal')">&times;</span><h3>Đính kèm Quyết định & Biên bản</h3><p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount" style="font-size: 16px;"></b> kỹ thuật đã chọn.</p><div class="upload-box"><label>1. Quyết định phê duyệt QTKT (PDF/Word)</label><input type="file" id="fQuyetDinhBatch" accept=".pdf,.doc,.docx"></div><div class="upload-box"><label>2. Biên bản họp Hội đồng KHKT (PDF/Word)</label><input type="file" id="fBienBanBatch" accept=".pdf,.doc,.docx"></div><button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button></div></div>
-<div id="detailModal" class="modal"><div class="modal-content large"><span class="close-btn" onclick="dongModal('detailModal')">&times;</span><h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3><h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4><p style="font-size: 14px;">Mã KT: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b> | Quyết định: <b id="dtQuyetDinh"></b></p><div style="margin-top: 15px;"><b>1. Các khoa đăng ký áp dụng:</b><table class="user-table" style="margin-top: 5px;"><thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead><tbody id="dtKhoaBody"></tbody></table></div><div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;"><b>2. Tài liệu Phê duyệt (Xem Online):</b><div id="dtFilesArea" style="margin-top: 15px;"></div></div><div style="margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;"><b style="color: #856404;">3. Áp giá Dịch vụ tương đương (TT 23/2024):</b><div id="dtGiaDVArea" style="margin-top: 10px; font-size: 14px;"></div></div><div style="margin-top: 20px; background: #d1ecf1; padding: 15px; border-radius: 8px; border: 1px solid #bee5eb;"><b style="color: #0c5460;">4. Giá Dịch vụ tại Bệnh viện:</b><div id="dtMaDVBVArea" style="margin-top: 10px; font-size: 14px;"></div></div></div></div>
-<div id="detailDVModal" class="modal"><div class="modal-content large"><span class="close-btn" onclick="dongModal('detailDVModal')">&times;</span><h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN DỊCH VỤ BỆNH VIỆN</h3><h4 id="dvTenDV" style="color: var(--info); margin-top: 5px;"></h4><p style="font-size: 14px;">Mã Dịch vụ BV: <b id="dvMaDV"></b></p><div style="margin-top: 15px; background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #ccc;"><b style="color: #333;">1. Quy trình Kỹ thuật liên kết (Theo Mã Tương đương):</b><div id="dvQTKTArea" style="margin-top: 10px; font-size: 14px;"></div></div><div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;"><b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b><div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div></div><div style="margin-top: 15px;"><b>3. Các khoa đăng ký áp dụng Quy trình này:</b><table class="user-table" style="margin-top: 5px;"><thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead><tbody id="dvKhoaBody"></tbody></table></div><div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;"><b>4. Tài liệu Phê duyệt Chính thức (Của Quy trình liên kết):</b><div id="dvFilesArea" style="margin-top: 10px; font-size: 14px; line-height: 1.6;"></div></div></div></div>
+<div id="pwdModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('pwdModal')">&times;</span>
+        <h3>Đổi Mật Khẩu Cá Nhân</h3>
+        <input type="password" id="oldPwd" placeholder="Mật khẩu cũ">
+        <input type="password" id="newPwd" placeholder="Mật khẩu mới">
+        <input type="password" id="confirmPwd" placeholder="Xác nhận mật khẩu mới">
+        <button class="btn" style="width:100%; background:var(--primary); font-size: 14px; padding: 10px;" onclick="xuLyDoiMatKhau()">Lưu Mật Khẩu</button>
+    </div>
+</div>
+
+<div id="adminModal" class="modal">
+    <div class="modal-content large">
+        <span class="close-btn" onclick="dongModal('adminModal')">&times;</span>
+        <h3>Quản Lý Tài Khoản</h3>
+        <div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;">
+            <div style="display:flex; gap:10px; align-items:center;">
+                <input type="text" id="newUsername" placeholder="Tên đăng nhập" style="margin:0; flex:1; min-width:0;">
+                <input type="text" id="newPassword" placeholder="Mật khẩu" style="margin:0; flex:1; min-width:0;">
+                <select id="newTenKhoa" style="margin:0; flex:1.5; min-width:0; padding:10px; border:1px solid #ccc; border-radius:4px;">
+                    <option value="">-- Chọn Phân quyền --</option>
+                    <optgroup label="Quyền Quản Trị">
+                        <option value="ROLE_ADMIN">Admin (Phòng KHTH)</option>
+                    </optgroup>
+                    <optgroup label="Quyền Khoa Phòng" id="optGroupKhoa"></optgroup>
+                </select>
+                <button class="btn" style="background:var(--success); font-size:14px; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button>
+            </div>
+        </div>
+        <div style="overflow-x: auto; max-height: 350px;">
+            <table class="user-table">
+                <thead>
+                    <tr>
+                        <th>STT</th>
+                        <th>Tên Khoa / Quyền</th>
+                        <th>Tên đăng nhập</th>
+                        <th>Mật khẩu</th>
+                        <th>Thao tác</th>
+                    </tr>
+                </thead>
+                <tbody id="userListBody"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div id="uploadSinglePdfModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('uploadSinglePdfModal')">&times;</span>
+        <h3>Tải lên File PDF Chính thức</h3>
+        <p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload" style="color: var(--primary);"></b></p>
+        <div class="upload-box">
+            <label>File QTKT Chính thức đã ký (Chỉ PDF)</label>
+            <input type="file" id="fPdfChinhThuc" accept=".pdf">
+        </div>
+        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button>
+    </div>
+</div>
+
+<div id="uploadBatchModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" onclick="dongModal('uploadBatchModal')">&times;</span>
+        <h3>Đính kèm Quyết định & Biên bản</h3>
+        <p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount" style="font-size: 16px;"></b> kỹ thuật đã chọn.</p>
+        <div class="upload-box">
+            <label>1. Quyết định phê duyệt QTKT (PDF/Word)</label>
+            <input type="file" id="fQuyetDinhBatch" accept=".pdf,.doc,.docx">
+        </div>
+        <div class="upload-box">
+            <label>2. Biên bản họp Hội đồng KHKT (PDF/Word)</label>
+            <input type="file" id="fBienBanBatch" accept=".pdf,.doc,.docx">
+        </div>
+        <button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button>
+    </div>
+</div>
+
+<div id="detailModal" class="modal">
+    <div class="modal-content large">
+        <span class="close-btn" onclick="dongModal('detailModal')">&times;</span>
+        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3>
+        <h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4>
+        <p style="font-size: 14px;">Mã KT: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b> | Quyết định: <b id="dtQuyetDinh"></b></p>
+        
+        <div style="margin-top: 15px;">
+            <b>1. Các khoa đăng ký áp dụng:</b>
+            <table class="user-table" style="margin-top: 5px;">
+                <thead>
+                    <tr>
+                        <th>Tên Khoa</th>
+                        <th>Trạng thái hiện tại</th>
+                    </tr>
+                </thead>
+                <tbody id="dtKhoaBody"></tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;">
+            <b>2. Tài liệu Phê duyệt (Xem Online):</b>
+            <div id="dtFilesArea" style="margin-top: 15px;"></div>
+        </div>
+
+        <div style="margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
+            <b style="color: #856404;">3. Áp giá Dịch vụ tương đương (TT 23/2024):</b>
+            <div id="dtGiaDVArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+
+        <div style="margin-top: 20px; background: #d1ecf1; padding: 15px; border-radius: 8px; border: 1px solid #bee5eb;">
+            <b style="color: #0c5460;">4. Giá Dịch vụ tại Bệnh viện:</b>
+            <div id="dtMaDVBVArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+    </div>
+</div>
+
+<div id="detailDVModal" class="modal">
+    <div class="modal-content large">
+        <span class="close-btn" onclick="dongModal('detailDVModal')">&times;</span>
+        <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN DỊCH VỤ BỆNH VIỆN</h3>
+        <h4 id="dvTenDV" style="color: var(--info); margin-top: 5px;"></h4>
+        <p style="font-size: 14px;">Mã Dịch vụ BV: <b id="dvMaDV"></b></p>
+
+        <div style="margin-top: 15px; background: #fdfdfd; padding: 15px; border-radius: 8px; border: 1px solid #ccc;">
+            <b style="color: #333;">1. Quy trình Kỹ thuật liên kết (Theo Mã Tương đương):</b>
+            <div id="dvQTKTArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+
+        <div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;">
+            <b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b>
+            <div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div>
+        </div>
+
+        <div style="margin-top: 15px;">
+            <b>3. Các khoa đăng ký áp dụng Quy trình này:</b>
+            <table class="user-table" style="margin-top: 5px;">
+                <thead>
+                    <tr>
+                        <th>Tên Khoa</th>
+                        <th>Trạng thái hiện tại</th>
+                    </tr>
+                </thead>
+                <tbody id="dvKhoaBody"></tbody>
+            </table>
+        </div>
+
+        <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;">
+            <b>4. Tài liệu Phê duyệt Chính thức (Của Quy trình liên kết):</b>
+            <div id="dvFilesArea" style="margin-top: 10px; font-size: 14px; line-height: 1.6;"></div>
+        </div>
+    </div>
+</div>
 
 <script>
     let currentTab = 'PL1';
@@ -255,7 +405,11 @@
         const menuCacKhoa = document.getElementById('menuCacKhoa');
         
         DANH_SACH_KHOA.forEach((khoa) => {
-            if(optGroupKhoa) { const opt = document.createElement('option'); opt.value = opt.textContent = khoa; optGroupKhoa.appendChild(opt); }
+            if (optGroupKhoa) { 
+                const opt = document.createElement('option'); 
+                opt.value = opt.textContent = khoa; 
+                optGroupKhoa.appendChild(opt); 
+            }
 
             const wrapper = document.createElement('div');
             wrapper.className = 'dept-item';
@@ -268,15 +422,18 @@
             submenu.className = 'dept-submenu';
             
             const linkQTKT = document.createElement('a');
-            linkQTKT.href = "#"; linkQTKT.innerText = "Quy trình kỹ thuật";
+            linkQTKT.href = "#"; 
+            linkQTKT.innerText = "Quy trình kỹ thuật";
             linkQTKT.onclick = (e) => { e.preventDefault(); switchTab(khoa, 'QTKT'); };
             
             const linkNhanLuc = document.createElement('a');
-            linkNhanLuc.href = "#"; linkNhanLuc.innerText = "Nhân lực";
+            linkNhanLuc.href = "#"; 
+            linkNhanLuc.innerText = "Nhân lực";
             linkNhanLuc.onclick = (e) => { e.preventDefault(); alert("Chức năng [Nhân lực] đang được phát triển!"); };
 
             const linkVatTu = document.createElement('a');
-            linkVatTu.href = "#"; linkVatTu.innerText = "Vật tư - Trang thiết bị";
+            linkVatTu.href = "#"; 
+            linkVatTu.innerText = "Vật tư - Trang thiết bị";
             linkVatTu.onclick = (e) => { e.preventDefault(); alert("Chức năng [Vật tư - Trang thiết bị] đang được phát triển!"); };
 
             const trainWrapper = document.createElement('div');
@@ -290,11 +447,13 @@
             trainSubmenu.className = 'train-submenu';
             
             const linkDaiHan = document.createElement('a');
-            linkDaiHan.href = "#"; linkDaiHan.innerText = "Dài hạn";
+            linkDaiHan.href = "#"; 
+            linkDaiHan.innerText = "Dài hạn";
             linkDaiHan.onclick = (e) => { e.preventDefault(); alert("Chức năng [Đào tạo Dài hạn] đang được phát triển!"); };
 
             const linkNganHan = document.createElement('a');
-            linkNganHan.href = "#"; linkNganHan.innerText = "Ngắn hạn";
+            linkNganHan.href = "#"; 
+            linkNganHan.innerText = "Ngắn hạn";
             linkNganHan.onclick = (e) => { e.preventDefault(); switchTab(khoa, 'DTNH'); };
 
             trainSubmenu.appendChild(linkDaiHan);
@@ -315,26 +474,57 @@
 
     window.onload = function() {
         const savedUser = localStorage.getItem('hospital_user');
-        if (savedUser) { currentUser = JSON.parse(savedUser); capNhatGiaoDienSauDangNhap(); }
+        if (savedUser) { 
+            currentUser = JSON.parse(savedUser); 
+            capNhatGiaoDienSauDangNhap(); 
+        }
         layDuLieu(); 
     };
 
-    function moModal(id) { document.getElementById(id).style.display = 'flex'; }
-    function dongModal(id) { document.getElementById(id).style.display = 'none'; }
+    function moModal(id) { 
+        document.getElementById(id).style.display = 'flex'; 
+    }
+    
+    function dongModal(id) { 
+        document.getElementById(id).style.display = 'none'; 
+    }
 
     async function xuLyDangNhap() {
-        const u = document.getElementById('username').value, p = document.getElementById('password').value, errTag = document.getElementById('loginError');
-        if(!u || !p) { errTag.innerText = "Vui lòng nhập đủ thông tin!"; errTag.style.display = 'block'; return; }
+        const u = document.getElementById('username').value;
+        const p = document.getElementById('password').value;
+        const errTag = document.getElementById('loginError');
+        
+        if (!u || !p) { 
+            errTag.innerText = "Vui lòng nhập đủ thông tin!"; 
+            errTag.style.display = 'block'; 
+            return; 
+        }
+        
         try {
-            const response = await fetch('/api/login', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p }) });
+            const response = await fetch('/api/login', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ username: u, password: p }) 
+            });
             const data = await response.json();
+            
             if (response.ok) {
                 currentUser = { token: data.token, role: data.role, tenKhoa: data.tenKhoa, username: data.username };
                 localStorage.setItem('hospital_user', JSON.stringify(currentUser));
-                dongModal('loginModal'); document.getElementById('username').value = document.getElementById('password').value = ''; errTag.style.display = 'none';
-                capNhatGiaoDienSauDangNhap(); layDuLieu();
-            } else { errTag.innerText = data.message; errTag.style.display = 'block'; }
-        } catch (error) { errTag.innerText = "Lỗi kết nối máy chủ!"; errTag.style.display = 'block'; }
+                dongModal('loginModal'); 
+                document.getElementById('username').value = '';
+                document.getElementById('password').value = '';
+                errTag.style.display = 'none';
+                capNhatGiaoDienSauDangNhap(); 
+                layDuLieu();
+            } else { 
+                errTag.innerText = data.message; 
+                errTag.style.display = 'block'; 
+            }
+        } catch (error) { 
+            errTag.innerText = "Lỗi kết nối máy chủ!"; 
+            errTag.style.display = 'block'; 
+        }
     }
 
     function capNhatGiaoDienSauDangNhap() {
@@ -342,39 +532,68 @@
         const menuKHTH = document.getElementById('menuKHTH');
 
         if (currentUser.role === 'admin') {
-            document.getElementById('userActionBar').style.display = 'flex'; document.getElementById('btnNhapExcel').style.display = 'inline-block'; 
+            document.getElementById('userActionBar').style.display = 'flex'; 
+            document.getElementById('btnNhapExcel').style.display = 'inline-block'; 
             menuKHTH.style.display = 'inline-block'; 
             navHtml += ` | <a href="#" onclick="moQuanLyTaiKhoan()" style="color:#fff; text-decoration:none;">Quản lý TK</a>`;
         } else {
-            document.getElementById('userActionBar').style.display = 'flex'; document.getElementById('btnNhapExcel').style.display = 'none'; 
+            document.getElementById('userActionBar').style.display = 'flex'; 
+            document.getElementById('btnNhapExcel').style.display = 'none'; 
             menuKHTH.style.display = 'none'; 
         }
+        
         navHtml += ` | <a href="#" onclick="moModal('pwdModal')" style="color:#fff; text-decoration:none;">Đổi MK</a> | <a href="#" onclick="dangXuat()" style="color:#ffcccc; text-decoration:none;">[Đăng xuất]</a>`;
-        document.getElementById('navAuthArea').innerHTML = navHtml; capNhatTieuDe(); 
+        document.getElementById('navAuthArea').innerHTML = navHtml; 
+        capNhatTieuDe(); 
     }
 
-    function dangXuat() { localStorage.removeItem('hospital_user'); location.reload(); }
+    function dangXuat() { 
+        localStorage.removeItem('hospital_user'); 
+        location.reload(); 
+    }
 
     async function xuLyDoiMatKhau() {
         const oldPwd = document.getElementById('oldPwd').value;
         const newPwd = document.getElementById('newPwd').value;
         const confirmPwd = document.getElementById('confirmPwd').value;
-        if(!oldPwd || !newPwd || !confirmPwd) return alert("Vui lòng nhập đủ thông tin!");
-        if(newPwd !== confirmPwd) return alert("Mật khẩu xác nhận không khớp!");
+        
+        if (!oldPwd || !newPwd || !confirmPwd) return alert("Vui lòng nhập đủ thông tin!");
+        if (newPwd !== confirmPwd) return alert("Mật khẩu xác nhận không khớp!");
         
         showLoading(true);
         try {
-            const res = await fetch('/api/users/password', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: currentUser.username, oldPassword: oldPwd, newPassword: newPwd }) });
-            const data = await res.json(); alert(data.message);
-            if(res.ok) { dongModal('pwdModal'); document.getElementById('oldPwd').value = ''; document.getElementById('newPwd').value = ''; document.getElementById('confirmPwd').value = ''; }
-        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+            const res = await fetch('/api/users/password', { 
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ username: currentUser.username, oldPassword: oldPwd, newPassword: newPwd }) 
+            });
+            const data = await res.json(); 
+            alert(data.message);
+            
+            if (res.ok) { 
+                dongModal('pwdModal'); 
+                document.getElementById('oldPwd').value = ''; 
+                document.getElementById('newPwd').value = ''; 
+                document.getElementById('confirmPwd').value = ''; 
+            }
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
     }
 
-    async function moQuanLyTaiKhoan() { moModal('adminModal'); await loadDanhSachTaiKhoan(); }
+    async function moQuanLyTaiKhoan() { 
+        moModal('adminModal'); 
+        await loadDanhSachTaiKhoan(); 
+    }
 
     async function loadDanhSachTaiKhoan() {
         try {
-            const res = await fetch('/api/users'); const users = await res.json(); const tbody = document.getElementById('userListBody'); tbody.innerHTML = '';
+            const res = await fetch('/api/users'); 
+            const users = await res.json(); 
+            const tbody = document.getElementById('userListBody'); 
+            tbody.innerHTML = '';
+            
             users.forEach((u, i) => { 
                 tbody.innerHTML += `<tr>
                     <td>${i+1}</td><td>[Khoa] <b>${u.tenKhoa}</b></td>
@@ -386,38 +605,78 @@
                     </td>
                 </tr>`; 
             });
-        } catch(e) { console.log(e); }
+        } catch(e) { 
+            console.log(e); 
+        }
     }
 
     async function taoTaiKhoan() {
-        const u = document.getElementById('newUsername').value; const p = document.getElementById('newPassword').value; const k = document.getElementById('newTenKhoa').value;
-        if(!u || !p || !k) return alert("Vui lòng nhập đủ thông tin!");
-        let role = k === 'ROLE_ADMIN' ? 'admin' : 'khoa'; let tenKhoa = k === 'ROLE_ADMIN' ? 'Phòng Kế hoạch tổng hợp' : k;
+        const u = document.getElementById('newUsername').value; 
+        const p = document.getElementById('newPassword').value; 
+        const k = document.getElementById('newTenKhoa').value;
+        
+        if (!u || !p || !k) return alert("Vui lòng nhập đủ thông tin!");
+        
+        let role = k === 'ROLE_ADMIN' ? 'admin' : 'khoa'; 
+        let tenKhoa = k === 'ROLE_ADMIN' ? 'Phòng Kế hoạch tổng hợp' : k;
+        
         showLoading(true);
         try {
-            const res = await fetch('/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ username: u, password: p, role: role, tenKhoa: tenKhoa }) });
-            const data = await res.json(); alert(data.message);
-            if(res.ok) { document.getElementById('newUsername').value = ''; document.getElementById('newPassword').value = ''; document.getElementById('newTenKhoa').value = ''; await loadDanhSachTaiKhoan(); }
-        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+            const res = await fetch('/api/users', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ username: u, password: p, role: role, tenKhoa: tenKhoa }) 
+            });
+            const data = await res.json(); 
+            alert(data.message);
+            
+            if (res.ok) { 
+                document.getElementById('newUsername').value = ''; 
+                document.getElementById('newPassword').value = ''; 
+                document.getElementById('newTenKhoa').value = ''; 
+                await loadDanhSachTaiKhoan(); 
+            }
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
     }
 
     async function suaTaiKhoan(id) {
-        const u = document.getElementById(`edit-user-${id}`).value; const p = document.getElementById(`edit-pass-${id}`).value;
-        if(!u || !p) return alert("Không được để trống tên đăng nhập và mật khẩu!");
+        const u = document.getElementById(`edit-user-${id}`).value; 
+        const p = document.getElementById(`edit-pass-${id}`).value;
+        
+        if (!u || !p) return alert("Không được để trống tên đăng nhập và mật khẩu!");
+        
         showLoading(true);
         try {
-            const res = await fetch('/api/users/admin-update', { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id: id, newUsername: u, newPassword: p }) });
-            const data = await res.json(); alert(data.message);
-        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+            const res = await fetch('/api/users/admin-update', { 
+                method: 'PUT', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ id: id, newUsername: u, newPassword: p }) 
+            });
+            const data = await res.json(); 
+            alert(data.message);
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
     }
 
     async function xoaTaiKhoan(id, tenKhoa) {
-        if(!confirm(`Xác nhận xóa tài khoản của ${tenKhoa}?`)) return;
+        if (!confirm(`Xác nhận xóa tài khoản của ${tenKhoa}?`)) return;
+        
         showLoading(true);
         try {
-            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' }); const data = await res.json(); alert(data.message);
-            if(res.ok) await loadDanhSachTaiKhoan();
-        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+            const res = await fetch(`/api/users/${id}`, { method: 'DELETE' }); 
+            const data = await res.json(); 
+            alert(data.message);
+            
+            if (res.ok) await loadDanhSachTaiKhoan();
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
     }
 
     function getAggregatedList(tabName) {
@@ -425,20 +684,27 @@
         database.depts.forEach(d => {
             d.danhMucQTKT.forEach(qt => {
                 let pushIt = false;
-                let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
+                let ttRaw = qt.trangThai || 'CHUA_NOP'; 
+                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
                 if (tabName === 'KHTH_CHO_DUYET' && tt === 'CHO_DUYET') pushIt = true;
                 if (pushIt) { result.push({ ...qt, tenKhoaChuQuan: d.tenKhoa, trangThaiFix: tt }); }
             });
         });
-        result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); return result;
+        result.sort((a, b) => a.tenKhoaChuQuan.localeCompare(b.tenKhoaChuQuan)); 
+        return result;
     }
 
-    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT
-    const normalize = (t) => t ? String(t).normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
+    // 🟢 THUẬT TOÁN ĐỒNG BỘ UNICODE TIẾNG VIỆT CHỐNG LỖI TÌM KIẾM
+    const normalize = (t) => {
+        return t ? String(t).normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim() : "";
+    };
 
     function prepareKeywords() {
         plKeywords = [...database.PL1, ...database.PL2].map(x => {
-            return { ten: x.ten, words: new Set(normalize(x.ten).split(" ").filter(Boolean)) };
+            return { 
+                ten: x.ten, 
+                words: new Set(normalize(x.ten).split(" ").filter(Boolean)) 
+            };
         });
     }
 
@@ -447,13 +713,21 @@
         let wordsKT = new Set(normalize(kyThuat).split(" ").filter(Boolean));
         if (wordsKT.size === 0) return null;
 
-        let bestMatch = null; let maxScore = 0;
-        for(let pl of plKeywords) {
+        let bestMatch = null; 
+        let maxScore = 0;
+        
+        for (let pl of plKeywords) {
             let intersection = 0;
-            for(let w of wordsKT) { if(pl.words.has(w)) intersection++; }
+            for (let w of wordsKT) { 
+                if (pl.words.has(w)) intersection++; 
+            }
             let union = wordsKT.size + pl.words.size - intersection;
             let score = intersection / union;
-            if(score > maxScore) { maxScore = score; bestMatch = pl.ten; }
+            
+            if (score > maxScore) { 
+                maxScore = score; 
+                bestMatch = pl.ten; 
+            }
         }
         return (maxScore >= 0.65) ? bestMatch : null; 
     }
@@ -466,7 +740,7 @@
         btn.closest('.suggestion-box').remove();
     }
 
-    // 🟢 HÀM ÉP KIỂU STRING BẢO VỆ CHỐNG LỖI
+    // 🟢 HÀM ÉP KIỂU STRING BẢO VỆ CHỐNG LỖI TOLOWERCASE VÀ LỖI HIỂN THỊ
     const safeStr = (val) => val ? String(val).toLowerCase().trim() : '';
 
     function normalizeCodeFast(code) {
@@ -482,39 +756,55 @@
     }
 
     function isCodeMatch(maTuongDuong, targetMa) {
-        let m = normalizeCodeFast(maTuongDuong);
-        let t = normalizeCodeFast(targetMa);
-        if (!m || !t) return false; 
-        return m === t;
+        return normalizeCodeFast(maTuongDuong) === normalizeCodeFast(targetMa);
     }
 
     async function layDuLieu() {
         showLoading(true);
         try {
-            const resData = await fetch('/api/data'); const mainData = await resData.json(); 
-            database.PL1 = mainData.PL1 || []; database.PL2 = mainData.PL2 || []; database.GiaDV = mainData.GiaDV || []; database.MaDVBV = mainData.MaDVBV || []; 
-            const resDepts = await fetch('/api/dept-data'); database.depts = await resDepts.json();
+            const resData = await fetch('/api/data'); 
+            const mainData = await resData.json(); 
+            
+            database.PL1 = mainData.PL1 || []; 
+            database.PL2 = mainData.PL2 || []; 
+            database.GiaDV = mainData.GiaDV || []; 
+            database.MaDVBV = mainData.MaDVBV || []; 
+            
+            const resDepts = await fetch('/api/dept-data'); 
+            database.depts = await resDepts.json();
+            
             prepareKeywords();
             apDungLoc(); 
-        } catch (error) { console.log(error); }
+        } catch (error) { 
+            console.log(error); 
+        }
         showLoading(false);
     }
 
     function toggleMultiSelect(state) {
-        isMultiSelectMode = state; selectedTechniques = [];
+        isMultiSelectMode = state; 
+        selectedTechniques = [];
+        
         if (isMultiSelectMode) {
-            document.getElementById('btnStartBatch').style.display = 'none'; document.getElementById('btnConfirmBatch').style.display = 'inline-block'; document.getElementById('btnCancelBatch').style.display = 'inline-block';
+            document.getElementById('btnStartBatch').style.display = 'none'; 
+            document.getElementById('btnConfirmBatch').style.display = 'inline-block'; 
+            document.getElementById('btnCancelBatch').style.display = 'inline-block';
             document.getElementById('batchStatusText').innerHTML = `<b style="color:var(--danger)">Vui lòng TICK CHỌN các ô vuông trong bảng bên dưới.</b>`;
         } else {
-            document.getElementById('btnStartBatch').style.display = 'inline-block'; document.getElementById('btnConfirmBatch').style.display = 'none'; document.getElementById('btnCancelBatch').style.display = 'none';
+            document.getElementById('btnStartBatch').style.display = 'inline-block'; 
+            document.getElementById('btnConfirmBatch').style.display = 'none'; 
+            document.getElementById('btnCancelBatch').style.display = 'none';
             document.getElementById('batchStatusText').innerHTML = `<b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.`;
         }
         apDungLoc(); 
     }
 
     function toggleSelectRow(checkbox, tenKhoa, ma) {
-        if (checkbox.checked) { selectedTechniques.push({ tenKhoa, maQuyTrinh: ma }); } 
-        else { selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma)); }
+        if (checkbox.checked) { 
+            selectedTechniques.push({ tenKhoa, maQuyTrinh: ma }); 
+        } else { 
+            selectedTechniques = selectedTechniques.filter(item => !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma)); 
+        }
     }
 
     async function saveDTNH() {
@@ -526,9 +816,10 @@
         let currentGroupId = 0;
         let cNoiDung="", cThoiGian="", cCNS="", cNHS="", cKTV="", cDD="", cBS="", cDonVi="", cKinhPhi="";
         
-        for(let i=0; i < rows.length; i++) {
+        for (let i = 0; i < rows.length; i++) {
             let cells = rows[i].cells;
             let kyThuat = "";
+            
             if (cells.length > 2) {
                 currentGroupId++;
                 cNoiDung = cells[1].querySelector('.editable-cell').innerText.trim();
@@ -545,7 +836,7 @@
                 kyThuat = cells[0].querySelector('.editable-cell').innerText.trim();
             }
             
-            if(!cNoiDung && !kyThuat) continue;
+            if (!cNoiDung && !kyThuat) continue;
 
             savedData.push({
                 groupId: currentGroupId,
@@ -563,15 +854,25 @@
             });
         }
 
-        let payloadByKhoa = {}; payloadByKhoa[currentTab] = savedData;
+        let payloadByKhoa = {}; 
+        payloadByKhoa[currentTab] = savedData;
 
         showLoading(true);
         try {
-            const response = await fetch('/api/upload-dtnh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: payloadByKhoa, year: selectedYear }) }); 
+            const response = await fetch('/api/upload-dtnh', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ payload: payloadByKhoa, year: selectedYear }) 
+            }); 
             const result = await response.json(); 
             alert("✅ Đã lưu chỉnh sửa thành công!"); 
             await layDuLieu(); 
-        } catch (error) { alert("Lỗi lưu dữ liệu."); console.error(error); } finally { showLoading(false); }
+        } catch (error) { 
+            alert("Lỗi lưu dữ liệu."); 
+            console.error(error); 
+        } finally { 
+            showLoading(false); 
+        }
     }
 
     function renderTable(data = null) {
@@ -584,14 +885,16 @@
         if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) canEdit = true;
 
         if (currentTabType === 'DTNH') {
-            if (data) { list = data; } 
-            else { 
+            if (data) { 
+                list = data; 
+            } else { 
                 const deptObj = database.depts.find(d => d.tenKhoa === currentTab); 
                 list = (deptObj && deptObj.daoTaoNganHan) ? deptObj.daoTaoNganHan : []; 
             }
             currentFilteredData = list;
             
-            const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
+            const thead = document.getElementById('tableHead'); 
+            const tbody = document.getElementById('dataBody');
             let htmlHead = `<tr>
                 <th style="width:40px; text-align:center;">STT</th>
                 <th style="width:25%">Nội dung đào tạo</th>
@@ -605,21 +908,27 @@
                 <th>Đơn vị chủ trì</th>
                 <th style="text-align:right;">Kinh phí (Tr)</th>
             </tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; 
+            tbody.innerHTML = '';
             
             let sttCounter = 1;
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 
-                let isFirst = false; let rowspan = 1;
+                let isFirst = false; 
+                let rowspan = 1;
+                
                 if (index === 0 || item.groupId !== list[index - 1].groupId) {
                     isFirst = true;
                     for (let j = index + 1; j < list.length; j++) {
-                        if (list[j].groupId === item.groupId) rowspan++; else break;
+                        if (list[j].groupId === item.groupId) rowspan++; 
+                        else break;
                     }
                 }
 
-                let kyThuatHtml = ''; let suggestionHtml = ''; let rawKT = item.kyThuat || '';
+                let kyThuatHtml = ''; 
+                let suggestionHtml = ''; 
+                let rawKT = item.kyThuat || '';
 
                 if (rawKT.trim() !== '') {
                     let normName = normalize(rawKT);
@@ -667,17 +976,22 @@
 
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
             if (!data) return apDungLoc();
-            currentFilteredData = data; list = data;
+            currentFilteredData = data; 
+            list = data;
 
-            const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
+            const thead = document.getElementById('tableHead'); 
+            const tbody = document.getElementById('dataBody');
+            
             let htmlHead = `<tr><th>STT</th><th style="width:10%">Mã kỹ thuật</th><th style="width:15%">Tên chương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th style="width:10%; text-align:center;">Mã tương đương</th><th style="width:25%">Tên Dịch vụ BHYT</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; 
+            tbody.innerHTML = '';
             
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let safeTen = item.ten ? String(item.ten).replace(/["'`\n\r]/g, "") : ""; 
                 let safePL = item.phanLoai ? String(item.phanLoai).replace(/["'`\n\r]/g, "") : ""; 
                 let safeQD = item.quyetDinh ? String(item.quyetDinh).replace(/["'`\n\r]/g, "") : "";
+                
                 let tenClickable = `<a href="#" onclick="moChiTiet('${item.ma || item.maLienKet || ''}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
 
                 let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(g => `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`).join('<br><br>') : '';
@@ -688,30 +1002,45 @@
             return;
         }
 
-        if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); list = deptObj ? deptObj.danhMucQTKT : []; } else { list = database[currentTab] || []; }
+        if (data) { 
+            list = data; 
+        } else if (isSuperTab) { 
+            list = getAggregatedList(currentTab); 
+        } else if (isDeptTab) { 
+            const deptObj = database.depts.find(d => d.tenKhoa === currentTab); 
+            list = deptObj ? deptObj.danhMucQTKT : []; 
+        } else { 
+            list = database[currentTab] || []; 
+        }
+        
         currentFilteredData = list;
 
-        const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody');
+        const thead = document.getElementById('tableHead'); 
+        const tbody = document.getElementById('dataBody');
         let htmlHead = `<tr>`;
         
-        // 🟢 BẢN VÁ LỖI HIỆU NĂNG: BĂM DỮ LIỆU ĐỂ BẢNG GIÁ DV TẢI TRONG 0.1 GIÂY
         if (currentTab === 'GiaDV') {
             htmlHead += `<th>STT</th><th>Mã tương đương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th>Tên dịch vụ BHYT</th><th>Giá phê duyệt</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
-            
-            let qtktMap = new Map();
-            let addTolist = (item) => {
-                let m1 = normalizeCodeFast(item.ma); let m2 = normalizeCodeFast(item.maLienKet);
-                if (m1 && !qtktMap.has(m1)) qtktMap.set(m1, item);
-                if (m2 && !qtktMap.has(m2)) qtktMap.set(m2, item);
-            };
-            database.PL1.forEach(addTolist); database.PL2.forEach(addTolist);
+            thead.innerHTML = htmlHead; 
+            tbody.innerHTML = '';
             
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
                 
                 let qtMa = normalizeCodeFast(item.maTuongDuong);
+                
+                // 🟢 THUẬT TOÁN BĂM DỮ LIỆU (MAPPED TỐI ƯU HÓA)
+                let qtktMap = new Map();
+                let addTolist = (i) => {
+                    let m1 = normalizeCodeFast(i.ma); 
+                    let m2 = normalizeCodeFast(i.maLienKet);
+                    if (m1 && !qtktMap.has(m1)) qtktMap.set(m1, i);
+                    if (m2 && !qtktMap.has(m2)) qtktMap.set(m2, i);
+                };
+                database.PL1.forEach(addTolist); 
+                database.PL2.forEach(addTolist);
+
                 let qtktInfo = qtMa ? qtktMap.get(qtMa) : null;
 
                 let safeTenKT = item.tenKyThuat ? String(item.tenKyThuat).replace(/["'`\n\r]/g, "") : "";
@@ -728,7 +1057,9 @@
 
         if (currentTab === 'MaDVBV') {
             htmlHead += `<th>STT</th><th>Mã dịch vụ</th><th>Mã tương đương</th><th>Tên dịch vụ (Click xem liên kết)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá Nước Ngoài</th></tr>`;
-            thead.innerHTML = htmlHead; tbody.innerHTML = '';
+            thead.innerHTML = htmlHead; 
+            tbody.innerHTML = '';
+            
             list.forEach((item, index) => {
                 const row = tbody.insertRow();
                 let gBHYT = item.giaBHYT ? Number(item.giaBHYT).toLocaleString('vi-VN') + ' đ' : '';
@@ -753,14 +1084,23 @@
             return;
         }
 
-        if (isMultiSelectMode) htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
+        if (isMultiSelectMode) {
+            htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`;
+        }
+        
         htmlHead += `<th>STT</th>`;
         
-        if (isSuperTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        else if (currentTab === 'PL1' || isDeptTab) htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
-        else htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
+        if (isSuperTab) {
+            htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
+        } else if (currentTab === 'PL1' || isDeptTab) {
+            htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
+        } else {
+            htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`;
+        }
 
-        let canAddPL = false; let canRemovePL = false; let showFileCol = false;
+        let canAddPL = false; 
+        let canRemovePL = false; 
+        let showFileCol = false;
         
         if (currentUser && currentUser.role === 'khoa') { 
             if (!isDeptTab && !isSuperTab) canAddPL = true; 
@@ -769,11 +1109,19 @@
         if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemovePL = true; 
         if (isDeptTab || isSuperTab) showFileCol = true; 
 
-        if (showFileCol) htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`;
-        if (canAddPL || canRemovePL) htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`;
-        htmlHead += `</tr>`; thead.innerHTML = htmlHead;
+        if (showFileCol) {
+            htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`;
+        }
+        
+        if (canAddPL || canRemovePL) {
+            htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`;
+        }
+        
+        htmlHead += `</tr>`; 
+        thead.innerHTML = htmlHead;
 
-        tbody.innerHTML = ''; let currentKhoaGroup = ""; 
+        tbody.innerHTML = ''; 
+        let currentKhoaGroup = ""; 
 
         let myDeptCart = [];
         if (currentUser && currentUser.role === 'khoa') {
@@ -791,7 +1139,8 @@
                 groupRow.innerHTML = `<td colspan="${colSpan}" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td>`;
             }
 
-            const row = tbody.insertRow(); let maHienThi = item.ma || item.maLienKet || ''; 
+            const row = tbody.insertRow(); 
+            let maHienThi = item.ma || item.maLienKet || ''; 
             let html = "";
             
             if (isMultiSelectMode) {
@@ -806,8 +1155,10 @@
             let tenClickable = `<a href="#" onclick="moChiTiet('${maHienThi}', '${safeTen}', '${safePL}', '${safeQD}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${item.ten || ''}</a>`;
 
             html += `<td>${index + 1}</td>`;
-            if (isSuperTab) { html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; }
-            else if (currentTab === 'PL1' || isDeptTab) {
+            
+            if (isSuperTab) { 
+                html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`; 
+            } else if (currentTab === 'PL1' || isDeptTab) {
                 let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`;
                 html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${item.phanLoai || ''}</span></td><td>${item.quyetDinh || ''}</td>`;
             } else { 
@@ -819,7 +1170,7 @@
 
             if (showFileCol) {
                 let fileHtml = '';
-                if(tt === 'DA_PHE_DUYET') {
+                if (tt === 'DA_PHE_DUYET') {
                     fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br>`;
                     fileHtml += `<span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
                     
@@ -827,19 +1178,19 @@
                         fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`;
                     }
                 } else {
-                    if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`;
-                    else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`;
-                    else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
+                    if (tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`;
+                    else if (tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`;
+                    else if (tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
 
                     if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
-                        if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
-                        if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
-                        if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                        if (item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
+                        if (tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
+                        if (tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
                     } 
                     else if (currentUser && currentUser.role === 'admin') {
-                        if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
+                        if (item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
                         
-                        if(tt === 'CHO_DUYET' && !isMultiSelectMode) {
+                        if (tt === 'CHO_DUYET' && !isMultiSelectMode) {
                             fileHtml += `<button class="btn" style="background:var(--success);" onclick="chuanBiUpSinglePdf('${maHienThi}', '${realTenKhoa}', '${safeTen}')">📥 Tải File Chính Thức (PDF)</button> `;
                             fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Từ chối</button>`;
                         }
@@ -882,59 +1233,132 @@
     }
 
     async function xuLyUploadBatch() {
-        const fQD = document.getElementById('fQuyetDinhBatch').files[0]; const fBB = document.getElementById('fBienBanBatch').files[0];
-        if(!fQD && !fBB) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+        const fQD = document.getElementById('fQuyetDinhBatch').files[0]; 
+        const fBB = document.getElementById('fBienBanBatch').files[0];
+        
+        if (!fQD && !fBB) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+        
         showLoading(true);
         try {
-            const formData = new FormData(); formData.append('items', JSON.stringify(selectedTechniques));
-            if(fQD) formData.append('fQuyetDinh', fQD); if(fBB) formData.append('fBienBan', fBB);
-            const res = await fetch('/api/upload/batch-qdbb', { method: 'POST', body: formData }); const data = await res.json(); alert(data.message);
-            if(res.ok) { dongModal('uploadBatchModal'); document.getElementById('fQuyetDinhBatch').value = ''; document.getElementById('fBienBanBatch').value = ''; toggleMultiSelect(false); layDuLieu(); }
-        } catch(e) { alert("Lỗi tải file!"); } showLoading(false);
+            const formData = new FormData(); 
+            formData.append('items', JSON.stringify(selectedTechniques));
+            if (fQD) formData.append('fQuyetDinh', fQD); 
+            if (fBB) formData.append('fBienBan', fBB);
+            
+            const res = await fetch('/api/upload/batch-qdbb', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message);
+            
+            if (res.ok) { 
+                dongModal('uploadBatchModal'); 
+                document.getElementById('fQuyetDinhBatch').value = ''; 
+                document.getElementById('fBienBanBatch').value = ''; 
+                toggleMultiSelect(false); 
+                layDuLieu(); 
+            }
+        } catch(e) { 
+            alert("Lỗi tải file!"); 
+        } 
+        showLoading(false);
     }
 
-    function chuanBiNopKhoa(ma) { targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; document.getElementById('fileNopKhoa').click(); }
+    function chuanBiNopKhoa(ma) { 
+        targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; 
+        document.getElementById('fileNopKhoa').click(); 
+    }
+
     async function xuLyNopFileKhoa() {
-        const fileInput = document.getElementById('fileNopKhoa'); if(!fileInput.files[0]) return; showLoading(true);
+        const fileInput = document.getElementById('fileNopKhoa'); 
+        if (!fileInput.files[0]) return; 
+        
+        showLoading(true);
         try {
-            const formData = new FormData(); formData.append('fileQuyTrinh', fileInput.files[0]); formData.append('tenKhoa', targetUpload.tenKhoa); formData.append('maQuyTrinh', targetUpload.ma);
-            const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); const data = await res.json(); alert(data.message); if(res.ok) layDuLieu();
-        } catch(e) { alert("Lỗi khi tải file lên!"); } fileInput.value = ''; showLoading(false);
+            const formData = new FormData(); 
+            formData.append('fileQuyTrinh', fileInput.files[0]); 
+            formData.append('tenKhoa', targetUpload.tenKhoa); 
+            formData.append('maQuyTrinh', targetUpload.ma);
+            
+            const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message); 
+            if (res.ok) layDuLieu();
+        } catch(e) { 
+            alert("Lỗi khi tải file lên!"); 
+        } 
+        fileInput.value = ''; 
+        showLoading(false);
     }
 
     function chuanBiUpSinglePdf(ma, tenKhoa, tenQuyTrinh) {
-        dongModal('detailModal'); dongModal('detailDVModal');
+        dongModal('detailModal'); 
+        dongModal('detailDVModal');
         targetUpload = { ma: ma, tenKhoa: tenKhoa };
-        document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; moModal('uploadSinglePdfModal');
+        document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; 
+        moModal('uploadSinglePdfModal');
     }
     
     async function xuLyUploadSinglePdf() {
-        const fPDF = document.getElementById('fPdfChinhThuc').files[0]; if(!fPDF) return alert("Vui lòng chọn file PDF!"); showLoading(true);
+        const fPDF = document.getElementById('fPdfChinhThuc').files[0]; 
+        if (!fPDF) return alert("Vui lòng chọn file PDF!"); 
+        
+        showLoading(true);
         try {
-            const formData = new FormData(); formData.append('tenKhoa', targetUpload.tenKhoa); formData.append('maQuyTrinh', targetUpload.ma); formData.append('fPdf', fPDF);
-            const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); const data = await res.json(); alert(data.message); 
-            if(res.ok) { dongModal('uploadSinglePdfModal'); document.getElementById('fPdfChinhThuc').value = ''; layDuLieu(); }
-        } catch(e) { alert("Lỗi khi tải file lên!"); } showLoading(false);
+            const formData = new FormData(); 
+            formData.append('tenKhoa', targetUpload.tenKhoa); 
+            formData.append('maQuyTrinh', targetUpload.ma); 
+            formData.append('fPdf', fPDF);
+            
+            const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message); 
+            
+            if (res.ok) { 
+                dongModal('uploadSinglePdfModal'); 
+                document.getElementById('fPdfChinhThuc').value = ''; 
+                layDuLieu(); 
+            }
+        } catch(e) { 
+            alert("Lỗi khi tải file lên!"); 
+        } 
+        showLoading(false);
     }
 
     async function thayDoiTrangThai(tenKhoa, ma, action) {
         let msg = "Xác nhận?";
-        if(action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
-        if(action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
-        if(!confirm(msg)) return; showLoading(true);
+        if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
+        if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
+        
+        if (!confirm(msg)) return; 
+        showLoading(true);
+        
         try {
-            const res = await fetch('/api/dept-data/status', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, action: action }) });
-            if(res.ok) await layDuLieu(); else alert("Có lỗi xảy ra!"); 
-        } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
+            const res = await fetch('/api/dept-data/status', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, action: action }) 
+            });
+            if (res.ok) await layDuLieu(); 
+            else alert("Có lỗi xảy ra!"); 
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
     }
 
     function moChiTietDV(maDichVu, maTuongDuong, tenDichVu) {
-        document.getElementById('dvTenDV').innerText = tenDichVu || ''; document.getElementById('dvMaDV').innerText = maDichVu || '';
+        document.getElementById('dvTenDV').innerText = tenDichVu || ''; 
+        document.getElementById('dvMaDV').innerText = maDichVu || '';
         
         let qtMa = getQtMaFromMaTuongDuong(maTuongDuong);
         let qtktInfo = database.PL1.find(x => isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)) || 
                        database.PL2.find(x => isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa));
-        if (!qtktInfo) { for (let d of database.depts) { let found = d.danhMucQTKT.find(x => isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)); if (found) { qtktInfo = found; break; } } }
+                       
+        if (!qtktInfo) { 
+            for (let d of database.depts) { 
+                let found = d.danhMucQTKT.find(x => isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa)); 
+                if (found) { qtktInfo = found; break; } 
+            } 
+        }
 
         let qtHtml = '';
         if (qtktInfo) {
@@ -944,60 +1368,92 @@
                 <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
                 <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
             </table>`;
-        } else { qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; }
+        } else { 
+            qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; 
+        }
         document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-        let giaDVInfo = database.GiaDV.find(x => isCodeMatch(x.maTuongDuong, maTuongDuong)); let bhytHtml = '';
+        let giaDVInfo = database.GiaDV.find(x => isCodeMatch(x.maTuongDuong, maTuongDuong)); 
+        let bhytHtml = '';
         if (giaDVInfo) {
             let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
             bhytHtml = `<table class="user-table" style="width:100%;"><tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr></table>`;
-        } else { bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; }
+        } else { 
+            bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; 
+        }
         document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
-        const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = ''; let fileHtml = ''; let coBaoCao = false;
+        const tbody = document.getElementById('dvKhoaBody'); 
+        tbody.innerHTML = ''; 
+        let fileHtml = ''; 
+        let coBaoCao = false;
+        
         if (qtMa) {
             database.depts.forEach(d => {
                 const qt = d.danhMucQTKT.find(x => isCodeMatch(x.ma, qtMa) || isCodeMatch(x.maLienKet, qtMa));
                 if(qt) {
                     coBaoCao = true;
-                    let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                    let ttStr = "Chưa nộp"; let col = "gray";
-                    if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                    let ttRaw = qt.trangThai || 'CHUA_NOP'; 
+                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+                    let ttStr = "Chưa nộp"; 
+                    let col = "gray";
+                    
+                    if (tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } 
+                    else if (tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } 
+                    else if (tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                    
                     tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
-                    if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                    
+                    if (qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
                         fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
-                        if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
-                        if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
-                        if(qt.filePdfChinhThuc) fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                        if (qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
+                        if (qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
+                        if (qt.filePdfChinhThuc) fileHtml += `<a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                         fileHtml += `</div>`;
                     }
                 }
             });
         }
-        if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký quy trình kỹ thuật liên kết.</td></tr>`;
+        if (!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký quy trình kỹ thuật liên kết.</td></tr>`;
+        
         const fileArea = document.getElementById('dvFilesArea');
-        if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Chưa có tài liệu phê duyệt nào.</span>`;
+        if (fileHtml !== '') fileArea.innerHTML = fileHtml; 
+        else fileArea.innerHTML = `<span style="color:#888;">Chưa có tài liệu phê duyệt nào.</span>`;
+        
         moModal('detailDVModal');
     }
 
     function moChiTiet(ma, ten, phanLoai, quyetDinh) {
-        document.getElementById('dtTenQT').innerText = ten || ''; document.getElementById('dtMaQT').innerText = ma; document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL'; document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
-        const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = ''; let fileHtml = ''; let coBaoCao = false;
+        document.getElementById('dtTenQT').innerText = ten || ''; 
+        document.getElementById('dtMaQT').innerText = ma; 
+        document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL'; 
+        document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
+        
+        const tbody = document.getElementById('dtKhoaBody'); 
+        tbody.innerHTML = ''; 
+        let fileHtml = ''; 
+        let coBaoCao = false;
 
         database.depts.forEach(d => {
             const qt = d.danhMucQTKT.find(x => isCodeMatch(x.ma, ma) || isCodeMatch(x.maLienKet, ma));
             if(qt) {
                 coBaoCao = true;
-                let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                let ttStr = "Chưa nộp"; let col = "gray";
-                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                let ttRaw = qt.trangThai || 'CHUA_NOP'; 
+                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+                let ttStr = "Chưa nộp"; 
+                let col = "gray";
+                
+                if (tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } 
+                else if (tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } 
+                else if (tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                
                 tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
 
-                if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                if (qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
                     fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
-                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
-                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
-                    if(qt.filePdfChinhThuc) {
+                    if (qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
+                    if (qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
+                    if (qt.filePdfChinhThuc) {
                         fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                         if (currentUser && currentUser.role === 'admin') fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="chuanBiUpSinglePdf('${ma}', '${d.tenKhoa}', '${String(ten).replace(/['"`\n\r]/g, "")}')">🔄 Cập nhật PDF</button>`;
                         fileHtml += `</div>`;
@@ -1006,37 +1462,216 @@
                 }
             }
         });
-        if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
-        const fileArea = document.getElementById('dtFilesArea'); if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
+        if (!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
+        
+        const fileArea = document.getElementById('dtFilesArea'); 
+        if (fileHtml !== '') fileArea.innerHTML = fileHtml; 
+        else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
 
-        const giaArea = document.getElementById('dtGiaDVArea'); const giaBVArea = document.getElementById('dtMaDVBVArea');
+        const giaArea = document.getElementById('dtGiaDVArea'); 
+        const giaBVArea = document.getElementById('dtMaDVBVArea');
 
         let matchedPrices = database.GiaDV.filter(priceItem => {
-            let isNameMatch = false; if (ten && priceItem.tenKyThuat) { if (safeStr(ten) === safeStr(priceItem.tenKyThuat)) isNameMatch = true; }
+            let isNameMatch = false; 
+            if (ten && priceItem.tenKyThuat) { 
+                if (safeStr(ten) === safeStr(priceItem.tenKyThuat)) isNameMatch = true; 
+            }
             return isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
         });
 
         if (matchedPrices.length > 0) {
             let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã tương đương</th><th>Tên Dịch vụ BHYT</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
-            matchedPrices.forEach(p => { let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá'; htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`; });
-            htmlGia += `</tbody></table>`; giaArea.innerHTML = htmlGia;
-        } else { giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; }
+            matchedPrices.forEach(p => { 
+                let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá'; 
+                htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`; 
+            });
+            htmlGia += `</tbody></table>`; 
+            giaArea.innerHTML = htmlGia;
+        } else { 
+            giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; 
+        }
 
         let matchedBVPrices = database.MaDVBV.filter(priceItem => isCodeMatch(priceItem.maTuongDuong, ma));
         if (matchedBVPrices.length > 0) {
             let htmlGiaBV = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã dịch vụ</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá NN</th></tr></thead><tbody>`;
             matchedBVPrices.forEach(p => {
-                let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-'; let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-'; let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-'; let gNN = p.giaNuocNgoai ? Number(p.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '-';
+                let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-'; 
+                let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-'; 
+                let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-'; 
+                let gNN = p.giaNuocNgoai ? Number(p.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '-';
                 htmlGiaBV += `<tr><td style="text-align:center;"><b>${p.maDichVu || ''}</b></td><td>${p.tenDichVu || ''}</td><td style="text-align:right; color:green; font-weight:bold;">${gBHYT}</td><td style="text-align:right; color:blue; font-weight:bold;">${gVP}</td><td style="text-align:right; color:purple; font-weight:bold;">${gYC}</td><td style="text-align:right; color:red; font-weight:bold;">${gNN}</td></tr>`;
             });
-            htmlGiaBV += `</tbody></table>`; giaBVArea.innerHTML = htmlGiaBV;
-        } else { giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; }
+            htmlGiaBV += `</tbody></table>`; 
+            giaBVArea.innerHTML = htmlGiaBV;
+        } else { 
+            giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; 
+        }
         moModal('detailModal');
     }
 
-    // 🟢 THUẬT TOÁN ĐỌC FILE EXCEL ĐÃ ĐƯỢC CHỐT AN TOÀN TUYỆT ĐỐI
+    function apDungLoc() { 
+        const search = safeStr(document.getElementById('searchBox').value);
+        
+        if (currentTabType === 'DTNH') {
+            const filterNam = document.getElementById('filterNamDT').value;
+            let deptObj = database.depts.find(d => d.tenKhoa === currentTab);
+            let sourceList = deptObj ? (deptObj.daoTaoNganHan || []) : [];
+            
+            const filtered = sourceList.filter(item => {
+                let matchSearch = (safeStr(item.noiDung).includes(search) || safeStr(item.kyThuat).includes(search));
+                let matchYear = filterNam === "" || String(item.nam) === String(filterNam);
+                return matchSearch && matchYear;
+            });
+            renderTable(filtered);
+            
+            if (currentUser && (currentUser.role === 'admin' || currentUser.tenKhoa === currentTab)) {
+                document.getElementById('btnSaveDTNH').style.display = 'inline-block';
+            } else { 
+                document.getElementById('btnSaveDTNH').style.display = 'none'; 
+            }
+            return;
+        } else { 
+            document.getElementById('btnSaveDTNH').style.display = 'none'; 
+        }
+
+        if (currentTab === 'KHTH_CHUA_AP_GIA') {
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
+            
+            const maDvbvSet = new Set();
+            database.MaDVBV.forEach(dv => { 
+                if (dv.maTuongDuong) maDvbvSet.add(normalizeCodeFast(dv.maTuongDuong)); 
+            });
+
+            const giaDvByCode = new Map();
+            const giaDvByName = new Map();
+            
+            database.GiaDV.forEach(g => {
+                if (g.maTuongDuong) {
+                    let code = normalizeCodeFast(g.maTuongDuong);
+                    if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
+                    giaDvByCode.get(code).push(g);
+                }
+                if (g.tenKyThuat) {
+                    let name = safeStr(g.tenKyThuat);
+                    if (!giaDvByName.has(name)) giaDvByName.set(name, []);
+                    giaDvByName.get(name).push(g);
+                }
+            });
+
+            let sourceList = [];
+            database.PL1.forEach(qt => {
+                let qdVal = qt.quyetDinh ? safeStr(qt.quyetDinh) : '';
+                if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
+                
+                let normCode = normalizeCodeFast(qt.ma);
+                if (maDvbvSet.has(normCode)) return;
+
+                let matchedGiaMap = new Map(); 
+                if (giaDvByCode.has(normCode)) { 
+                    giaDvByCode.get(normCode).forEach(g => matchedGiaMap.set(g, g)); 
+                }
+                if (qt.ten) {
+                    let normName = safeStr(qt.ten);
+                    if (giaDvByName.has(normName)) { 
+                        giaDvByName.get(normName).forEach(g => matchedGiaMap.set(g, g)); 
+                    }
+                }
+
+                let matchedGia = Array.from(matchedGiaMap.values());
+                sourceList.push({
+                    ...qt,
+                    tt23_ma: matchedGia.map(g => g.maTuongDuong).join('\n'),
+                    tt23_ten: matchedGia.map(g => g.tenDichVu || g.tenKyThuat).join('\n'),
+                    matchedGia: matchedGia
+                });
+            });
+            
+            const filtered = sourceList.filter(item => {
+                return (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tt23_ma).includes(search) || safeStr(item.tt23_ten).includes(search));
+            });
+            renderTable(filtered); 
+            return;
+        }
+
+        if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
+            document.getElementById('lblSearch').innerText = currentTab === 'GiaDV' ? 'TÌM KIẾM MÃ HOẶC TÊN DỊCH VỤ' : 'TÌM KIẾM MÃ DV, MÃ TĐ HOẶC TÊN DV';
+            let sourceList = currentTab === 'GiaDV' ? database.GiaDV : database.MaDVBV;
+            const filtered = sourceList.filter(item => {
+                if (currentTab === 'GiaDV') return (safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenKyThuat).includes(search) || safeStr(item.tenDichVu).includes(search));
+                else return (safeStr(item.maDichVu).includes(search) || safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenDichVu).includes(search));
+            });
+            renderTable(filtered); 
+            return;
+        } else { 
+            document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG'; 
+        }
+
+        const loaiSelect = document.getElementById('filterLoai').value;
+        const qd = document.getElementById('filterQuyetDinh').value; 
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
+        const isSuperTab = currentTab.startsWith('KHTH_'); 
+        let sourceList = []; 
+        
+        if (isSuperTab) { 
+            sourceList = getAggregatedList(currentTab); 
+        } else if (isDeptTab) { 
+            const deptObj = database.depts.find(d => d.tenKhoa === currentTab); 
+            sourceList = deptObj ? deptObj.danhMucQTKT : []; 
+        } else { 
+            sourceList = database[currentTab] || []; 
+        } 
+        
+        const filtered = sourceList.filter(item => { 
+            const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); 
+            const matchQD = qd === "" || item.quyetDinh === qd; 
+            let matchLoai = true; 
+            
+            if (loaiSelect !== "") { 
+                const val = item.phanLoai ? String(item.phanLoai).toUpperCase().trim() : ""; 
+                if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); 
+                else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); 
+                else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); 
+                else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); 
+                else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); 
+            } 
+            return matchSearch && matchLoai && matchQD; 
+        }); 
+        
+        renderTable(filtered); 
+    }
+    
+    function capNhatDanhSachQuyetDinh() { 
+        if (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
+        const select = document.getElementById('filterQuyetDinh'); 
+        const currentVal = select.value; 
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
+        const isSuperTab = currentTab.startsWith('KHTH_'); 
+        let sourceList = []; 
+        
+        if (isSuperTab) {
+            sourceList = getAggregatedList(currentTab); 
+        } else if (isDeptTab) {
+            sourceList = database.depts.find(d => d.tenKhoa === currentTab)?.danhMucQTKT || []; 
+        } else {
+            sourceList = database[currentTab] || []; 
+        }
+        
+        const dsQD = [...new Set(sourceList.map(item => item.quyetDinh).filter(i => i))]; 
+        select.innerHTML = '<option value="">-- Tất cả quyết định --</option>'; 
+        dsQD.sort().forEach(qd => { 
+            const opt = document.createElement('option'); 
+            opt.value = qd; 
+            opt.innerText = qd; 
+            if (qd === currentVal) opt.selected = true; 
+            select.appendChild(opt); 
+        }); 
+    }
+    
+    // 🟢 THUẬT TOÁN ĐỌC FILE EXCEL ĐÃ ĐƯỢC PHỤC HỒI NHẬN DIỆN MỌI KHOA
     async function importFromExcel() { 
-        const fileInput = document.getElementById('fileExcel'); const file = fileInput.files[0]; if (!file) return; 
+        const fileInput = document.getElementById('fileExcel'); 
+        const file = fileInput.files[0]; 
+        if (!file) return; 
 
         if (currentTabType === 'DTNH') {
             const selectedYear = document.getElementById('filterNamDT').value;
@@ -1059,14 +1694,20 @@
                     let headerRowIndex = -1;
                     
                     for (let i = 0; i < Math.min(1000, rawData.length); i++) {
-                        let rowData = rawData[i]; if(!rowData || rowData.length === 0) continue;
+                        let rowData = rawData[i]; 
+                        if (!rowData || rowData.length === 0) continue;
                         let rowStr = rowData.map(c => c ? c.toString().toLowerCase() : "").join(" ");
                         if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
-                            headerRowIndex = i; break;
+                            headerRowIndex = i; 
+                            break;
                         }
                     }
 
-                    if (headerRowIndex === -1) { alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!"); showLoading(false); return; }
+                    if (headerRowIndex === -1) { 
+                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!"); 
+                        showLoading(false); 
+                        return; 
+                    }
 
                     let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
                     let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
@@ -1101,7 +1742,8 @@
                     let currentGroupId = 0;
 
                     for (let i = headerRowIndex + 2; i < rawData.length; i++) {
-                        let rowData = rawData[i]; if (!rowData || rowData.length === 0) continue;
+                        let rowData = rawData[i]; 
+                        if (!rowData || rowData.length === 0) continue;
                         
                         let tenKhoaRaw = rowData[colKhoa];
                         if (tenKhoaRaw && String(tenKhoaRaw).trim() !== "") { 
@@ -1109,7 +1751,6 @@
                         }
                         if (!currentKhoaInFile) continue;
 
-                        // 🟢 TỰ ĐỘNG PHÂN PHỐI DỮ LIỆU ĐÚNG NGĂN KÉO CỦA TỪNG KHOA
                         let matchedKhoa = DANH_SACH_KHOA.find(k => normalize(k).includes(currentKhoaInFile) || currentKhoaInFile.includes(normalize(k)));
                         if (!matchedKhoa) continue; 
 
@@ -1131,7 +1772,9 @@
                             continue; 
                         }
 
-                        if (!parsedDataByKhoa[matchedKhoa]) parsedDataByKhoa[matchedKhoa] = [];
+                        if (!parsedDataByKhoa[matchedKhoa]) {
+                            parsedDataByKhoa[matchedKhoa] = [];
+                        }
                         
                         parsedDataByKhoa[matchedKhoa].push({
                             groupId: currentGroupId,
@@ -1149,27 +1792,44 @@
                         });
                     }
 
-                    const response = await fetch('/api/upload-dtnh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: parsedDataByKhoa, year: selectedYear }) }); 
-                    const result = await response.json(); alert(result.message); await layDuLieu(); 
+                    const response = await fetch('/api/upload-dtnh', { 
+                        method: 'POST', 
+                        headers: { 'Content-Type': 'application/json' }, 
+                        body: JSON.stringify({ payload: parsedDataByKhoa, year: selectedYear }) 
+                    }); 
+                    const result = await response.json(); 
+                    alert(result.message); 
+                    await layDuLieu(); 
                 } 
                 else {
-                    let headerRowIndex = -1; let headers = [];
+                    let headerRowIndex = -1; 
+                    let headers = [];
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = rawData[i].map(c => c ? c.toString().toLowerCase() : "").join(" ");
                         if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương")) {
-                            headerRowIndex = i; headers = rawData[i].map(normalize); break;
+                            headerRowIndex = i; 
+                            headers = rawData[i].map(normalize); 
+                            break;
                         }
                     }
 
-                    if (headerRowIndex === -1) { alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); showLoading(false); return; }
+                    if (headerRowIndex === -1) { 
+                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); 
+                        showLoading(false); 
+                        return; 
+                    }
 
                     let parsedData = [];
                     for (let i = headerRowIndex + 1; i < rawData.length; i++) {
-                        let rowData = rawData[i]; if (!rowData || rowData.length === 0) continue; 
-                        let item = {}; let hasData = false;
+                        let rowData = rawData[i]; 
+                        if (!rowData || rowData.length === 0) continue; 
+                        let item = {}; 
+                        let hasData = false;
 
                         headers.forEach((k, colIndex) => { 
-                            if (!k) return; let v = rowData[colIndex]; if (v !== undefined && v !== null && v !== "") hasData = true;
+                            if (!k) return; 
+                            let v = rowData[colIndex]; 
+                            if (v !== undefined && v !== null && v !== "") hasData = true;
                             
                             if (currentTab === 'GiaDV') {
                                 if (k === "mã tương đương" || k.includes("mã tương đương")) item.maTuongDuong = v; 
@@ -1198,104 +1858,203 @@
                     } 
                     
                     database[currentTab] = parsedData;
-                    const formData = new FormData(); formData.append('fileExcel', file); formData.append('tabName', currentTab); formData.append('tabData', JSON.stringify(database[currentTab])); 
+                    const formData = new FormData(); 
+                    formData.append('fileExcel', file); 
+                    formData.append('tabName', currentTab); 
+                    formData.append('tabData', JSON.stringify(database[currentTab])); 
                     const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
-                    const result = await response.json(); alert(result.message); renderTable(); 
+                    const result = await response.json(); 
+                    alert(result.message); 
+                    renderTable(); 
                 }
-            } catch (error) { alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); console.error(error); } finally { fileInput.value = ''; showLoading(false); } 
+            } catch (error) { 
+                alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); 
+                console.error(error); 
+            } finally { 
+                fileInput.value = ''; 
+                showLoading(false); 
+            } 
         }; 
         reader.readAsArrayBuffer(file); 
     }
 
-    function apDungLoc() { 
-        const search = safeStr(document.getElementById('searchBox').value);
-        
-        if (currentTabType === 'DTNH') {
-            const filterNam = document.getElementById('filterNamDT').value;
-            let deptObj = database.depts.find(d => d.tenKhoa === currentTab);
-            let sourceList = deptObj ? (deptObj.daoTaoNganHan || []) : [];
-            
-            const filtered = sourceList.filter(item => {
-                let matchSearch = (safeStr(item.noiDung).includes(search) || safeStr(item.kyThuat).includes(search));
-                let matchYear = filterNam === "" || String(item.nam) === String(filterNam);
-                return matchSearch && matchYear;
-            });
-            renderTable(filtered);
-            
-            if(currentUser && (currentUser.role === 'admin' || currentUser.tenKhoa === currentTab)) {
-                document.getElementById('btnSaveDTNH').style.display = 'inline-block';
-            } else { document.getElementById('btnSaveDTNH').style.display = 'none'; }
-            return;
-        } else { document.getElementById('btnSaveDTNH').style.display = 'none'; }
+    function exportToExcel() { 
+        if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
+
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
+        const isSuperTab = currentTab.startsWith('KHTH_');
+
+        let wb = XLSX.utils.book_new();
 
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
-            document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
+            let excelData = [
+                ["DANH SÁCH QUY TRÌNH KỸ THUẬT CHƯA ÁP MÃ DỊCH VỤ BỆNH VIỆN"],
+                ["(Trích xuất từ Hệ thống Quản lý QTKT - Bệnh viện Đa khoa Khánh Hòa)"],
+                [],
+                ["STT", "MÃ KỸ THUẬT", "TÊN CHƯƠNG", "TÊN KỸ THUẬT", "MÃ TƯƠNG ĐƯƠNG", "TÊN DỊCH VỤ BHYT"]
+            ];
             
-            const maDvbvSet = new Set();
-            database.MaDVBV.forEach(dv => { if (dv.maTuongDuong) maDvbvSet.add(normalizeCodeFast(dv.maTuongDuong)); });
+            currentFilteredData.forEach((item, index) => {
+                excelData.push([
+                    index + 1,
+                    item.ma || item.maLienKet || "",
+                    item.chuong || "",
+                    item.ten || "",
+                    item.tt23_ma || "",
+                    item.tt23_ten || "Chưa có trong TT23"
+                ]);
+            });
 
-            const giaDvByCode = new Map();
-            const giaDvByName = new Map();
-            
-            database.GiaDV.forEach(g => {
-                if (g.maTuongDuong) {
-                    let code = normalizeCodeFast(g.maTuongDuong);
-                    if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
-                    giaDvByCode.get(code).push(g);
+            let ws = XLSX.utils.aoa_to_sheet(excelData);
+            ws['!merges'] = [
+                { s: {r:0, c:0}, e: {r:0, c:5} },
+                { s: {r:1, c:0}, e: {r:1, c:5} }
+            ];
+            ws['!cols'] = [{wch: 5}, {wch: 15}, {wch: 30}, {wch: 50}, {wch: 15}, {wch: 50}];
+            XLSX.utils.book_append_sheet(wb, ws, "ChuaApGia");
+            XLSX.writeFile(wb, `QTKT_ChuaApGia_${new Date().getTime()}.xlsx`);
+            return;
+        }
+        
+        if (currentTabType === 'DTNH') {
+            const selectedYear = document.getElementById('filterNamDT').value || "202X";
+            let excelData = [
+                [`KẾ HOẠCH ĐÀO TẠO PHÁT TRIỂN CHUYÊN MÔN KỸ THUẬT NĂM ${selectedYear}`],
+                [`Khoa: ${currentTab.toUpperCase()}`],
+                [],
+                ["STT", "Nội dung đào tạo", "Kỹ thuật cụ thể", "Thời gian", "CN.SH", "NHS", "KTV", "ĐD", "BS", "Đơn vị chủ trì", "Kinh phí (Tr)"]
+            ];
+
+            let merges = [
+                { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
+                { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }
+            ];
+
+            let prevGroupId = null;
+            let sttCounterExport = 1;
+            let startRowIndex = -1;
+
+            currentFilteredData.forEach((item, idx) => {
+                let isFirst = item.groupId !== prevGroupId;
+                let currentRowExcel = excelData.length;
+
+                if (isFirst) {
+                    if (prevGroupId !== null && (currentRowExcel - 1) > startRowIndex) {
+                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(colIdx => {
+                            merges.push({ s: { r: startRowIndex, c: colIdx }, e: { r: currentRowExcel - 1, c: colIdx } });
+                        });
+                    }
+                    prevGroupId = item.groupId;
+                    startRowIndex = currentRowExcel;
+
+                    excelData.push([
+                        sttCounterExport++,
+                        item.noiDung || "",
+                        item.kyThuat || "",
+                        item.thoiGian || "",
+                        item.cns || "",
+                        item.nhs || "",
+                        item.ktv || "",
+                        item.dd || "",
+                        item.bs || "",
+                        item.donVi || "",
+                        item.kinhPhi || ""
+                    ]);
+                } else {
+                    excelData.push(["", "", item.kyThuat || "", "", "", "", "", "", "", "", ""]);
                 }
-                if (g.tenKyThuat) {
-                    let name = safeStr(g.tenKyThuat);
-                    if (!giaDvByName.has(name)) giaDvByName.set(name, []);
-                    giaDvByName.get(name).push(g);
+
+                if (idx === currentFilteredData.length - 1) {
+                    if (excelData.length - 1 > startRowIndex) {
+                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(colIdx => {
+                            merges.push({ s: { r: startRowIndex, c: colIdx }, e: { r: excelData.length - 1, c: colIdx } });
+                        });
+                    }
                 }
             });
 
-            let sourceList = [];
-            database.PL1.forEach(qt => {
-                let qdVal = qt.quyetDinh ? safeStr(qt.quyetDinh) : '';
-                if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
-                
-                let normCode = normalizeCodeFast(qt.ma);
-                if (maDvbvSet.has(normCode)) return;
-
-                let matchedGiaMap = new Map(); 
-                if (giaDvByCode.has(normCode)) { giaDvByCode.get(normCode).forEach(g => matchedGiaMap.set(g, g)); }
-                if (qt.ten) {
-                    let normName = safeStr(qt.ten);
-                    if (giaDvByName.has(normName)) { giaDvByName.get(normName).forEach(g => matchedGiaMap.set(g, g)); }
-                }
-
-                let matchedGia = Array.from(matchedGiaMap.values());
-                sourceList.push({
-                    ...qt,
-                    tt23_ma: matchedGia.map(g => g.maTuongDuong).join('\n'),
-                    tt23_ten: matchedGia.map(g => g.tenDichVu || g.tenKyThuat).join('\n'),
-                    matchedGia: matchedGia
-                });
-            });
-            
-            const filtered = sourceList.filter(item => {
-                return (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tt23_ma).includes(search) || safeStr(item.tt23_ten).includes(search));
-            });
-            renderTable(filtered); 
+            let ws = XLSX.utils.aoa_to_sheet(excelData);
+            ws['!merges'] = merges;
+            ws['!cols'] = [{wch: 5}, {wch: 35}, {wch: 40}, {wch: 15}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 25}, {wch: 15}];
+            XLSX.utils.book_append_sheet(wb, ws, "DaoTaoNganHan");
+            XLSX.writeFile(wb, `KeHoachDaoTao_${currentTab.replace(/ /g, '_')}_${selectedYear}.xlsx`);
             return;
         }
 
-        if (currentTab === 'GiaDV' || currentTab === 'MaDVBV') {
-            document.getElementById('lblSearch').innerText = currentTab === 'GiaDV' ? 'TÌM KIẾM MÃ HOẶC TÊN DỊCH VỤ' : 'TÌM KIẾM MÃ DV, MÃ TĐ HOẶC TÊN DV';
-            let sourceList = currentTab === 'GiaDV' ? database.GiaDV : database.MaDVBV;
-            const filtered = sourceList.filter(item => {
-                if (currentTab === 'GiaDV') return (safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenKyThuat).includes(search) || safeStr(item.tenDichVu).includes(search));
-                else return (safeStr(item.maDichVu).includes(search) || safeStr(item.maTuongDuong).includes(search) || safeStr(item.tenDichVu).includes(search));
-            });
-            renderTable(filtered); return;
-        } else { document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG'; }
+        const cleanData = currentFilteredData.map((item, index) => {
+            let row = { "STT": index + 1 };
+            if (currentTab === 'GiaDV') {
+                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
+                row["TÊN KỸ THUẬT"] = item.tenKyThuat || "";
+                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
+                row["GIÁ PHÊ DUYỆT (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
+            } else if (currentTab === 'MaDVBV') {
+                row["MÃ DỊCH VỤ"] = item.maDichVu || "";
+                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
+                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
+                row["GIÁ BHYT"] = item.giaBHYT ? Number(item.giaBHYT) : "";
+                row["GIÁ VIỆN PHÍ"] = item.giaVienPhi ? Number(item.giaVienPhi) : "";
+                row["GIÁ YÊU CẦU"] = item.giaYeuCau ? Number(item.giaYeuCau) : "";
+                row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
+            } else {
+                if (isSuperTab) {
+                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
+                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                    
+                    let ttRaw = item.trangThai || 'CHUA_NOP';
+                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
+                    if(tt === 'CHO_DUYET') row["TRẠNG THÁI"] = "Chờ KHTH duyệt";
+                    else if(tt === 'KHONG_DUYET') row["TRẠNG THÁI"] = "Bị KHTH từ chối";
+                    else if(tt === 'DA_PHE_DUYET') row["TRẠNG THÁI"] = "Đã phê duyệt chính thức";
+                    else row["TRẠNG THÁI"] = "Chưa nộp";
 
-        const loaiSelect = document.getElementById('filterLoai').value, qd = document.getElementById('filterQuyetDinh').value; 
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let sourceList = []; 
-        if (isSuperTab) { sourceList = getAggregatedList(currentTab); } else if (isDeptTab) { const deptObj = database.depts.find(d => d.tenKhoa === currentTab); sourceList = deptObj ? deptObj.danhMucQTKT : []; } else { sourceList = database[currentTab] || []; } 
-        const filtered = sourceList.filter(item => { const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); const matchQD = qd === "" || item.quyetDinh === qd; let matchLoai = true; if (loaiSelect !== "") { const val = item.phanLoai ? String(item.phanLoai).toUpperCase().trim() : ""; if (loaiSelect === "L1") matchLoai = (val === "P1" || val === "T1"); else if (loaiSelect === "L2") matchLoai = (val === "P2" || val === "T2"); else if (loaiSelect === "L3") matchLoai = (val === "P3" || val === "T3"); else if (loaiSelect === "LDB") matchLoai = (val === "PĐB" || val === "TĐB"); else if (loaiSelect === "KPL") matchLoai = (val === "KPL"); } return matchSearch && matchLoai && matchQD; }); 
-        renderTable(filtered); 
+                } else if (currentTab === 'PL1' || isDeptTab) {
+                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
+                    row["TÊN CHƯƠNG"] = item.chuong || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                } else { 
+                    row["MÃ CHƯƠNG"] = item.maChuong || "";
+                    row["TÊN CHƯƠNG"] = item.chuong || "";
+                    row["MÃ LIÊN KẾT"] = item.maLienKet || "";
+                    row["TÊN KỸ THUẬT"] = item.ten || "";
+                    row["PHÂN LOẠI"] = item.phanLoai || "";
+                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                }
+            }
+            return row;
+        });
+
+        let ws = XLSX.utils.json_to_sheet(cleanData); 
+        
+        const colWidths = [];
+        const keys = Object.keys(cleanData[0] || {});
+        keys.forEach(key => {
+            let maxLen = key.length; 
+            cleanData.forEach(row => {
+                let val = row[key];
+                if (val !== null && val !== undefined) {
+                    let len = val.toString().length;
+                    if (val.toString().includes('\n')) len = Math.max(...val.toString().split('\n').map(l => l.length));
+                    if (typeof val === 'number') len += 4; 
+                    if (len > maxLen) maxLen = len;
+                }
+            });
+            colWidths.push({ wch: Math.min(maxLen + 2, 60) });
+        });
+        ws['!cols'] = colWidths; 
+
+        XLSX.utils.book_append_sheet(wb, ws, "Danh_Muc"); 
+        let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; 
+        XLSX.writeFile(wb, fileName); 
+    }
+
+    function showLoading(status) { 
+        document.getElementById('loading').style.display = status ? 'flex' : 'none'; 
     }
 </script>
 </body>
