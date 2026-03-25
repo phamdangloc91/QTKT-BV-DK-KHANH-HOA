@@ -361,20 +361,35 @@
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
-    // LỚP KHIÊN THÉP CHỐNG LỖI TO LOWER CASE KHI ĐỌC EXCEL
+    // LỚP KHIÊN BẢO VỆ TỐI THƯỢNG (KHÔNG DÙNG .normalize("NFC") ĐỂ TRÁNH LỖI TRÌNH DUYỆT CŨ)
     const safeStr = function(val) { 
         if (val === null || val === undefined) return '';
-        return String(val).normalize("NFC").toLowerCase().trim(); 
+        return String(val).toLowerCase().trim(); 
     };
 
-    const normalize = function(t) { 
+    const robustNormalize = function(t) { 
         if (t === null || t === undefined) return '';
-        return String(t).normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
+        let s = String(t).toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
+        return s.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
+                .replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e")
+                .replace(/ì|í|ị|ỉ|ĩ/g, "i")
+                .replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o")
+                .replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u")
+                .replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y")
+                .replace(/đ/g, "d")
+                .replace(/\s+/g, " ");
     };
-    
-    const normalizeHeader = function(t) {
+
+    const robustNormalizeHeader = function(t) {
         if (t === null || t === undefined) return '';
-        return String(t).normalize("NFC").toLowerCase().replace(/[\n\r]/g,"").trim();
+        let s = String(t).toLowerCase().replace(/[\n\r]/g,"").trim();
+        return s.replace(/à|á|ạ|ả|ã|â|ầ|ấ|ậ|ẩ|ẫ|ă|ằ|ắ|ặ|ẳ|ẵ/g, "a")
+                .replace(/è|é|ẹ|ẻ|ẽ|ê|ề|ế|ệ|ể|ễ/g, "e")
+                .replace(/ì|í|ị|ỉ|ĩ/g, "i")
+                .replace(/ò|ó|ọ|ỏ|õ|ô|ồ|ố|ộ|ổ|ỗ|ơ|ờ|ớ|ợ|ở|ỡ/g, "o")
+                .replace(/ù|ú|ụ|ủ|ũ|ư|ừ|ứ|ự|ử|ữ/g, "u")
+                .replace(/ỳ|ý|ỵ|ỷ|ỹ/g, "y")
+                .replace(/đ/g, "d");
     };
 
     function normalizeCodeFast(code) {
@@ -383,18 +398,22 @@
         return strCode.trim();
     }
 
-    function isCodeMatch(maTuongDuong, targetMa) { return normalizeCodeFast(maTuongDuong) === normalizeCodeFast(targetMa); }
+    function isCodeMatch(maTuongDuong, targetMa) { 
+        return normalizeCodeFast(maTuongDuong) === normalizeCodeFast(targetMa); 
+    }
 
     function timKhoaChinhXac(rawName) {
-        if (!rawName) return null; let normRaw = normalize(rawName);
-        let directMatch = DANH_SACH_KHOA.find(function(k) { return normalize(k) === normRaw || normRaw.includes(normalize(k)) || normalize(k).includes(normRaw); });
+        if (!rawName) return null; let normRaw = robustNormalize(rawName);
+        let directMatch = DANH_SACH_KHOA.find(function(k) { return robustNormalize(k) === normRaw || normRaw.includes(robustNormalize(k)) || robustNormalize(k).includes(normRaw); });
         if (directMatch) return directMatch;
+        
         const tuDienKhoa = { "Trung tâm Chấn thương Chỉnh hình và Bỏng": ["chan thuong", "chinh hinh", "ctch", "bong", "ngoai chan thuong"], "Khoa Hồi sức Tích cực và Chống độc": ["hoi suc tich cuc", "chong doc", "hstc", "icu", "tich cuc"], "Khoa Phẫu thuật - Gây mê Hồi sức": ["phau thuat", "gay me", "gmhs", "ptgmhs", "phong mo"], "Khoa Vật lý Trị liệu - Phục hồi Chức năng": ["vat ly tri lieu", "phuc hoi chuc nang", "vltl", "phcn"], "Khoa Nội Tổng hợp Thần kinh": ["noi tong hop", "noi than kinh", "noi thtk"], "Khoa Nội Tim mạch Lão học": ["tim mach lao hoc", "noi tim mach"], "Khoa Vi sinh - Ký sinh trùng": ["vi sinh", "ky sinh trung"] };
         for (let dept in tuDienKhoa) { let keywords = tuDienKhoa[dept]; for (let i = 0; i < keywords.length; i++) { if (normRaw.includes(keywords[i])) return dept; } }
-        let rawWords = normRaw.replace(/khoa|trung tam|phong|bệnh viện|bv/g, "").split(/\s+/).filter(function(w) { return w.length > 1; });
+        let rawWords = normRaw.replace(/khoa|trung tam|phong|benh vien|bv/g, "").split(/\s+/).filter(function(w) { return w.length > 1; });
         let bestMatch = null; let maxScore = 0;
+        
         DANH_SACH_KHOA.forEach(function(dept) {
-            let deptWords = normalize(dept).replace(/khoa|trung tam|phong/g, "").split(/\s+/); let score = 0;
+            let deptWords = robustNormalize(dept).replace(/khoa|trung tam|phong/g, "").split(/\s+/); let score = 0;
             rawWords.forEach(function(w) { if (deptWords.includes(w)) score++; });
             let isRawNgoai = rawWords.includes("ngoai"); let isRawNoi = rawWords.includes("noi");
             let isDeptNgoai = deptWords.includes("ngoai"); let isDeptNoi = deptWords.includes("noi");
@@ -582,11 +601,11 @@
         if(Array.isArray(database.PL1)) validPL = validPL.concat(database.PL1);
         if(Array.isArray(database.PL2)) validPL = validPL.concat(database.PL2);
         validPL = validPL.filter(function(x) { return x && x.ten; });
-        plKeywords = validPL.map(function(x) { return { ten: x.ten, words: new Set(normalize(x.ten).split(" ").filter(Boolean)) }; });
+        plKeywords = validPL.map(function(x) { return { ten: x.ten, words: new Set(robustNormalize(x.ten).split(" ").filter(Boolean)) }; });
     }
 
     function getSuggestion(kyThuat) {
-        if (!kyThuat) return null; let wordsKT = new Set(normalize(kyThuat).split(" ").filter(Boolean)); if (wordsKT.size === 0) return null;
+        if (!kyThuat) return null; let wordsKT = new Set(robustNormalize(kyThuat).split(" ").filter(Boolean)); if (wordsKT.size === 0) return null;
         let bestMatch = null; let maxScore = 0;
         for (let pl of plKeywords) {
             let intersection = 0; for (let w of wordsKT) { if (pl.words.has(w)) intersection++; }
@@ -610,7 +629,7 @@
             if(!i) return;
             let m1 = normalizeCodeFast(i.ma); 
             let m2 = normalizeCodeFast(i.maLienKet);
-            let n = normalize(i.ten); 
+            let n = robustNormalize(i.ten); 
             
             if (m1 && !qtktMapByCode.has(m1)) qtktMapByCode.set(m1, i);
             if (m2 && !qtktMapByCode.has(m2)) qtktMapByCode.set(m2, i);
@@ -623,15 +642,12 @@
             database.GiaDV.forEach(function(item) {
                 if(!item) return;
                 let qtMa = normalizeCodeFast(item.maTuongDuong);
-                let qtName = normalize(item.tenKyThuat);
+                let qtName = robustNormalize(item.tenKyThuat);
                 
                 let qtktInfo = null;
-                // Ưu tiên 1: Dò bằng tên kỹ thuật trước
                 if (qtName && qtktMapByName.has(qtName)) {
                     qtktInfo = qtktMapByName.get(qtName);
-                } 
-                // Ưu tiên 2: Nếu không khớp tên thì dò bằng mã
-                else if (qtMa && qtktMapByCode.has(qtMa)) {
+                } else if (qtMa && qtktMapByCode.has(qtMa)) {
                     qtktInfo = qtktMapByCode.get(qtMa);
                 }
 
@@ -639,7 +655,6 @@
                 item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "KPL";
                 item.qt_quyetDinh = (qtktInfo && qtktInfo.quyetDinh) ? String(qtktInfo.quyetDinh).replace(/['"`\n\r\\]/g, "") : "Chưa phê duyệt";
                 
-                // Cập nhật lại mã tương đương nếu tên khớp nhưng mã bị bỏ trống trong file excel
                 if (!item.maTuongDuong && qtktInfo && (qtktInfo.ma || qtktInfo.maLienKet)) {
                     item.maTuongDuong = qtktInfo.ma || qtktInfo.maLienKet;
                 }
@@ -783,9 +798,9 @@
 
                     let kyThuatHtml = ''; let suggestionHtml = ''; let rawKT = item.kyThuat || '';
                     if (rawKT.trim() !== '') {
-                        let normName = normalize(rawKT); let matchedQT = null;
-                        if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x) { return x && normalize(x.ten) === normName; }); if(found) matchedQT = found; }
-                        if(!matchedQT && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x) { return x && normalize(x.ten) === normName; }); if(found) matchedQT = found; }
+                        let normName = robustNormalize(rawKT); let matchedQT = null;
+                        if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x) { return x && robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
+                        if(!matchedQT && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x) { return x && robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
                         
                         if (matchedQT) {
                             let safeTen = matchedQT.ten ? String(matchedQT.ten).replace(/['"`\n\r\\]/g, "") : ""; let safePL = matchedQT.phanLoai ? String(matchedQT.phanLoai).replace(/['"`\n\r\\]/g, "") : ""; let safeQD = matchedQT.quyetDinh ? String(matchedQT.quyetDinh).replace(/['"`\n\r\\]/g, "") : ""; let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
@@ -1032,8 +1047,6 @@
         
         let sBox = document.getElementById('searchBox'); if(sBox) sBox.value = ''; 
         let fLoai = document.getElementById('filterLoai'); if(fLoai) fLoai.value = ""; 
-        let fQD = document.getElementById('filterQuyetDinh'); if(fQD) fQD.value = ""; 
-        let fNam = document.getElementById('filterNamDT'); if(fNam) fNam.value = "";
         
         let optionsQD = document.getElementById('optionsQD');
         if(optionsQD) {
@@ -1043,6 +1056,7 @@
             if(textSpan) textSpan.innerText = "-- Tất cả --";
         }
         
+        let fNam = document.getElementById('filterNamDT'); if(fNam) fNam.value = "";
         apDungLoc(); 
     }
 
@@ -1225,7 +1239,9 @@
                 if(!item) return false;
                 const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); 
                 
-                const matchQD = checkedQDs.length === 0 || checkedQDs.includes(item.quyetDinh);
+                // Lọc theo checkbox Quyết định cho các tab khác nếu có
+                let qd = item.quyetDinh || "Chưa phê duyệt";
+                const matchQD = checkedQDs.length === 0 || checkedQDs.includes(qd);
                 
                 let matchLoai = true; 
                 if (loaiSelect !== "") { 
@@ -1246,7 +1262,82 @@
         }
     }
     
-    // 🟢 CẬP NHẬT GIAO DIỆN BỘ LỌC EXCEL THEO ĐÚNG TÊN TỪ TÌM KIẾM GẦN ĐÚNG (NFC)
+    function capNhatDanhSachQuyetDinh() { 
+        if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
+        const optionsContainer = document.getElementById('optionsQD'); 
+        if(!optionsContainer) return;
+        
+        let currentlyChecked = [];
+        let qdCheckboxes = document.querySelectorAll('.qd-checkbox:checked');
+        if(qdCheckboxes) {
+            for(let i=0; i<qdCheckboxes.length; i++) currentlyChecked.push(qdCheckboxes[i].value);
+        }
+
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
+        const isSuperTab = currentTab.startsWith('KHTH_'); 
+        let sourceList = []; 
+        
+        if (isSuperTab) {
+            sourceList = getAggregatedList(currentTab); 
+        } else if (isDeptTab) {
+            let foundDept = null;
+            if(Array.isArray(database.depts)) {
+                foundDept = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; });
+            }
+            sourceList = foundDept && Array.isArray(foundDept.danhMucQTKT) ? foundDept.danhMucQTKT : []; 
+        } else {
+            sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
+        }
+        
+        let fieldName = currentTab === 'GiaDV' ? 'qt_quyetDinh' : 'quyetDinh';
+
+        let validList = sourceList.filter(function(i){ return i && i[fieldName]; });
+        const dsQD = [];
+        validList.forEach(function(item) {
+            if(dsQD.indexOf(item[fieldName]) === -1) dsQD.push(item[fieldName]);
+        });
+        
+        optionsContainer.innerHTML = ''; 
+        
+        let lblAll = document.createElement('label');
+        lblAll.style.fontWeight = 'bold';
+        lblAll.style.borderBottom = '2px solid #ccc';
+        lblAll.style.backgroundColor = '#f8f9fa';
+        let chkAll = document.createElement('input');
+        chkAll.type = 'checkbox';
+        chkAll.id = 'selectAllQD';
+        chkAll.onchange = function() { toggleAllQD(this); };
+        lblAll.appendChild(chkAll);
+        lblAll.appendChild(document.createTextNode(" Chọn tất cả"));
+        optionsContainer.appendChild(lblAll);
+
+        dsQD.sort().forEach(function(qd) { 
+            let lbl = document.createElement('label');
+            let chk = document.createElement('input');
+            chk.type = 'checkbox';
+            chk.value = qd;
+            chk.className = 'qd-checkbox';
+            if(currentlyChecked.includes(qd)) chk.checked = true;
+            chk.onchange = apDungLoc;
+            lbl.appendChild(chk);
+            lbl.appendChild(document.createTextNode(" " + qd));
+            optionsContainer.appendChild(lbl);
+        }); 
+        
+        let qdBoxes = document.querySelectorAll('.qd-checkbox');
+        let allChecked = qdBoxes.length > 0;
+        qdBoxes.forEach(function(cb) { if(!cb.checked) allChecked = false; });
+        if (chkAll) chkAll.checked = allChecked;
+
+        let textSpan = document.getElementById('selectedQDText');
+        if(textSpan) {
+            let checkedBoxes = document.querySelectorAll('.qd-checkbox:checked');
+            if(checkedBoxes.length === 0) textSpan.innerText = "-- Tất cả --";
+            else if(checkedBoxes.length === 1) textSpan.innerText = "1 QĐ được chọn";
+            else textSpan.innerText = checkedBoxes.length + " QĐ được chọn";
+        }
+    }
+
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); 
         const file = fileInput.files[0]; 
@@ -1275,7 +1366,7 @@
                     for (let i = 0; i < Math.min(1000, rawData.length); i++) {
                         let rowData = rawData[i]; 
                         if (!rowData || rowData.length === 0) continue;
-                        let rowStr = rowData.map(function(c) { return safeStr(c); }).join(" ");
+                        let rowStr = rowData.map(function(c){ return safeStr(c); }).join(" ");
                         if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
                             headerRowIndex = i; 
                             break;
@@ -1291,8 +1382,8 @@
                     let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
                     let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
 
-                    let headRow1 = rawData[headerRowIndex].map(normalizeHeader);
-                    let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(normalizeHeader) : [];
+                    let headRow1 = rawData[headerRowIndex].map(robustNormalizeHeader);
+                    let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(robustNormalizeHeader) : [];
 
                     headRow1.forEach(function(k, idx) {
                         if (!k) return;
@@ -1386,10 +1477,10 @@
                     let headerRowIndex = -1; 
                     let headers = [];
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                        let rowStr = rawData[i].map(function(c) { return safeStr(c); }).join(" ");
+                        let rowStr = rawData[i].map(function(c){ return safeStr(c); }).join(" ");
                         if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương") || rowStr.includes("mức giá")) {
                             headerRowIndex = i; 
-                            headers = rawData[i].map(normalizeHeader); 
+                            headers = rawData[i].map(robustNormalizeHeader); 
                             break;
                         }
                     }
@@ -1407,36 +1498,35 @@
                         let item = {}; 
                         let hasData = false;
 
-                        headers.forEach(function(k, colIndex) {
+                        headers.forEach(function(k, colIndex) { 
                             if (!k) return; 
                             let v = rowData[colIndex]; 
                             if (v !== undefined && v !== null && v !== "") hasData = true;
                             
-                            // Lọc tìm tiêu đề bằng Includes với chuẩn NFC
-                            let kn = String(k).normalize("NFC").toLowerCase().replace(/[\n\r]/g,"").trim();
+                            let kn = robustNormalizeHeader(k);
                             
                             if (currentTab === 'GiaDV') {
-                                if (kn.includes("kỹ thuật") || kn.includes("ky thuat") || kn.includes("kĩ thuật")) { item.tenKyThuat = v; }
-                                else if (kn.includes("dịch vụ") || kn.includes("dich vu") || kn.includes("dv bhyt")) { item.tenDichVu = v; }
-                                else if (kn.includes("mã tương đương") || kn.includes("ma tuong duong") || kn.includes("mã tđ")) { item.maTuongDuong = v; }
-                                else if (kn.includes("mức giá") || kn.includes("giá phê duyệt") || kn.includes("giá")) { item.giaMax = v; }
-                                else if (kn.includes("ghi chú") || kn.includes("ghi chu")) { item.ghiChu = v; }
+                                if (kn.includes("ky thuat") || kn.includes("ki thuat") || kn.includes("kỹ thuật")) { item.tenKyThuat = v; }
+                                else if (kn.includes("dich vu") || kn.includes("dv bhyt") || kn.includes("dịch vụ")) { item.tenDichVu = v; }
+                                else if (kn.includes("ma tuong duong") || kn.includes("ma td") || kn.includes("mã tương đương")) { item.maTuongDuong = v; }
+                                else if (kn.includes("muc gia") || kn.includes("gia phe duyet") || kn.includes("gia") || kn.includes("mức giá")) { item.giaMax = v; }
+                                else if (kn.includes("ghi chu") || kn.includes("ghi chú")) { item.ghiChu = v; }
                             } else if (currentTab === 'MaDVBV') {
-                                if (kn === "mã dịch vụ" || kn.includes("mã dịch vụ") || kn.includes("ma_dichvu")) item.maDichVu = v;
-                                if (kn === "mã tương đương" || kn.includes("mã tương đương") || kn.includes("ma_tuongduong")) item.maTuongDuong = v;
-                                if (kn === "tên dịch vụ" || kn.includes("tên dịch vụ") || kn.includes("ten_dichvu")) item.tenDichVu = v;
-                                if (kn === "giá bhyt" || kn.includes("giá bhyt") || kn.includes("gia_bhyt")) item.giaBHYT = v;
-                                if (kn === "giá viện phí" || kn.includes("giá viện phí") || kn.includes("gia_vienphi")) item.giaVienPhi = v;
-                                if (kn === "giá yêu cầu" || kn.includes("giá yêu cầu") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
-                                if (kn === "giá nước ngoài" || kn.includes("giá nước ngoài") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
+                                if (kn === "ma dich vu" || kn.includes("ma dich vu") || kn.includes("ma_dichvu")) item.maDichVu = v;
+                                if (kn === "ma tuong duong" || kn.includes("ma tuong duong") || kn.includes("ma_tuongduong")) item.maTuongDuong = v;
+                                if (kn === "ten dich vu" || kn.includes("ten dich vu") || kn.includes("ten_dichvu")) item.tenDichVu = v;
+                                if (kn === "gia bhyt" || kn.includes("gia bhyt") || kn.includes("gia_bhyt")) item.giaBHYT = v;
+                                if (kn === "gia vien phi" || kn.includes("gia vien phi") || kn.includes("gia_vienphi")) item.giaVienPhi = v;
+                                if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
+                                if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } else {
-                                if (kn.includes("mã kỹ thuật") || kn === "ma") item.ma = v; 
-                                if (kn.includes("stt của chương") || kn === "machuong") item.maChuong = v; 
-                                if (kn.includes("tên chương") || kn === "chuong") item.chuong = v; 
-                                if (kn.includes("mã liên kết") || kn === "malienket") item.maLienKet = v; 
-                                if (kn.includes("tên kỹ thuật") || kn === "ten") item.ten = v; 
-                                if (kn.includes("phân loại") || kn === "phanloai") item.phanLoai = v; 
-                                if (kn.includes("quyết định") || kn === "quyetdinh") item.quyetDinh = v; 
+                                if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = v; 
+                                if (kn.includes("stt cua chuong") || kn === "machuong") item.maChuong = v; 
+                                if (kn.includes("ten chuong") || kn === "chuong") item.chuong = v; 
+                                if (kn.includes("ma lien ket") || kn === "malienket") item.maLienKet = v; 
+                                if (kn.includes("ten ky thuat") || kn.includes("ten ki thuat") || kn === "ten") item.ten = v; 
+                                if (kn.includes("phan loai") || kn === "phanloai") item.phanLoai = v; 
+                                if (kn.includes("quyet dinh") || kn === "quyetdinh") item.quyetDinh = v; 
                             }
                         }); 
                         if (hasData) parsedData.push(item);
