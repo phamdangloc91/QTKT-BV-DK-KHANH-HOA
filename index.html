@@ -5,6 +5,7 @@
     <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
     <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     <script>
+        // HỆ THỐNG BÁO LỖI THÔNG MINH
         window.onerror = function(msg, url, lineNo, columnNo, error) {
             alert("⚠️ HỆ THỐNG PHÁT HIỆN LỖI TRÌNH DUYỆT:\n\n" + msg + "\n\nDòng lỗi: " + lineNo + "\nCột: " + columnNo + "\n\nXin vui lòng chụp màn hình này gửi cho đội ngũ kỹ thuật.");
             return false;
@@ -360,20 +361,20 @@
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
+    // LỚP KHIÊN THÉP CHỐNG LỖI TO LOWER CASE KHI ĐỌC EXCEL
     const safeStr = function(val) { 
         if (val === null || val === undefined) return '';
-        return String(val).toLowerCase().trim(); 
+        return String(val).normalize("NFC").toLowerCase().trim(); 
     };
 
     const normalize = function(t) { 
         if (t === null || t === undefined) return '';
-        return String(t).toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
+        return String(t).normalize("NFC").toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
     };
     
-    // HÀM BẢO VỆ CHỐNG LỖI KHI ĐỌC TIÊU ĐỀ EXCEL (KHÔNG CẮT DẤU NGOẶC)
     const normalizeHeader = function(t) {
         if (t === null || t === undefined) return '';
-        return String(t).toLowerCase().replace(/[\n\r]/g,"").trim();
+        return String(t).normalize("NFC").toLowerCase().replace(/[\n\r]/g,"").trim();
     };
 
     function normalizeCodeFast(code) {
@@ -531,9 +532,6 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
-    // ----------------------------------------------------
-    // HÀM BỌC/XÓA QUY TRÌNH
-    // ----------------------------------------------------
     async function bocQuyTrinh(ma) {
         if(!currentUser || currentUser.role !== 'khoa') return;
         let qtInfo = null;
@@ -612,7 +610,7 @@
             if(!i) return;
             let m1 = normalizeCodeFast(i.ma); 
             let m2 = normalizeCodeFast(i.maLienKet);
-            let n = normalize(i.ten); // normalize biến thành chữ thường để dò
+            let n = normalize(i.ten); 
             
             if (m1 && !qtktMapByCode.has(m1)) qtktMapByCode.set(m1, i);
             if (m2 && !qtktMapByCode.has(m2)) qtktMapByCode.set(m2, i);
@@ -637,13 +635,13 @@
                     qtktInfo = qtktMapByCode.get(qtMa);
                 }
 
-                item.qt_ten = qtktInfo && qtktInfo.ten ? String(qtktInfo.ten).replace(/['"`\n\r\\]/g, "") : (item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "");
-                item.qt_phanLoai = qtktInfo && qtktInfo.phanLoai ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "KPL";
-                item.qt_quyetDinh = qtktInfo && qtktInfo.quyetDinh ? String(qtktInfo.quyetDinh).replace(/['"`\n\r\\]/g, "") : "Chưa phê duyệt";
+                item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten).replace(/['"`\n\r\\]/g, "") : (item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "");
+                item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "KPL";
+                item.qt_quyetDinh = (qtktInfo && qtktInfo.quyetDinh) ? String(qtktInfo.quyetDinh).replace(/['"`\n\r\\]/g, "") : "Chưa phê duyệt";
                 
                 // Cập nhật lại mã tương đương nếu tên khớp nhưng mã bị bỏ trống trong file excel
-                if (!item.maTuongDuong && qtktInfo && qtktInfo.ma) {
-                    item.maTuongDuong = qtktInfo.ma;
+                if (!item.maTuongDuong && qtktInfo && (qtktInfo.ma || qtktInfo.maLienKet)) {
+                    item.maTuongDuong = qtktInfo.ma || qtktInfo.maLienKet;
                 }
             });
         }
@@ -858,12 +856,12 @@
                 list.forEach(function(item, index) {
                     if(!item) return;
                     let formattedPrice = item.giaMax ? Number(item.giaMax).toLocaleString('vi-VN') + ' đ' : '';
-                    let safeTenKT = item.qt_ten || "";
+                    let safeTenKT = item.qt_ten || item.tenKyThuat || "";
                     let safePL = item.qt_phanLoai || "KPL";
                     let safeQD = item.qt_quyetDinh || "Chưa phê duyệt";
                     let maPass = item.maTuongDuong || item.tenKyThuat || "";
 
-                    let tenClickable = `<a href="#" onclick="moChiTiet('${maPass}', '${safeTenKT.replace(/['"`\n\r\\]/g, "")}', '${safePL}', '${safeQD}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenKT}</a>`;
+                    let tenClickable = `<a href="#" onclick="moChiTiet('${maPass}', '${safeTenKT.replace(/['"`\n\r\\]/g, "")}', '${safePL}', '${safeQD.replace(/['"`\n\r\\]/g, "")}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenKT}</a>`;
                     
                     let uniqueId = String(item.maTuongDuong || item.tenKyThuat || index);
                     let isChecked = selectedGiaDV.includes(uniqueId) ? "checked" : "";
@@ -1190,7 +1188,7 @@
                 const filtered = sourceList.filter(function(item) {
                     if(!item) return false;
                     let m1 = item.maTuongDuong ? String(item.maTuongDuong).toLowerCase() : "";
-                    let m2 = item.qt_ten ? String(item.qt_ten).toLowerCase() : "";
+                    let m2 = item.qt_ten ? String(item.qt_ten).toLowerCase() : (item.tenKyThuat ? String(item.tenKyThuat).toLowerCase() : "");
                     let m3 = item.tenDichVu ? String(item.tenDichVu).toLowerCase() : "";
                     
                     let matchSearch = (m1.includes(search) || m2.includes(search) || m3.includes(search));
@@ -1248,6 +1246,7 @@
         }
     }
     
+    // 🟢 CẬP NHẬT GIAO DIỆN BỘ LỌC EXCEL THEO ĐÚNG TÊN TỪ TÌM KIẾM GẦN ĐÚNG (NFC)
     async function importFromExcel() { 
         const fileInput = document.getElementById('fileExcel'); 
         const file = fileInput.files[0]; 
@@ -1276,7 +1275,7 @@
                     for (let i = 0; i < Math.min(1000, rawData.length); i++) {
                         let rowData = rawData[i]; 
                         if (!rowData || rowData.length === 0) continue;
-                        let rowStr = rowData.map(c => safeStr(c)).join(" ");
+                        let rowStr = rowData.map(function(c) { return safeStr(c); }).join(" ");
                         if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
                             headerRowIndex = i; 
                             break;
@@ -1295,7 +1294,7 @@
                     let headRow1 = rawData[headerRowIndex].map(normalizeHeader);
                     let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(normalizeHeader) : [];
 
-                    headRow1.forEach((k, idx) => {
+                    headRow1.forEach(function(k, idx) {
                         if (!k) return;
                         if (k === "khoa") colKhoa = idx;
                         if (k.includes("nội dung đào tạo")) colNoiDung = idx;
@@ -1305,7 +1304,7 @@
                         if (k.includes("kinh phí")) colKinhPhi = idx;
                     });
 
-                    headRow2.forEach((k, idx) => {
+                    headRow2.forEach(function(k, idx) {
                         if (!k) return;
                         if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
                         if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
@@ -1387,7 +1386,7 @@
                     let headerRowIndex = -1; 
                     let headers = [];
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                        let rowStr = rawData[i].map(c => safeStr(c)).join(" ");
+                        let rowStr = rawData[i].map(function(c) { return safeStr(c); }).join(" ");
                         if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương") || rowStr.includes("mức giá")) {
                             headerRowIndex = i; 
                             headers = rawData[i].map(normalizeHeader); 
@@ -1408,40 +1407,43 @@
                         let item = {}; 
                         let hasData = false;
 
-                        headers.forEach((k, colIndex) => { 
+                        headers.forEach(function(k, colIndex) {
                             if (!k) return; 
                             let v = rowData[colIndex]; 
                             if (v !== undefined && v !== null && v !== "") hasData = true;
                             
+                            // Lọc tìm tiêu đề bằng Includes với chuẩn NFC
+                            let kn = String(k).normalize("NFC").toLowerCase().replace(/[\n\r]/g,"").trim();
+                            
                             if (currentTab === 'GiaDV') {
-                                if (k.includes("tên kỹ thuật") || k.includes("ten ky thuat")) { item.tenKyThuat = v; }
-                                else if (k.includes("tên dịch vụ") || k.includes("ten dich vu") || k.includes("tên dv")) { item.tenDichVu = v; }
-                                else if (k.includes("mã tương đương") || k.includes("ma tuong duong")) { item.maTuongDuong = v; }
-                                else if (k.includes("mức giá") || k.includes("giá phê duyệt") || k.includes("giá")) { item.giaMax = v; }
-                                else if (k.includes("ghi chú") || k.includes("ghi chu")) { item.ghiChu = v; }
+                                if (kn.includes("kỹ thuật") || kn.includes("ky thuat") || kn.includes("kĩ thuật")) { item.tenKyThuat = v; }
+                                else if (kn.includes("dịch vụ") || kn.includes("dich vu") || kn.includes("dv bhyt")) { item.tenDichVu = v; }
+                                else if (kn.includes("mã tương đương") || kn.includes("ma tuong duong") || kn.includes("mã tđ")) { item.maTuongDuong = v; }
+                                else if (kn.includes("mức giá") || kn.includes("giá phê duyệt") || kn.includes("giá")) { item.giaMax = v; }
+                                else if (kn.includes("ghi chú") || kn.includes("ghi chu")) { item.ghiChu = v; }
                             } else if (currentTab === 'MaDVBV') {
-                                if (k === "mã dịch vụ" || k.includes("mã dịch vụ") || k.includes("ma_dichvu")) item.maDichVu = v;
-                                if (k === "mã tương đương" || k.includes("mã tương đương") || k.includes("ma_tuongduong")) item.maTuongDuong = v;
-                                if (k === "tên dịch vụ" || k.includes("tên dịch vụ") || k.includes("ten_dichvu")) item.tenDichVu = v;
-                                if (k === "giá bhyt" || k.includes("giá bhyt") || k.includes("gia_bhyt")) item.giaBHYT = v;
-                                if (k === "giá viện phí" || k.includes("giá viện phí") || k.includes("gia_vienphi")) item.giaVienPhi = v;
-                                if (k === "giá yêu cầu" || k.includes("giá yêu cầu") || k.includes("gia_yeucau")) item.giaYeuCau = v;
-                                if (k === "giá nước ngoài" || k.includes("giá nước ngoài") || k.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
+                                if (kn === "mã dịch vụ" || kn.includes("mã dịch vụ") || kn.includes("ma_dichvu")) item.maDichVu = v;
+                                if (kn === "mã tương đương" || kn.includes("mã tương đương") || kn.includes("ma_tuongduong")) item.maTuongDuong = v;
+                                if (kn === "tên dịch vụ" || kn.includes("tên dịch vụ") || kn.includes("ten_dichvu")) item.tenDichVu = v;
+                                if (kn === "giá bhyt" || kn.includes("giá bhyt") || kn.includes("gia_bhyt")) item.giaBHYT = v;
+                                if (kn === "giá viện phí" || kn.includes("giá viện phí") || kn.includes("gia_vienphi")) item.giaVienPhi = v;
+                                if (kn === "giá yêu cầu" || kn.includes("giá yêu cầu") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
+                                if (kn === "giá nước ngoài" || kn.includes("giá nước ngoài") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } else {
-                                if (k.includes("mã kỹ thuật") || k === "ma") item.ma = v; 
-                                if (k.includes("stt của chương") || k === "machuong") item.maChuong = v; 
-                                if (k.includes("tên chương") || k === "chuong") item.chuong = v; 
-                                if (k.includes("mã liên kết") || k === "malienket") item.maLienKet = v; 
-                                if (k.includes("tên kỹ thuật") || k === "ten") item.ten = v; 
-                                if (k.includes("phân loại") || k === "phanloai") item.phanLoai = v; 
-                                if (k.includes("quyết định") || k === "quyetdinh") item.quyetDinh = v; 
+                                if (kn.includes("mã kỹ thuật") || kn === "ma") item.ma = v; 
+                                if (kn.includes("stt của chương") || kn === "machuong") item.maChuong = v; 
+                                if (kn.includes("tên chương") || kn === "chuong") item.chuong = v; 
+                                if (kn.includes("mã liên kết") || kn === "malienket") item.maLienKet = v; 
+                                if (kn.includes("tên kỹ thuật") || kn === "ten") item.ten = v; 
+                                if (kn.includes("phân loại") || kn === "phanloai") item.phanLoai = v; 
+                                if (kn.includes("quyết định") || kn === "quyetdinh") item.quyetDinh = v; 
                             }
                         }); 
                         if (hasData) parsedData.push(item);
                     } 
                     
                     database[currentTab] = parsedData;
-                    if (currentTab === 'GiaDV') enrichGiaDV();
+                    if (currentTab === 'GiaDV') enrichGiaDV(); 
                     
                     const formData = new FormData(); 
                     formData.append('fileExcel', file); 
