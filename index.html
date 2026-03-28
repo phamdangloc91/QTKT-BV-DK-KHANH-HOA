@@ -361,7 +361,7 @@
         "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
     ]; 
 
-    // 🟢 HÀM ÉP MÃ HÓA JS: TRÁNH ĐỨT NÚT BẤM KHI CHỨA DẤU NHÁY ĐƠN (') HOẶC NHÁY KÉP (")
+    // HÀM ÉP MÃ HÓA JS: TRÁNH ĐỨT NÚT BẤM KHI CHỨA DẤU NHÁY ĐƠN (') HOẶC NHÁY KÉP (")
     const encodeForJS = function(str) {
         if (!str) return '';
         return encodeURIComponent(String(str)).replace(/'/g, "%27").replace(/"/g, "%22");
@@ -426,7 +426,7 @@
         return bestMatch;
     }
 
-    // 🟢 HÀM XÁC ĐỊNH THỨ TỰ CỦA KỸ THUẬT (SẮP XẾP THEO PHỤ LỤC 1)
+    // HÀM SẮP XẾP LẠI THỨ TỰ THEO PHỤ LỤC 1 & 2
     function getOrderIndex(qt) {
         if(!qt) return 9999999;
         let qtMa = normalizeCodeFast(qt.ma || qt.maLienKet);
@@ -616,7 +616,7 @@
                 if (pushIt) { result.push({ ...qt, tenKhoaChuQuan: d.tenKhoa || "", trangThaiFix: tt }); }
             });
         });
-        // 🟢 CẬP NHẬT: Sắp xếp tab KHTH (Tab tổng hợp) theo đúng thứ tự PL1
+        // Sắp xếp tab KHTH (tổng hợp) dựa theo tọa độ trên PL1
         result.sort(function(a, b) { 
             let deptCmp = String(a.tenKhoaChuQuan || "").localeCompare(String(b.tenKhoaChuQuan || ""));
             if (deptCmp !== 0) return deptCmp;
@@ -683,9 +683,9 @@
                     qtktInfo = qtktMapByCode.get(qtMa);
                 }
 
-                item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten).replace(/['"`\n\r\\]/g, "") : (item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "");
-                item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "KPL";
-                item.qt_quyetDinh = (qtktInfo && qtktInfo.quyetDinh) ? String(qtktInfo.quyetDinh).replace(/['"`\n\r\\]/g, "") : "Chưa phê duyệt";
+                item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten) : (item.tenKyThuat ? String(item.tenKyThuat) : "");
+                item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai) : "KPL";
+                item.qt_quyetDinh = (qtktInfo && qtktInfo.quyetDinh) ? String(qtktInfo.quyetDinh) : "Chưa phê duyệt";
                 
                 if (!item.maTuongDuong && qtktInfo && (qtktInfo.ma || qtktInfo.maLienKet)) {
                     item.maTuongDuong = qtktInfo.ma || qtktInfo.maLienKet;
@@ -878,8 +878,6 @@
                     let safeTen = item.ten ? String(item.ten) : ""; 
                     let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
                     let safeQD = item.quyetDinh ? String(item.quyetDinh) : "";
-                    
-                    // BỌC ENCODE ĐỂ CHỐNG ĐỨT NÚT BẤM
                     let tenClickable = `<a href="#" onclick="moChiTiet('${item.ma || item.maLienKet || ''}', '${encodeForJS(safeTen)}', '${encodeForJS(safePL)}', '${encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
                     let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`; }).join('<br><br>') : '';
                     let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat || ''; }).join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
@@ -890,7 +888,11 @@
 
             if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { 
                 let deptObj = null; if(Array.isArray(database.depts)) { deptObj = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; }); }
-                list = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
+                // Tạo một bản sao danh sách để không ảnh hưởng dữ liệu gốc khi sắp xếp
+                let rawList = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
+                list = [...rawList];
+                // Sắp xếp lại theo chuẩn PL1
+                list.sort(function(a, b) { return getOrderIndex(a) - getOrderIndex(b); });
             } else { list = Array.isArray(database[currentTab]) ? database[currentTab] : []; }
             currentFilteredData = list;
 
@@ -1050,6 +1052,126 @@
             capNhatDanhSachQuyetDinh();
             
         } catch(e) { console.error(e); alert("Lỗi khi tải bảng dữ liệu: " + e.message); }
+    }
+
+    // 🟢 HÀM XỬ LÝ NỘP FILE ĐÃ ĐƯỢC BỔ SUNG LẠI Ở ĐÂY
+    function moModalBatch() {
+        if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 kỹ thuật trong bảng!");
+        document.getElementById('lblBatchCount').innerText = selectedTechniques.length;
+        moModal('uploadBatchModal');
+    }
+
+    async function xuLyUploadBatch() {
+        const fQD = document.getElementById('fQuyetDinhBatch').files[0]; 
+        const fBB = document.getElementById('fBienBanBatch').files[0];
+        
+        if (!fQD && !fBB) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+        
+        showLoading(true);
+        try {
+            const formData = new FormData(); 
+            formData.append('items', JSON.stringify(selectedTechniques));
+            if (fQD) formData.append('fQuyetDinh', fQD); 
+            if (fBB) formData.append('fBienBan', fBB);
+            
+            const res = await fetch('/api/upload/batch-qdbb', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message);
+            
+            if (res.ok) { 
+                dongModal('uploadBatchModal'); 
+                document.getElementById('fQuyetDinhBatch').value = ''; 
+                document.getElementById('fBienBanBatch').value = ''; 
+                toggleMultiSelect(false); 
+                layDuLieu(); 
+            }
+        } catch(e) { 
+            alert("Lỗi tải file!"); 
+        } 
+        showLoading(false);
+    }
+
+    function chuanBiNopKhoa(ma) { 
+        targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; 
+        document.getElementById('fileNopKhoa').click(); 
+    }
+
+    async function xuLyNopFileKhoa() {
+        const fileInput = document.getElementById('fileNopKhoa'); 
+        if (!fileInput.files[0]) return; 
+        
+        showLoading(true);
+        try {
+            const formData = new FormData(); 
+            formData.append('fileQuyTrinh', fileInput.files[0]); 
+            formData.append('tenKhoa', targetUpload.tenKhoa); 
+            formData.append('maQuyTrinh', targetUpload.ma);
+            
+            const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message); 
+            if (res.ok) layDuLieu();
+        } catch(e) { 
+            alert("Lỗi khi tải file lên!"); 
+        } 
+        fileInput.value = ''; 
+        showLoading(false);
+    }
+
+    function chuanBiUpSinglePdf(ma, tenKhoa, encodedTenQuyTrinh) {
+        let tenQuyTrinh = decodeURIComponent(encodedTenQuyTrinh || "");
+        dongModal('detailModal'); 
+        dongModal('detailDVModal');
+        targetUpload = { ma: ma, tenKhoa: tenKhoa };
+        document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; 
+        moModal('uploadSinglePdfModal');
+    }
+    
+    async function xuLyUploadSinglePdf() {
+        const fPDF = document.getElementById('fPdfChinhThuc').files[0]; 
+        if (!fPDF) return alert("Vui lòng chọn file PDF!"); 
+        
+        showLoading(true);
+        try {
+            const formData = new FormData(); 
+            formData.append('tenKhoa', targetUpload.tenKhoa); 
+            formData.append('maQuyTrinh', targetUpload.ma); 
+            formData.append('fPdf', fPDF);
+            
+            const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message); 
+            
+            if (res.ok) { 
+                dongModal('uploadSinglePdfModal'); 
+                document.getElementById('fPdfChinhThuc').value = ''; 
+                layDuLieu(); 
+            }
+        } catch(e) { 
+            alert("Lỗi khi tải file lên!"); 
+        } 
+        showLoading(false);
+    }
+
+    async function thayDoiTrangThai(tenKhoa, ma, action) {
+        let msg = "Xác nhận?";
+        if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
+        if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
+        
+        if (!confirm(msg)) return; 
+        showLoading(true);
+        try {
+            const res = await fetch('/api/dept-data/status', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, action: action }) 
+            });
+            if (res.ok) await layDuLieu(); 
+            else alert("Có lỗi xảy ra!"); 
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
     }
 
     function capNhatTieuDe() {
@@ -1279,7 +1401,7 @@
                 }
                 let rawList = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
                 sourceList = [...rawList];
-                // 🟢 SẮP XẾP LẠI GIỎ HÀNG THEO THỨ TỰ PHỤ LỤC 1 & 2
+                // SẮP XẾP LẠI GIỎ HÀNG THEO THỨ TỰ PHỤ LỤC 1 & 2
                 sourceList.sort(function(a, b) { return getOrderIndex(a) - getOrderIndex(b); });
             } else { 
                 sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
@@ -1310,7 +1432,7 @@
             alert("Lỗi khi Lọc Dữ liệu: " + e.message);
         }
     }
-    
+
     function capNhatDanhSachQuyetDinh() { 
         if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
         const optionsContainer = document.getElementById('optionsQD'); 
