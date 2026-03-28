@@ -372,7 +372,6 @@
         return String(val).toLowerCase().trim(); 
     };
 
-    // HÀM LỌC CHỮ CĂN BẢN (KHÔNG DÙNG NORMALIZE ĐỂ CHỐNG TRẮNG TRANG TRÊN TRÌNH DUYỆT CŨ)
     const robustNormalize = function(t) { 
         if (t === null || t === undefined) return '';
         let s = String(t).toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
@@ -553,6 +552,126 @@
         } catch(e) { alert("Lỗi mạng!"); } showLoading(false);
     }
 
+    // ----------------- CÁC HÀM XỬ LÝ CHỨC NĂNG (ĐÃ BỔ SUNG TRỞ LẠI THEO YÊU CẦU) -----------------
+    function moModalBatch() {
+        if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 kỹ thuật trong bảng!");
+        document.getElementById('lblBatchCount').innerText = selectedTechniques.length;
+        moModal('uploadBatchModal');
+    }
+
+    async function xuLyUploadBatch() {
+        const fQD = document.getElementById('fQuyetDinhBatch').files[0]; 
+        const fBB = document.getElementById('fBienBanBatch').files[0];
+        
+        if (!fQD && !fBB) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+        
+        showLoading(true);
+        try {
+            const formData = new FormData(); 
+            formData.append('items', JSON.stringify(selectedTechniques));
+            if (fQD) formData.append('fQuyetDinh', fQD); 
+            if (fBB) formData.append('fBienBan', fBB);
+            
+            const res = await fetch('/api/upload/batch-qdbb', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message);
+            
+            if (res.ok) { 
+                dongModal('uploadBatchModal'); 
+                document.getElementById('fQuyetDinhBatch').value = ''; 
+                document.getElementById('fBienBanBatch').value = ''; 
+                toggleMultiSelect(false); 
+                layDuLieu(); 
+            }
+        } catch(e) { 
+            alert("Lỗi tải file!"); 
+        } 
+        showLoading(false);
+    }
+
+    function chuanBiNopKhoa(ma) { 
+        targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; 
+        document.getElementById('fileNopKhoa').click(); 
+    }
+
+    async function xuLyNopFileKhoa() {
+        const fileInput = document.getElementById('fileNopKhoa'); 
+        if (!fileInput.files[0]) return; 
+        
+        showLoading(true);
+        try {
+            const formData = new FormData(); 
+            formData.append('fileQuyTrinh', fileInput.files[0]); 
+            formData.append('tenKhoa', targetUpload.tenKhoa); 
+            formData.append('maQuyTrinh', targetUpload.ma);
+            
+            const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message); 
+            if (res.ok) layDuLieu();
+        } catch(e) { 
+            alert("Lỗi khi tải file lên!"); 
+        } 
+        fileInput.value = ''; 
+        showLoading(false);
+    }
+
+    function chuanBiUpSinglePdf(ma, tenKhoa, encodedTenQuyTrinh) {
+        let tenQuyTrinh = decodeURIComponent(encodedTenQuyTrinh || "");
+        dongModal('detailModal'); 
+        dongModal('detailDVModal');
+        targetUpload = { ma: ma, tenKhoa: tenKhoa };
+        document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; 
+        moModal('uploadSinglePdfModal');
+    }
+    
+    async function xuLyUploadSinglePdf() {
+        const fPDF = document.getElementById('fPdfChinhThuc').files[0]; 
+        if (!fPDF) return alert("Vui lòng chọn file PDF!"); 
+        
+        showLoading(true);
+        try {
+            const formData = new FormData(); 
+            formData.append('tenKhoa', targetUpload.tenKhoa); 
+            formData.append('maQuyTrinh', targetUpload.ma); 
+            formData.append('fPdf', fPDF);
+            
+            const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); 
+            const data = await res.json(); 
+            alert(data.message); 
+            
+            if (res.ok) { 
+                dongModal('uploadSinglePdfModal'); 
+                document.getElementById('fPdfChinhThuc').value = ''; 
+                layDuLieu(); 
+            }
+        } catch(e) { 
+            alert("Lỗi khi tải file lên!"); 
+        } 
+        showLoading(false);
+    }
+
+    async function thayDoiTrangThai(tenKhoa, ma, action) {
+        let msg = "Xác nhận?";
+        if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
+        if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
+        
+        if (!confirm(msg)) return; 
+        showLoading(true);
+        try {
+            const res = await fetch('/api/dept-data/status', { 
+                method: 'POST', 
+                headers: { 'Content-Type': 'application/json' }, 
+                body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, action: action }) 
+            });
+            if (res.ok) await layDuLieu(); 
+            else alert("Có lỗi xảy ra!"); 
+        } catch(e) { 
+            alert("Lỗi mạng!"); 
+        } 
+        showLoading(false);
+    }
+
     async function bocQuyTrinh(ma) {
         if(!currentUser || currentUser.role !== 'khoa') return;
         let qtInfo = null;
@@ -622,7 +741,7 @@
         if(cell) cell.innerText = suggestedText; btn.closest('.suggestion-box').remove();
     }
 
-    // 🟢 TRẠM ĐỒNG BỘ DỮ LIỆU GIA DV (TÌM BẰNG CẢ TÊN VÀ MÃ ĐỂ LẤY QUYẾT ĐỊNH)
+    // 🟢 ĐỒNG BỘ DỮ LIỆU GIA DV (TÌM BẰNG CẢ TÊN VÀ MÃ ĐỂ LẤY QUYẾT ĐỊNH)
     function enrichGiaDV() {
         let qtktMapByCode = new Map();
         let qtktMapByName = new Map();
@@ -647,11 +766,9 @@
                 let qtName = robustNormalize(item.tenKyThuat);
                 
                 let qtktInfo = null;
-                // Ưu tiên 1: Dò bằng tên kỹ thuật trước
                 if (qtName && qtktMapByName.has(qtName)) {
                     qtktInfo = qtktMapByName.get(qtName);
                 } 
-                // Ưu tiên 2: Nếu không khớp tên thì dò bằng mã
                 else if (qtMa && qtktMapByCode.has(qtMa)) {
                     qtktInfo = qtktMapByCode.get(qtMa);
                 }
@@ -851,6 +968,7 @@
                     let safeTen = item.ten ? String(item.ten) : ""; 
                     let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
                     let safeQD = item.quyetDinh ? String(item.quyetDinh) : "";
+                    
                     let tenClickable = `<a href="#" onclick="moChiTiet('${item.ma || item.maLienKet || ''}', '${encodeForJS(safeTen)}', '${encodeForJS(safePL)}', '${encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
                     let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`; }).join('<br><br>') : '';
                     let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat || ''; }).join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
@@ -918,6 +1036,7 @@
                     let safeTenDV = item.tenDichVu ? String(item.tenDichVu) : ""; 
                     let safeMaTD = item.maTuongDuong ? String(item.maTuongDuong) : ""; 
                     let safeMaDV = item.maDichVu ? String(item.maDichVu) : "";
+                    
                     let tenClickable = `<a href="#" onclick="moChiTietDV('${safeMaDV}', '${safeMaTD}', '${encodeForJS(safeTenDV)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenDV}</a>`;
                     tbodyHtml += `<tr><td>${index + 1}</td><td><b>${item.maDichVu || ''}</b></td><td>${item.maTuongDuong || ''}</td><td>${tenClickable}</td><td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td><td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td><td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td><td style="color:red; text-align:right; font-weight:bold;">${gNN}</td></tr>`;
                 });
