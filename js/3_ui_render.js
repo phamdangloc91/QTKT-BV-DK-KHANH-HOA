@@ -1,12 +1,3 @@
-window.currentPage = 1;
-window.rowsPerPage = 100; 
-
-window.changePage = function(step) {
-    window.currentPage += step;
-    window.renderTable(); 
-    document.querySelector('.table-container').scrollTop = 0; 
-}
-
 window.jumpToPL1 = function(maLienKet) { 
     window.switchTab('PL1', 'QTKT'); 
     let sBox = document.getElementById('searchBox'); 
@@ -111,7 +102,6 @@ window.layDuLieu = async function() {
             return d;
         });
         
-        // 🟢 BẬT BẢN ĐỒ TỪ ĐIỂN TỐC ĐỘ CAO
         if (window.buildOrderMap) window.buildOrderMap();
         
         window.enrichGiaDV(); 
@@ -172,12 +162,25 @@ window.toggleAllQD = function(source) {
 
 window.renderTable = function(data = null) {
     try {
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); 
+        const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
+        const isSuperTab = currentTab.startsWith('KHTH_'); 
         let list = data !== null ? data : currentFilteredData; 
         let canEdit = false;
         
         if (currentUser && currentUser.role === 'admin') canEdit = true;
         if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) canEdit = true;
+
+        // 🟢 GIẢI QUYẾT LỖI REFERENCE: ĐƯA BIẾN RA PHẠM VI TOÀN CỤC CỦA HÀM RENDER
+        let canAddPL = false; 
+        let canRemovePL = false; 
+        let showFileCol = false;
+        
+        if (currentUser && currentUser.role === 'khoa') { 
+            if (!isDeptTab && !isSuperTab) canAddPL = true; 
+            if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; 
+        }
+        if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemovePL = true; 
+        if (isDeptTab || isSuperTab) showFileCol = true; 
 
         const thead = document.getElementById('tableHead'); 
         const tbody = document.getElementById('dataBody'); 
@@ -262,7 +265,6 @@ window.renderTable = function(data = null) {
                 else if (currentTab === 'PL1' || isDeptTab) { htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; } 
                 else { htmlHead += `<th>STT của chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; }
                 
-                if (isDeptTab || isSuperTab) showFileCol = true; 
                 if (showFileCol) { htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`; }
                 if (canAddPL || canRemovePL) { htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`; }
                 htmlHead += `</tr>`;
@@ -366,9 +368,6 @@ window.renderTable = function(data = null) {
                 else { html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="window.jumpToPL1('${window.encodeForJS(safeMaLienKet)}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; }
                 
                 let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-
-                let showFileCol = false;
-                if (isDeptTab || isSuperTab) showFileCol = true; 
 
                 if (showFileCol) {
                     let fileHtml = '';
