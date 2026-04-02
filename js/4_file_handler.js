@@ -213,8 +213,9 @@ window.importFromExcel = async function() {
                 for (let i = 0; i < Math.min(1000, rawData.length); i++) {
                     let rowData = rawData[i]; 
                     if (!rowData || rowData.length === 0) continue;
-                    let rowStr = rowData.map(function(c){ return window.safeStr(c); }).join(" ");
-                    if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
+                    // BỌC ROBUST NORMALIZE ĐỂ TÌM KHÔNG DẤU
+                    let rowStr = rowData.map(function(c){ return window.robustNormalize(c); }).join(" ");
+                    if (rowStr.includes("noi dung dao tao") && (rowStr.includes("ki thuat") || rowStr.includes("ky thuat"))) {
                         headerRowIndex = i; 
                         break;
                     }
@@ -235,20 +236,20 @@ window.importFromExcel = async function() {
                 headRow1.forEach(function(k, idx) {
                     if (!k) return;
                     if (k === "khoa") colKhoa = idx;
-                    if (k.includes("nội dung đào tạo")) colNoiDung = idx;
-                    if (k.includes("kĩ thuật cụ thể") || k.includes("kỹ thuật cụ thể")) colKyThuat = idx;
-                    if (k.includes("thời gian")) colThoiGian = idx;
-                    if (k.includes("đơn vị chủ trì")) colDonVi = idx;
-                    if (k.includes("kinh phí")) colKinhPhi = idx;
+                    if (k.includes("noi dung dao tao")) colNoiDung = idx;
+                    if (k.includes("ki thuat cu the") || k.includes("ky thuat cu the")) colKyThuat = idx;
+                    if (k.includes("thoi gian")) colThoiGian = idx;
+                    if (k.includes("don vi chu tri")) colDonVi = idx;
+                    if (k.includes("kinh phi")) colKinhPhi = idx;
                 });
 
                 headRow2.forEach(function(k, idx) {
                     if (!k) return;
-                    if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
-                    if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
-                    if (k === "ktv" || k.includes("kỹ thuật viên")) colKTV = idx;
-                    if (k === "đd" || k.includes("điều dưỡng")) colDD = idx;
-                    if (k === "bs" || k.includes("bác sĩ")) colBS = idx;
+                    if (k.includes("sinh hoc") || k.includes("cu nhan")) colCNSH = idx;
+                    if (k.includes("ho sinh") || k.includes("nhs")) colNHS = idx;
+                    if (k === "ktv" || k.includes("ky thuat vien")) colKTV = idx;
+                    if (k === "dd" || k.includes("dieu duong")) colDD = idx;
+                    if (k === "bs" || k.includes("bac si")) colBS = idx;
                 });
 
                 let parsedDataByKhoa = {};
@@ -324,9 +325,9 @@ window.importFromExcel = async function() {
                 let headerRowIndex = -1; 
                 let headers = [];
                 for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                    let rowStr = rawData[i].map(function(c){ return window.safeStr(c); }).join(" ");
-                    // 🟢 BỔ SUNG: Dò tìm "mã liên kết" cho Phụ Lục 2
-                    if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương") || rowStr.includes("mức giá") || rowStr.includes("mã liên kết") || rowStr.includes("tên kỹ thuật")) {
+                    // BỌC ROBUST NORMALIZE ĐỂ LỌC KHÔNG DẤU (Khắc phục lỗi Phụ lục 2)
+                    let rowStr = rawData[i].map(function(c){ return window.robustNormalize(c); }).join(" ");
+                    if (rowStr.includes("ma dich vu") || rowStr.includes("ma_dichvu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || rowStr.includes("muc gia") || rowStr.includes("ma lien ket") || rowStr.includes("ten ky thuat")) {
                         headerRowIndex = i; 
                         headers = rawData[i].map(window.robustNormalizeHeader); 
                         break;
@@ -354,11 +355,11 @@ window.importFromExcel = async function() {
                         let kn = window.robustNormalizeHeader(k);
                         
                         if (currentTab === 'GiaDV') {
-                            if (kn.includes("ky thuat") || kn.includes("ki thuat") || kn.includes("kỹ thuật")) { item.tenKyThuat = v; }
-                            else if (kn.includes("dich vu") || kn.includes("dv bhyt") || kn.includes("dịch vụ")) { item.tenDichVu = v; }
-                            else if (kn.includes("ma tuong duong") || kn.includes("ma td") || kn.includes("mã tương đương")) { item.maTuongDuong = v; }
-                            else if (kn.includes("muc gia") || kn.includes("gia phe duyet") || kn.includes("gia") || kn.includes("mức giá")) { item.giaMax = v; }
-                            else if (kn.includes("ghi chu") || kn.includes("ghi chú")) { item.ghiChu = v; }
+                            if (kn.includes("ky thuat") || kn.includes("ki thuat") || kn.includes("ten ky thuat")) { item.tenKyThuat = v; }
+                            else if (kn.includes("dich vu") || kn.includes("dv bhyt") || kn.includes("ten dich vu")) { item.tenDichVu = v; }
+                            else if (kn.includes("ma tuong duong") || kn.includes("ma td")) { item.maTuongDuong = v; }
+                            else if (kn.includes("muc gia") || kn.includes("gia phe duyet") || kn.includes("gia")) { item.giaMax = v; }
+                            else if (kn.includes("ghi chu")) { item.ghiChu = v; }
                         } else if (currentTab === 'MaDVBV') {
                             if (kn === "ma dich vu" || kn.includes("ma dich vu") || kn.includes("ma_dichvu")) item.maDichVu = v;
                             if (kn === "ma tuong duong" || kn.includes("ma tuong duong") || kn.includes("ma_tuongduong")) item.maTuongDuong = v;
@@ -371,7 +372,6 @@ window.importFromExcel = async function() {
                             if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = v; 
                             if (kn.includes("stt cua chuong") || kn === "machuong") item.maChuong = v; 
                             if (kn.includes("ten chuong") || kn === "chuong") item.chuong = v; 
-                            // 🟢 BỔ SUNG: Bắt Mã liên kết cho PL2
                             if (kn.includes("ma lien ket") || kn === "malienket") item.maLienKet = v; 
                             if (kn.includes("ten ky thuat") || kn.includes("ten ki thuat") || kn === "ten") item.ten = v; 
                             if (kn.includes("phan loai") || kn === "phanloai") item.phanLoai = v; 
