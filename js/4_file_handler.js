@@ -352,25 +352,32 @@ window.importFromExcel = async function() {
                         
                         let kn = window.robustNormalizeHeader(k);
                         
+                        // 🟢 HÀM XỬ LÝ CHUYỂN DẤU PHẨY THÀNH DẤU CHẤM
+                        let formatCode = function(val) {
+                            if (val === undefined || val === null || val === "") return val;
+                            return String(val).replace(/,/g, '.').trim();
+                        };
+
                         if (currentTab === 'GiaDV') {
                             if (kn.includes("ky thuat") || kn.includes("ki thuat") || kn.includes("ten ky thuat")) { item.tenKyThuat = v; }
                             else if (kn.includes("dich vu") || kn.includes("dv bhyt") || kn.includes("ten dich vu")) { item.tenDichVu = v; }
-                            else if (kn.includes("ma tuong duong") || kn.includes("ma td")) { item.maTuongDuong = v; }
+                            else if (kn.includes("ma tuong duong") || kn.includes("ma td")) { item.maTuongDuong = formatCode(v); }
                             else if (kn.includes("muc gia") || kn.includes("gia phe duyet") || kn.includes("gia")) { item.giaMax = v; }
                             else if (kn.includes("ghi chu")) { item.ghiChu = v; }
                         } else if (currentTab === 'MaDVBV') {
-                            if (kn === "ma dich vu" || kn.includes("ma dich vu") || kn.includes("ma_dichvu")) item.maDichVu = v;
-                            if (kn === "ma tuong duong" || kn.includes("ma tuong duong") || kn.includes("ma_tuongduong")) item.maTuongDuong = v;
+                            if (kn === "ma dich vu" || kn.includes("ma dich vu") || kn.includes("ma_dichvu")) item.maDichVu = formatCode(v);
+                            if (kn === "ma tuong duong" || kn.includes("ma tuong duong") || kn.includes("ma_tuongduong")) item.maTuongDuong = formatCode(v);
                             if (kn === "ten dich vu" || kn.includes("ten dich vu") || kn.includes("ten_dichvu")) item.tenDichVu = v;
                             if (kn === "gia bhyt" || kn.includes("gia bhyt") || kn.includes("gia_bhyt")) item.giaBHYT = v;
                             if (kn === "gia vien phi" || kn.includes("gia vien phi") || kn.includes("gia_vienphi")) item.giaVienPhi = v;
                             if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                             if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                         } else {
-                            if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = v; 
+                            // 🟢 ÉP CHUẨN HÓA CÁC MÃ
+                            if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = formatCode(v); 
                             if (kn.includes("stt cua chuong") || kn === "machuong") item.maChuong = v; 
                             if (kn.includes("ten chuong") || kn === "chuong") item.chuong = v; 
-                            if (kn.includes("ma lien ket") || kn === "malienket") item.maLienKet = v; 
+                            if (kn.includes("ma lien ket") || kn === "malienket") item.maLienKet = formatCode(v); 
                             if (kn.includes("ten ky thuat") || kn.includes("ten ki thuat") || kn === "ten") item.ten = v; 
                             if (kn.includes("phan loai") || kn === "phanloai") item.phanLoai = v; 
                             if (kn.includes("quyet dinh") || kn === "quyetdinh") item.quyetDinh = v; 
@@ -561,6 +568,7 @@ window.exportToExcel = function() {
                 row["PHÂN LOẠI"] = item.phanLoai || "";
                 row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
             } else { 
+                // 🟢 SỬA MÃ CHƯƠNG THÀNH STT CỦA CHƯƠNG TẠI ĐÂY
                 row["STT CỦA CHƯƠNG"] = item.maChuong || "";
                 row["TÊN CHƯƠNG"] = item.chuong || "";
                 row["MÃ LIÊN KẾT"] = item.maLienKet || "";

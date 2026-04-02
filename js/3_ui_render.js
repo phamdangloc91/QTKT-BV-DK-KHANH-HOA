@@ -241,7 +241,9 @@ window.renderTable = function(data = null) {
                 let tenClickable = `<a href="#" onclick="window.moChiTiet('${item.ma || item.maLienKet || ''}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
                 let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`; }).join('<br><br>') : '';
                 let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat || ''; }).join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
-                tbodyHtml += `<tr><td>${index + 1}</td><td><b>${item.ma || item.maLienKet || ''}</b></td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td style="text-align:center; background:#fff3cd;">${td_ma}</td><td style="background:#fff3cd;">${td_ten}</td></tr>`;
+                
+                // Gán màu vàng cho tab Chưa áp giá (Vì có BHYT nhưng thiếu BV)
+                tbodyHtml += `<tr class="row-bhyt"><td>${index + 1}</td><td><b>${item.ma || item.maLienKet || ''}</b></td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td style="text-align:center; background:#fff3cd;">${td_ma}</td><td style="background:#fff3cd;">${td_ten}</td></tr>`;
             });
             tbody.innerHTML = tbodyHtml; return;
         }
@@ -319,10 +321,7 @@ window.renderTable = function(data = null) {
         
         if (isSuperTab) { htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; } 
         else if (currentTab === 'PL1' || isDeptTab) { htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; } 
-        else { 
-            // 🟢 THAY ĐỔI: Đã chuyển Mã chương thành STT của chương
-            htmlHead += `<th>STT của chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; 
-        }
+        else { htmlHead += `<th>STT của chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; }
 
         let canAddPL = false; let canRemovePL = false; let showFileCol = false;
         if (currentUser && currentUser.role === 'khoa') { if (!isDeptTab && !isSuperTab) canAddPL = true; if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; }
@@ -349,7 +348,26 @@ window.renderTable = function(data = null) {
             }
 
             let maHienThi = item.ma || item.maLienKet || ''; 
-            let html = "<tr>";
+            
+            // 🟢 THUẬT TOÁN ĐỔI MÀU NỀN THEO TRẠNG THÁI BHYT VÀ BỆNH VIỆN
+            let rowClass = "";
+            let isHasBHYT = false; let isHasBV = false;
+            let normCheckMa = window.normalizeCodeFast(maHienThi);
+            let normCheckTen = window.robustNormalize(item.ten || "");
+            
+            if (normCheckMa || normCheckTen) {
+                if (Array.isArray(database.GiaDV)) {
+                    isHasBHYT = database.GiaDV.some(g => (normCheckMa && window.normalizeCodeFast(g.maTuongDuong) === normCheckMa) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen));
+                }
+                if (Array.isArray(database.MaDVBV)) {
+                    isHasBV = database.MaDVBV.some(b => normCheckMa && window.normalizeCodeFast(b.maTuongDuong) === normCheckMa);
+                }
+            }
+            if (isHasBHYT && isHasBV) rowClass = "row-full";
+            else if (isHasBHYT) rowClass = "row-bhyt";
+
+            let html = `<tr class="${rowClass}">`;
+            
             if (isMultiSelectMode) {
                 let isChecked = selectedTechniques.find(function(x) { return x && x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi; }) ? "checked" : "";
                 html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="window.toggleSelectRow(this, '${realTenKhoa}', '${maHienThi}')" ${isChecked}></td>`;
@@ -430,6 +448,13 @@ window.capNhatTieuDe = function() {
     let grpPhanLoai = document.getElementById('groupPhanLoai');
     let grpQuyetDinh = document.getElementById('groupQuyetDinh');
     let grpNamDT = document.getElementById('groupNamDT');
+    
+    // Bật tắt Chú giải màu sắc tùy Tab
+    let legendColor = document.getElementById('colorLegend');
+    if(legendColor) {
+        if(currentTabType === 'QTKT' && currentTab !== 'GiaDV' && currentTab !== 'MaDVBV') legendColor.style.display = 'flex';
+        else legendColor.style.display = 'none';
+    }
 
     if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
     if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';

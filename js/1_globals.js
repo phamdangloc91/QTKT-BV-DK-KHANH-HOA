@@ -58,10 +58,18 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
+// 🟢 CẬP NHẬT TẠI ĐÂY: Tự động đổi dấu phẩy thành dấu chấm khi xử lý Mã Kỹ thuật
 window.normalizeCodeFast = function(code) {
-    if (!code) return ''; let strCode = String(code); let parts = strCode.split('.');
-    if (parts.length >= 2) { let a = parseInt(parts[0], 10); let b = parseInt(parts[1], 10); if (!isNaN(a) && !isNaN(b)) return a + '.' + b; }
-    return strCode.trim();
+    if (!code) return ''; 
+    // Đổi dấu phẩy thành chấm để quét mọi dạng nhập liệu
+    let strCode = String(code).replace(/,/g, '.').trim(); 
+    let parts = strCode.split('.');
+    if (parts.length >= 2) { 
+        let a = parseInt(parts[0], 10); 
+        let b = parseInt(parts[1], 10); 
+        if (!isNaN(a) && !isNaN(b)) return a + '.' + b; 
+    }
+    return strCode;
 }
 
 window.isCodeMatch = function(maTuongDuong, targetMa) { return window.normalizeCodeFast(maTuongDuong) === window.normalizeCodeFast(targetMa); }

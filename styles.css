@@ -103,3 +103,8 @@ tr:hover td { background-color: #f9fcff; }
 .select-options label { display: flex; align-items: center; padding: 8px 12px; cursor: pointer; font-size: 13px; font-weight: normal; margin: 0; border-bottom: 1px solid #f1f1f1;}
 .select-options label:hover { background-color: #e7f3ff; }
 .select-options input { margin-right: 10px; cursor: pointer; width: 16px; height: 16px;}
+/* MÀU SẮC ĐỊNH DANH TRẠNG THÁI DỊCH VỤ */
+tr.row-bhyt td { background-color: #fff3cd !important; }
+tr.row-bhyt:hover td { background-color: #ffeeba !important; }
+tr.row-full td { background-color: #d1ecf1 !important; }
+tr.row-full:hover td { background-color: #bee5eb !important; }
