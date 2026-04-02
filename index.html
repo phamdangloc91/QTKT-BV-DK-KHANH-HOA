@@ -3,7 +3,8 @@
 <head>
     <meta charset="UTF-8">
     <title>QUẢN LÝ QUY TRÌNH KỸ THUẬT - BV ĐK KHÁNH HÒA</title>
-    <link rel="stylesheet" href="styles.css"> <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+    <link rel="stylesheet" href="styles.css"> 
+    <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
     
     <script src="js/1_globals.js"></script>
     <script src="js/2_auth.js"></script>
@@ -17,7 +18,7 @@
     ĐANG XỬ LÝ DỮ LIỆU... VUI LÒNG ĐỢI
 </div>
 
-<input type="file" id="fileNopKhoa" style="display:none" accept=".doc,.docx" onchange="xuLyNopFileKhoa()">
+<input type="file" id="fileNopKhoa" style="display:none" accept=".doc,.docx" onchange="window.xuLyNopFileKhoa()">
 
 <nav class="navbar">
     <div class="navbar-left">
@@ -27,10 +28,10 @@
         <div class="dropdown">
             <button class="dropbtn">QUY TRÌNH KỸ THUẬT ▼</button>
             <div class="dropdown-content">
-                <a href="#" onclick="switchTab('PL1', 'QTKT')">Phụ lục 1 (Đến 30/6/2026)</a>
-                <a href="#" onclick="switchTab('PL2', 'QTKT')">Phụ lục 2 (Từ 1/7/2026)</a>
-                <a href="#" onclick="switchTab('GiaDV', 'QTKT')" style="color:var(--danger); font-weight:bold;">💰 Giá Dịch vụ (TT 23)</a>
-                <a href="#" onclick="switchTab('MaDVBV', 'QTKT')" style="color:var(--info); font-weight:bold;">🏥 Mã Dịch vụ BV</a>
+                <a href="#" onclick="window.switchTab('PL1', 'QTKT')">Phụ lục 1 (Đến 30/6/2026)</a>
+                <a href="#" onclick="window.switchTab('PL2', 'QTKT')">Phụ lục 2 (Từ 1/7/2026)</a>
+                <a href="#" onclick="window.switchTab('GiaDV', 'QTKT')" style="color:var(--danger); font-weight:bold;">💰 Giá Dịch vụ (TT 23)</a>
+                <a href="#" onclick="window.switchTab('MaDVBV', 'QTKT')" style="color:var(--info); font-weight:bold;">🏥 Mã Dịch vụ BV</a>
             </div>
         </div>
         
@@ -42,15 +43,15 @@
         <div class="dropdown" id="menuKHTH" style="display: none;">
             <button class="dropbtn" style="color: #ff9800;">P. KHTH ▼</button>
             <div class="dropdown-content">
-                <a href="#" onclick="switchTab('KHTH_CHO_DUYET', 'QTKT')">⏳ Chờ duyệt HĐ KHKT</a>
-                <a href="#" onclick="switchTab('KHTH_NOP_BO', 'QTKT')">🏢 QTKT chờ nộp Bộ</a>
-                <a href="#" onclick="switchTab('KHTH_NOP_SO', 'QTKT')">🏥 QTKT chờ nộp Sở</a>
-                <a href="#" onclick="switchTab('KHTH_CHUA_AP_GIA', 'QTKT')" style="color:var(--danger); font-weight:bold;">⚠️ QTKT BV chưa áp giá</a>
+                <a href="#" onclick="window.switchTab('KHTH_CHO_DUYET', 'QTKT')">⏳ Chờ duyệt HĐ KHKT</a>
+                <a href="#" onclick="window.switchTab('KHTH_NOP_BO', 'QTKT')">🏢 QTKT chờ nộp Bộ</a>
+                <a href="#" onclick="window.switchTab('KHTH_NOP_SO', 'QTKT')">🏥 QTKT chờ nộp Sở</a>
+                <a href="#" onclick="window.switchTab('KHTH_CHUA_AP_GIA', 'QTKT')" style="color:var(--danger); font-weight:bold;">⚠️ QTKT BV chưa áp giá</a>
             </div>
         </div>
     </div>
     <div id="navAuthArea" style="font-size: 14px;">
-        <button class="btn" style="background: white; color: var(--primary); padding: 8px 20px; font-size: 13px;" onclick="moModal('loginModal')">Đăng nhập</button>
+        <button class="btn" style="background: white; color: var(--primary); padding: 8px 20px; font-size: 13px;" onclick="window.moModal('loginModal')">Đăng nhập</button>
     </div>
 </nav>
 
@@ -65,20 +66,20 @@
             <b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.
         </div>
         <div>
-            <button id="btnStartBatch" class="btn" style="background: var(--purple); font-size:13px; padding: 8px 15px;" onclick="toggleMultiSelect(true)">📄 Tải / Cập nhật QĐ & BB họp HĐ KHKT</button>
-            <button id="btnConfirmBatch" class="btn" style="background: var(--success); font-size:13px; padding: 8px 15px; display:none;" onclick="moModalBatch()">✅ Xác nhận Chọn</button>
-            <button id="btnCancelBatch" class="btn" style="background: var(--danger); font-size:13px; padding: 8px 15px; display:none;" onclick="toggleMultiSelect(false)">❌ Hủy</button>
+            <button id="btnStartBatch" class="btn" style="background: var(--purple); font-size:13px; padding: 8px 15px;" onclick="window.toggleMultiSelect(true)">📄 Tải / Cập nhật QĐ & BB họp HĐ KHKT</button>
+            <button id="btnConfirmBatch" class="btn" style="background: var(--success); font-size:13px; padding: 8px 15px; display:none;" onclick="window.moModalBatch()">✅ Xác nhận Chọn</button>
+            <button id="btnCancelBatch" class="btn" style="background: var(--danger); font-size:13px; padding: 8px 15px; display:none;" onclick="window.toggleMultiSelect(false)">❌ Hủy</button>
         </div>
     </div>
 
     <div class="filter-section">
         <div class="filter-group">
             <label id="lblSearch">TÌM KIẾM CHUNG</label>
-            <input type="text" id="searchBox" placeholder="Nhập từ khóa tìm kiếm..." onkeyup="apDungLoc()">
+            <input type="text" id="searchBox" placeholder="Nhập từ khóa tìm kiếm..." onkeyup="window.apDungLoc()">
         </div>
         <div class="filter-group" id="groupPhanLoai">
             <label>PHÂN LOẠI</label>
-            <select id="filterLoai" onchange="apDungLoc()">
+            <select id="filterLoai" onchange="window.apDungLoc()">
                 <option value="">-- Tất cả loại --</option>
                 <option value="LDB">Đặc biệt</option>
                 <option value="L1">Loại 1</option>
@@ -91,7 +92,7 @@
         <div class="filter-group" id="groupQuyetDinh">
             <label>QUYẾT ĐỊNH</label>
             <div class="multi-select" id="multiSelectQD">
-                <div class="select-box" onclick="toggleQDDrodown(event)">
+                <div class="select-box" onclick="window.toggleQDDrodown(event)">
                     <span id="selectedQDText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px;">-- Tất cả --</span>
                     <span style="font-size: 10px; color: #555;">▼</span>
                 </div>
@@ -101,7 +102,7 @@
         
         <div class="filter-group" id="groupNamDT" style="display: none;">
             <label style="color:var(--danger);">* NĂM ĐÀO TẠO</label>
-            <select id="filterNamDT" onchange="apDungLoc()" style="border: 2px solid var(--danger);">
+            <select id="filterNamDT" onchange="window.apDungLoc()" style="border: 2px solid var(--danger);">
                 <option value="">-- Chọn Năm Upload/Xem --</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
@@ -112,10 +113,10 @@
         </div>
         
         <div class="action-bar" id="userActionBar" style="display:none;">
-            <button id="btnSaveDTNH" class="btn" style="background:var(--warning); color:black; font-size: 14px; padding: 10px 15px; display:none;" onclick="saveDTNH()">💾 Lưu Bảng</button>
-            <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="exportToExcel()">📥 Xuất Excel</button>
+            <button id="btnSaveDTNH" class="btn" style="background:var(--warning); color:black; font-size: 14px; padding: 10px 15px; display:none;" onclick="window.saveDTNH()">💾 Lưu Bảng</button>
+            <button class="btn" style="background:var(--success); font-size: 14px; padding: 10px 15px;" onclick="window.exportToExcel()">📥 Xuất Excel</button>
             <button id="btnNhapExcel" class="btn" style="background:#17a2b8; font-size: 14px; padding: 10px 15px;" onclick="document.getElementById('fileExcel').click()">📤 Nhập File Excel</button>
-            <input type="file" id="fileExcel" style="display:none" onchange="importFromExcel()" accept=".xlsx, .xls, .csv">
+            <input type="file" id="fileExcel" style="display:none" onchange="window.importFromExcel()" accept=".xlsx, .xls, .csv">
         </div>
     </div>
 
@@ -134,29 +135,29 @@
 
 <div id="loginModal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="dongModal('loginModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('loginModal')">&times;</span>
         <h3 style="text-align: center; margin-bottom: 20px;">Đăng Nhập Hệ Thống</h3>
         <input type="text" id="username" placeholder="Tên đăng nhập...">
         <input type="password" id="password" placeholder="Mật khẩu...">
-        <button class="btn" style="width:100%; background:var(--primary); font-size: 15px; padding: 12px; margin-top: 10px;" onclick="xuLyDangNhap()">Đăng Nhập</button>
+        <button class="btn" style="width:100%; background:var(--primary); font-size: 15px; padding: 12px; margin-top: 10px;" onclick="window.xuLyDangNhap()">Đăng Nhập</button>
         <p id="loginError" style="color:red; font-size:13px; display:none; margin-top:15px; text-align:center; font-weight:bold;"></p>
     </div>
 </div>
 
 <div id="pwdModal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="dongModal('pwdModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('pwdModal')">&times;</span>
         <h3>Đổi Mật Khẩu Cá Nhân</h3>
         <input type="password" id="oldPwd" placeholder="Mật khẩu cũ">
         <input type="password" id="newPwd" placeholder="Mật khẩu mới">
         <input type="password" id="confirmPwd" placeholder="Xác nhận mật khẩu mới">
-        <button class="btn" style="width:100%; background:var(--primary); font-size: 14px; padding: 10px;" onclick="xuLyDoiMatKhau()">Lưu Mật Khẩu</button>
+        <button class="btn" style="width:100%; background:var(--primary); font-size: 14px; padding: 10px;" onclick="window.xuLyDoiMatKhau()">Lưu Mật Khẩu</button>
     </div>
 </div>
 
 <div id="adminModal" class="modal">
     <div class="modal-content large">
-        <span class="close-btn" onclick="dongModal('adminModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('adminModal')">&times;</span>
         <h3>Quản Lý Tài Khoản</h3>
         <div style="background:#f9f9f9; padding:15px; border-radius:5px; margin-bottom:15px; border:1px solid #ddd;">
             <div style="display:flex; gap:10px; align-items:center;">
@@ -167,7 +168,7 @@
                     <optgroup label="Quyền Quản Trị"><option value="ROLE_ADMIN">Admin (Phòng KHTH)</option></optgroup>
                     <optgroup label="Quyền Khoa Phòng" id="optGroupKhoa"></optgroup>
                 </select>
-                <button class="btn" style="background:var(--success); font-size:14px; padding:10px 20px;" onclick="taoTaiKhoan()">Tạo</button>
+                <button class="btn" style="background:var(--success); font-size:14px; padding:10px 20px;" onclick="window.taoTaiKhoan()">Tạo</button>
             </div>
         </div>
         <div style="overflow-x: auto; max-height: 350px;">
@@ -181,31 +182,31 @@
 
 <div id="uploadSinglePdfModal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="dongModal('uploadSinglePdfModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('uploadSinglePdfModal')">&times;</span>
         <h3>Tải lên File PDF Chính thức</h3>
         <p style="font-size: 13px; color: #555; margin-top:0;">Quy trình: <b id="lblTenQuyTrinhUpload" style="color: var(--primary);"></b></p>
         <div class="upload-box">
             <label>File QTKT Chính thức đã ký (Chỉ PDF)</label>
             <input type="file" id="fPdfChinhThuc" accept=".pdf">
         </div>
-        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button>
+        <button class="btn" style="width:100%; background:var(--success); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="window.xuLyUploadSinglePdf()">🚀 Xác nhận Tải lên</button>
     </div>
 </div>
 
 <div id="uploadBatchModal" class="modal">
     <div class="modal-content">
-        <span class="close-btn" onclick="dongModal('uploadBatchModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('uploadBatchModal')">&times;</span>
         <h3>Đính kèm Quyết định & Biên bản</h3>
         <p style="font-size: 13px; color: var(--danger); margin-top:0;">Bạn đang đính kèm file cho <b id="lblBatchCount" style="font-size: 16px;"></b> kỹ thuật đã chọn.</p>
         <div class="upload-box"><label>1. Quyết định phê duyệt QTKT (PDF/Word)</label><input type="file" id="fQuyetDinhBatch" accept=".pdf,.doc,.docx"></div>
         <div class="upload-box"><label>2. Biên bản họp Hội đồng KHKT (PDF/Word)</label><input type="file" id="fBienBanBatch" accept=".pdf,.doc,.docx"></div>
-        <button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button>
+        <button class="btn" style="width:100%; background:var(--purple); font-size: 14px; padding: 12px; margin-top: 10px;" onclick="window.xuLyUploadBatch()">🚀 Xác nhận Đính kèm hàng loạt</button>
     </div>
 </div>
 
 <div id="detailModal" class="modal">
     <div class="modal-content large">
-        <span class="close-btn" onclick="dongModal('detailModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('detailModal')">&times;</span>
         <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3>
         <h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4>
         <p style="font-size: 14px;">Mã KT: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b> | Quyết định: <b id="dtQuyetDinh"></b></p>
@@ -218,7 +219,7 @@
 
 <div id="detailDVModal" class="modal">
     <div class="modal-content large">
-        <span class="close-btn" onclick="dongModal('detailDVModal')">&times;</span>
+        <span class="close-btn" onclick="window.dongModal('detailDVModal')">&times;</span>
         <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN DỊCH VỤ BỆNH VIỆN</h3>
         <h4 id="dvTenDV" style="color: var(--info); margin-top: 5px;"></h4>
         <p style="font-size: 14px;">Mã Dịch vụ BV: <b id="dvMaDV"></b></p>

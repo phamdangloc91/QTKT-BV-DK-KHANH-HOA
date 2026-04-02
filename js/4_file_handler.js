@@ -1,4 +1,191 @@
-async function importFromExcel() { 
+window.moModalBatch = function() {
+    if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 kỹ thuật trong bảng!");
+    document.getElementById('lblBatchCount').innerText = selectedTechniques.length;
+    window.moModal('uploadBatchModal');
+}
+
+window.xuLyUploadBatch = async function() {
+    const fQD = document.getElementById('fQuyetDinhBatch').files[0]; 
+    const fBB = document.getElementById('fBienBanBatch').files[0];
+    
+    if (!fQD && !fBB) return alert("Bạn phải chọn ít nhất 1 file để tải lên!");
+    
+    window.showLoading(true);
+    try {
+        const formData = new FormData(); 
+        formData.append('items', JSON.stringify(selectedTechniques));
+        if (fQD) formData.append('fQuyetDinh', fQD); 
+        if (fBB) formData.append('fBienBan', fBB);
+        
+        const res = await fetch('/api/upload/batch-qdbb', { method: 'POST', body: formData }); 
+        const data = await res.json(); 
+        alert(data.message);
+        
+        if (res.ok) { 
+            window.dongModal('uploadBatchModal'); 
+            document.getElementById('fQuyetDinhBatch').value = ''; 
+            document.getElementById('fBienBanBatch').value = ''; 
+            window.toggleMultiSelect(false); 
+            window.layDuLieu(); 
+        }
+    } catch(e) { 
+        alert("Lỗi tải file!"); 
+    } 
+    window.showLoading(false);
+}
+
+window.chuanBiNopKhoa = function(encodedMa) { 
+    let ma = decodeURIComponent(encodedMa || "");
+    targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; 
+    document.getElementById('fileNopKhoa').click(); 
+}
+
+window.xuLyNopFileKhoa = async function() {
+    const fileInput = document.getElementById('fileNopKhoa'); 
+    if (!fileInput.files[0]) return; 
+    
+    window.showLoading(true);
+    try {
+        const formData = new FormData(); 
+        formData.append('fileQuyTrinh', fileInput.files[0]); 
+        formData.append('tenKhoa', targetUpload.tenKhoa); 
+        formData.append('maQuyTrinh', targetUpload.ma);
+        
+        const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
+        const data = await res.json(); 
+        alert(data.message); 
+        if (res.ok) window.layDuLieu();
+    } catch(e) { 
+        alert("Lỗi khi tải file lên!"); 
+    } 
+    fileInput.value = ''; 
+    window.showLoading(false);
+}
+
+window.chuanBiUpSinglePdf = function(encodedMa, tenKhoa, encodedTenQuyTrinh) {
+    let ma = decodeURIComponent(encodedMa || "");
+    let tenQuyTrinh = decodeURIComponent(encodedTenQuyTrinh || "");
+    window.dongModal('detailModal'); 
+    window.dongModal('detailDVModal');
+    targetUpload = { ma: ma, tenKhoa: tenKhoa };
+    document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; 
+    window.moModal('uploadSinglePdfModal');
+}
+
+window.xuLyUploadSinglePdf = async function() {
+    const fPDF = document.getElementById('fPdfChinhThuc').files[0]; 
+    if (!fPDF) return alert("Vui lòng chọn file PDF!"); 
+    
+    window.showLoading(true);
+    try {
+        const formData = new FormData(); 
+        formData.append('tenKhoa', targetUpload.tenKhoa); 
+        formData.append('maQuyTrinh', targetUpload.ma); 
+        formData.append('fPdf', fPDF);
+        
+        const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); 
+        const data = await res.json(); 
+        alert(data.message); 
+        
+        if (res.ok) { 
+            window.dongModal('uploadSinglePdfModal'); 
+            document.getElementById('fPdfChinhThuc').value = ''; 
+            window.layDuLieu(); 
+        }
+    } catch(e) { 
+        alert("Lỗi khi tải file lên!"); 
+    } 
+    window.showLoading(false);
+}
+
+window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
+    let ma = decodeURIComponent(encodedMa || "");
+    let msg = "Xác nhận?";
+    if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
+    if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
+    
+    if (!confirm(msg)) return; 
+    window.showLoading(true);
+    try {
+        const res = await fetch('/api/dept-data/status', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, action: action }) 
+        });
+        if (res.ok) await window.layDuLieu(); 
+        else alert("Có lỗi xảy ra!"); 
+    } catch(e) { 
+        alert("Lỗi mạng!"); 
+    } 
+    window.showLoading(false);
+}
+
+window.bocQuyTrinh = async function(encodedMa) {
+    if(!currentUser || currentUser.role !== 'khoa') return;
+    let ma = decodeURIComponent(encodedMa || "");
+    let qtInfo = null;
+    if(Array.isArray(database.PL1)) { qtInfo = database.PL1.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
+    if(!qtInfo && Array.isArray(database.PL2)) { qtInfo = database.PL2.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
+    if(!qtInfo) return alert("Không tìm thấy thông tin kỹ thuật!");
+    
+    let myDept = database.depts.find(function(d) { return d && d.tenKhoa === currentUser.tenKhoa; });
+    if (myDept) {
+        let newQt = JSON.parse(JSON.stringify(qtInfo)); newQt.trangThai = "CHUA_NOP";
+        if (!Array.isArray(myDept.danhMucQTKT)) myDept.danhMucQTKT = [];
+        myDept.danhMucQTKT.push(newQt);
+    }
+    window.apDungLoc(); 
+
+    try { fetch('/api/dept-data/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo }) }); } catch(e) { console.error(e); }
+}
+
+window.xoaQuyTrinh = async function(encodedMa, tenKhoa) {
+    if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
+    let ma = decodeURIComponent(encodedMa || "");
+    let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
+    if (targetDept && Array.isArray(targetDept.danhMucQTKT)) {
+        targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) { return qt && !(window.isCodeMatch(qt.ma, ma) || window.isCodeMatch(qt.maLienKet, ma)); });
+    }
+    window.apDungLoc(); 
+
+    try { fetch('/api/dept-data/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma }) }); } catch(e) { console.error(e); }
+}
+
+window.saveDTNH = async function() {
+    let selectNamDT = document.getElementById('filterNamDT'); const selectedYear = selectNamDT ? selectNamDT.value : "";
+    if (!selectedYear) return alert("Vui lòng chọn Năm đào tạo!");
+    
+    let savedData = []; let rows = document.getElementById('dataBody').rows; let currentGroupId = 0;
+    let cNoiDung="", cThoiGian="", cCNS="", cNHS="", cKTV="", cDD="", cBS="", cDonVi="", cKinhPhi="";
+    
+    for (let i = 0; i < rows.length; i++) {
+        let cells = rows[i].cells; if(!cells || cells.length === 0) continue; let kyThuat = "";
+        if (cells.length > 2) {
+            currentGroupId++;
+            cNoiDung = cells[1].querySelector('.editable-cell') ? cells[1].querySelector('.editable-cell').innerText.trim() : "";
+            kyThuat = cells[2].querySelector('.editable-cell') ? cells[2].querySelector('.editable-cell').innerText.trim() : "";
+            cThoiGian = cells[3].querySelector('.editable-cell') ? cells[3].querySelector('.editable-cell').innerText.trim() : "";
+            cCNS = cells[4].querySelector('.editable-cell') ? cells[4].querySelector('.editable-cell').innerText.trim() : "";
+            cNHS = cells[5].querySelector('.editable-cell') ? cells[5].querySelector('.editable-cell').innerText.trim() : "";
+            cKTV = cells[6].querySelector('.editable-cell') ? cells[6].querySelector('.editable-cell').innerText.trim() : "";
+            cDD = cells[7].querySelector('.editable-cell') ? cells[7].querySelector('.editable-cell').innerText.trim() : "";
+            cBS = cells[8].querySelector('.editable-cell') ? cells[8].querySelector('.editable-cell').innerText.trim() : "";
+            cDonVi = cells[9].querySelector('.editable-cell') ? cells[9].querySelector('.editable-cell').innerText.trim() : "";
+            cKinhPhi = cells[10].querySelector('.editable-cell') ? cells[10].querySelector('.editable-cell').innerText.trim() : "";
+        } else { kyThuat = cells[0].querySelector('.editable-cell') ? cells[0].querySelector('.editable-cell').innerText.trim() : ""; }
+        if (!cNoiDung && !kyThuat) continue;
+        savedData.push({ groupId: currentGroupId, nam: selectedYear, noiDung: cNoiDung, kyThuat: kyThuat, thoiGian: cThoiGian, cns: cCNS, nhs: cNHS, ktv: cKTV, dd: cDD, bs: cBS, donVi: cDonVi, kinhPhi: cKinhPhi });
+    }
+
+    let payloadByKhoa = {}; payloadByKhoa[currentTab] = savedData;
+    window.showLoading(true);
+    try {
+        const response = await fetch('/api/upload-dtnh', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ payload: payloadByKhoa, year: selectedYear }) }); 
+        const result = await response.json(); alert("✅ Đã lưu chỉnh sửa thành công!"); await window.layDuLieu(); 
+    } catch (error) { alert("Lỗi lưu dữ liệu."); console.error(error); } finally { window.showLoading(false); }
+}
+
+window.importFromExcel = async function() { 
     const fileInput = document.getElementById('fileExcel'); 
     const file = fileInput.files[0]; 
     if (!file) return; 
@@ -11,7 +198,7 @@ async function importFromExcel() {
         }
     }
 
-    showLoading(true); 
+    window.showLoading(true); 
     const reader = new FileReader(); 
     reader.onload = async function(e) { 
         try { 
@@ -26,7 +213,7 @@ async function importFromExcel() {
                 for (let i = 0; i < Math.min(1000, rawData.length); i++) {
                     let rowData = rawData[i]; 
                     if (!rowData || rowData.length === 0) continue;
-                    let rowStr = rowData.map(function(c){ return safeStr(c); }).join(" ");
+                    let rowStr = rowData.map(function(c){ return window.safeStr(c); }).join(" ");
                     if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
                         headerRowIndex = i; 
                         break;
@@ -35,15 +222,15 @@ async function importFromExcel() {
 
                 if (headerRowIndex === -1) { 
                     alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel theo đúng Mẫu đăng ký!"); 
-                    showLoading(false); 
+                    window.showLoading(false); 
                     return; 
                 }
 
                 let colKhoa = -1, colNoiDung = -1, colKyThuat = -1, colThoiGian = -1, colDonVi = -1, colKinhPhi = -1;
                 let colCNSH = -1, colNHS = -1, colKTV = -1, colDD = -1, colBS = -1;
 
-                let headRow1 = rawData[headerRowIndex].map(robustNormalizeHeader);
-                let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(robustNormalizeHeader) : [];
+                let headRow1 = rawData[headerRowIndex].map(window.robustNormalizeHeader);
+                let headRow2 = (headerRowIndex + 1 < rawData.length) ? rawData[headerRowIndex + 1].map(window.robustNormalizeHeader) : [];
 
                 headRow1.forEach(function(k, idx) {
                     if (!k) return;
@@ -77,11 +264,11 @@ async function importFromExcel() {
                     
                     let tenKhoaRaw = rowData[colKhoa];
                     if (tenKhoaRaw && String(tenKhoaRaw).trim() !== "") { 
-                        currentKhoaInFile = normalize(String(tenKhoaRaw)); 
+                        currentKhoaInFile = window.robustNormalize(String(tenKhoaRaw)); 
                     }
                     if (!currentKhoaInFile) continue;
 
-                    let matchedKhoa = timKhoaChinhXac(currentKhoaInFile);
+                    let matchedKhoa = window.timKhoaChinhXac(currentKhoaInFile);
                     if (!matchedKhoa) continue; 
                     
                     if (currentUser.role !== 'admin' && matchedKhoa !== currentTab) continue;
@@ -131,23 +318,23 @@ async function importFromExcel() {
                 }); 
                 const result = await response.json(); 
                 alert(result.message); 
-                await layDuLieu(); 
+                await window.layDuLieu(); 
             } 
             else {
                 let headerRowIndex = -1; 
                 let headers = [];
                 for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                    let rowStr = rawData[i].map(function(c){ return safeStr(c); }).join(" ");
+                    let rowStr = rawData[i].map(function(c){ return window.safeStr(c); }).join(" ");
                     if (rowStr.includes("mã dịch vụ") || rowStr.includes("ma_dichvu") || rowStr.includes("mã kỹ thuật") || rowStr.includes("mã tương đương") || rowStr.includes("mức giá")) {
                         headerRowIndex = i; 
-                        headers = rawData[i].map(robustNormalizeHeader); 
+                        headers = rawData[i].map(window.robustNormalizeHeader); 
                         break;
                     }
                 }
 
                 if (headerRowIndex === -1) { 
                     alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); 
-                    showLoading(false); 
+                    window.showLoading(false); 
                     return; 
                 }
 
@@ -163,7 +350,7 @@ async function importFromExcel() {
                         let v = rowData[colIndex]; 
                         if (v !== undefined && v !== null && v !== "") hasData = true;
                         
-                        let kn = robustNormalizeHeader(k);
+                        let kn = window.robustNormalizeHeader(k);
                         
                         if (currentTab === 'GiaDV') {
                             if (kn.includes("ky thuat") || kn.includes("ki thuat") || kn.includes("kỹ thuật")) { item.tenKyThuat = v; }
@@ -193,7 +380,7 @@ async function importFromExcel() {
                 } 
                 
                 database[currentTab] = parsedData;
-                if (currentTab === 'GiaDV') enrichGiaDV(); 
+                if (currentTab === 'GiaDV') window.enrichGiaDV(); 
                 
                 const formData = new FormData(); 
                 formData.append('fileExcel', file); 
@@ -202,20 +389,20 @@ async function importFromExcel() {
                 const response = await fetch('/api/upload-and-save', { method: 'POST', body: formData }); 
                 const result = await response.json(); 
                 alert(result.message); 
-                apDungLoc(); 
+                window.apDungLoc(); 
             }
         } catch (error) { 
             alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); 
             console.error(error); 
         } finally { 
             fileInput.value = ''; 
-            showLoading(false); 
+            window.showLoading(false); 
         } 
     }; 
     reader.readAsArrayBuffer(file); 
 }
 
-function exportToExcel() { 
+window.exportToExcel = function() { 
     if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
     const isDeptTab = DANH_SACH_KHOA.includes(currentTab);

@@ -1,6 +1,6 @@
-function jumpToPL1(maLienKet) { switchTab('PL1', 'QTKT'); let sBox = document.getElementById('searchBox'); if(sBox) { sBox.value = maLienKet; apDungLoc(); } }
+window.jumpToPL1 = function(maLienKet) { window.switchTab('PL1', 'QTKT'); let sBox = document.getElementById('searchBox'); if(sBox) { sBox.value = maLienKet; window.apDungLoc(); } }
 
-function getAggregatedList(tabName) {
+window.getAggregatedList = function(tabName) {
     let result = [];
     if(!database.depts || !Array.isArray(database.depts)) return result;
     database.depts.forEach(function(d) {
@@ -14,21 +14,21 @@ function getAggregatedList(tabName) {
     result.sort(function(a, b) { 
         let deptCmp = String(a.tenKhoaChuQuan || "").localeCompare(String(b.tenKhoaChuQuan || ""));
         if (deptCmp !== 0) return deptCmp;
-        return getOrderIndex(a) - getOrderIndex(b);
+        return window.getOrderIndex(a) - window.getOrderIndex(b);
     }); 
     return result;
 }
 
-function prepareKeywords() {
+window.prepareKeywords = function() {
     let validPL = [];
     if(Array.isArray(database.PL1)) validPL = validPL.concat(database.PL1);
     if(Array.isArray(database.PL2)) validPL = validPL.concat(database.PL2);
     validPL = validPL.filter(function(x) { return x && x.ten; });
-    plKeywords = validPL.map(function(x) { return { ten: x.ten, words: new Set(robustNormalize(x.ten).split(" ").filter(Boolean)) }; });
+    plKeywords = validPL.map(function(x) { return { ten: x.ten, words: new Set(window.robustNormalize(x.ten).split(" ").filter(Boolean)) }; });
 }
 
-function getSuggestion(kyThuat) {
-    if (!kyThuat) return null; let wordsKT = new Set(robustNormalize(kyThuat).split(" ").filter(Boolean)); if (wordsKT.size === 0) return null;
+window.getSuggestion = function(kyThuat) {
+    if (!kyThuat) return null; let wordsKT = new Set(window.robustNormalize(kyThuat).split(" ").filter(Boolean)); if (wordsKT.size === 0) return null;
     let bestMatch = null; let maxScore = 0;
     for (let pl of plKeywords) {
         let intersection = 0; for (let w of wordsKT) { if (pl.words.has(w)) intersection++; }
@@ -38,20 +38,20 @@ function getSuggestion(kyThuat) {
     return (maxScore >= 0.65) ? bestMatch : null; 
 }
 
-function acceptSuggestion(btn) {
+window.acceptSuggestion = function(btn) {
     let suggestedText = btn.getAttribute('data-suggestion'); let td = btn.closest('td'); let cell = td.querySelector('.editable-cell');
     if(cell) cell.innerText = suggestedText; btn.closest('.suggestion-box').remove();
 }
 
-function enrichGiaDV() {
+window.enrichGiaDV = function() {
     let qtktMapByCode = new Map();
     let qtktMapByName = new Map();
     
     let addTolist = function(i) {
         if(!i) return;
-        let m1 = normalizeCodeFast(i.ma); 
-        let m2 = normalizeCodeFast(i.maLienKet);
-        let n = robustNormalize(i.ten); 
+        let m1 = window.normalizeCodeFast(i.ma); 
+        let m2 = window.normalizeCodeFast(i.maLienKet);
+        let n = window.robustNormalize(i.ten); 
         
         if (m1 && !qtktMapByCode.has(m1)) qtktMapByCode.set(m1, i);
         if (m2 && !qtktMapByCode.has(m2)) qtktMapByCode.set(m2, i);
@@ -63,30 +63,24 @@ function enrichGiaDV() {
     if(Array.isArray(database.GiaDV)) {
         database.GiaDV.forEach(function(item) {
             if(!item) return;
-            let qtMa = normalizeCodeFast(item.maTuongDuong);
-            let qtName = robustNormalize(item.tenKyThuat);
+            let qtMa = window.normalizeCodeFast(item.maTuongDuong);
+            let qtName = window.robustNormalize(item.tenKyThuat);
             
             let qtktInfo = null;
-            if (qtName && qtktMapByName.has(qtName)) {
-                qtktInfo = qtktMapByName.get(qtName);
-            } 
-            else if (qtMa && qtktMapByCode.has(qtMa)) {
-                qtktInfo = qtktMapByCode.get(qtMa);
-            }
+            if (qtName && qtktMapByName.has(qtName)) { qtktInfo = qtktMapByName.get(qtName); } 
+            else if (qtMa && qtktMapByCode.has(qtMa)) { qtktInfo = qtktMapByCode.get(qtMa); }
 
-            item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten) : (item.tenKyThuat ? String(item.tenKyThuat) : "");
-            item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai) : "KPL";
-            item.qt_quyetDinh = (qtktInfo && qtktInfo.quyetDinh) ? String(qtktInfo.quyetDinh) : "Chưa phê duyệt";
+            item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten).replace(/['"`\n\r\\]/g, "") : (item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "");
+            item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "KPL";
+            item.qt_quyetDinh = (qtktInfo && qtktInfo.quyetDinh) ? String(qtktInfo.quyetDinh).replace(/['"`\n\r\\]/g, "") : "Chưa phê duyệt";
             
-            if (!item.maTuongDuong && qtktInfo && (qtktInfo.ma || qtktInfo.maLienKet)) {
-                item.maTuongDuong = qtktInfo.ma || qtktInfo.maLienKet;
-            }
+            if (!item.maTuongDuong && qtktInfo && (qtktInfo.ma || qtktInfo.maLienKet)) { item.maTuongDuong = qtktInfo.ma || qtktInfo.maLienKet; }
         });
     }
 }
 
-async function layDuLieu() {
-    showLoading(true);
+window.layDuLieu = async function() {
+    window.showLoading(true);
     try {
         const resData = await fetch('/api/data'); const mainData = await resData.json(); 
         database.PL1 = (mainData && Array.isArray(mainData.PL1) ? mainData.PL1 : []).filter(Boolean); 
@@ -101,13 +95,14 @@ async function layDuLieu() {
             return d;
         });
         
-        enrichGiaDV(); 
-        prepareKeywords(); apDungLoc(); 
+        window.enrichGiaDV(); 
+        window.prepareKeywords(); 
+        window.apDungLoc(); 
     } catch (error) { console.log("Lỗi khi lấy dữ liệu:", error); }
-    showLoading(false);
+    window.showLoading(false);
 }
 
-function toggleMultiSelect(state) {
+window.toggleMultiSelect = function(state) {
     isMultiSelectMode = state; selectedTechniques = [];
     if (isMultiSelectMode) {
         document.getElementById('btnStartBatch').style.display = 'none'; document.getElementById('btnConfirmBatch').style.display = 'inline-block'; document.getElementById('btnCancelBatch').style.display = 'inline-block';
@@ -116,15 +111,15 @@ function toggleMultiSelect(state) {
         document.getElementById('btnStartBatch').style.display = 'inline-block'; document.getElementById('btnConfirmBatch').style.display = 'none'; document.getElementById('btnCancelBatch').style.display = 'none';
         document.getElementById('batchStatusText').innerHTML = `<b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.`;
     }
-    apDungLoc(); 
+    window.apDungLoc(); 
 }
 
-function toggleSelectRow(checkbox, tenKhoa, ma) {
+window.toggleSelectRow = function(checkbox, tenKhoa, ma) {
     if (checkbox.checked) { selectedTechniques.push({ tenKhoa: tenKhoa, maQuyTrinh: ma }); } 
     else { selectedTechniques = selectedTechniques.filter(function(item) { return item && !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma); }); }
 }
 
-function toggleAllGiaDV(source) {
+window.toggleAllGiaDV = function(source) {
     let checkboxes = document.querySelectorAll('.row-checkbox-giadv');
     checkboxes.forEach(function(cb) { 
         cb.checked = source.checked; 
@@ -134,14 +129,14 @@ function toggleAllGiaDV(source) {
     });
 }
 
-function toggleRowGiaDV(checkbox, val) {
+window.toggleRowGiaDV = function(checkbox, val) {
     let strVal = String(val);
     if (checkbox.checked) { if (!selectedGiaDV.includes(strVal)) selectedGiaDV.push(strVal); } 
     else { selectedGiaDV = selectedGiaDV.filter(function(x) { return x !== strVal; }); }
-    updateSelectAllGiaDVUI();
+    window.updateSelectAllGiaDVUI();
 }
 
-function updateSelectAllGiaDVUI() {
+window.updateSelectAllGiaDVUI = function() {
     let selectAllCb = document.getElementById('selectAllGiaDV'); if (!selectAllCb) return;
     let visibleCheckboxes = document.querySelectorAll('.row-checkbox-giadv');
     if (visibleCheckboxes.length === 0) { selectAllCb.checked = false; return; }
@@ -150,13 +145,13 @@ function updateSelectAllGiaDVUI() {
     selectAllCb.checked = allChecked;
 }
 
-function toggleAllQD(source) {
+window.toggleAllQD = function(source) {
     let qdCheckboxes = document.querySelectorAll('.qd-checkbox');
     qdCheckboxes.forEach(function(cb) { cb.checked = source.checked; });
-    apDungLoc();
+    window.apDungLoc();
 }
 
-function renderTable(data = null) {
+window.renderTable = function(data = null) {
     try {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); let list = [];
         let canEdit = false;
@@ -187,9 +182,9 @@ function renderTable(data = null) {
 
                 let kyThuatHtml = ''; let suggestionHtml = ''; let rawKT = item.kyThuat || '';
                 if (rawKT.trim() !== '') {
-                    let normName = robustNormalize(rawKT); let matchedQT = null;
-                    if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x) { return x && robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
-                    if(!matchedQT && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x) { return x && robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
+                    let normName = window.robustNormalize(rawKT); let matchedQT = null;
+                    if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x) { return x && window.robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
+                    if(!matchedQT && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x) { return x && window.robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
                     
                     if (matchedQT) {
                         let safeTen = matchedQT.ten ? String(matchedQT.ten) : ""; 
@@ -197,10 +192,10 @@ function renderTable(data = null) {
                         let safeQD = matchedQT.quyetDinh ? String(matchedQT.quyetDinh) : ""; 
                         let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
                         
-                        kyThuatHtml = `<a href="#" onclick="moChiTiet('${maHienThi}', '${encodeForJS(safeTen)}', '${encodeForJS(safePL)}', '${encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
+                        kyThuatHtml = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
                     } else {
                         kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${rawKT}</span>`;
-                        if (canEdit) { let suggested = getSuggestion(rawKT); if (suggested) { let safeSug = String(suggested).replace(/"/g, '&quot;'); suggestionHtml = `<div class="suggestion-box">💡 Ý bạn là: <button class="suggestion-btn" data-suggestion="${safeSug}" onclick="acceptSuggestion(this)">${suggested}</button>?</div>`; } }
+                        if (canEdit) { let suggested = window.getSuggestion(rawKT); if (suggested) { let safeSug = String(suggested).replace(/"/g, '&quot;'); suggestionHtml = `<div class="suggestion-box">💡 Ý bạn là: <button class="suggestion-btn" data-suggestion="${safeSug}" onclick="window.acceptSuggestion(this)">${suggested}</button>?</div>`; } }
                     }
                 }
 
@@ -224,7 +219,7 @@ function renderTable(data = null) {
         }
 
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
-            if (!data) return apDungLoc(); currentFilteredData = data; list = data;
+            if (!data) return window.apDungLoc(); currentFilteredData = data; list = data;
             const thead = document.getElementById('tableHead'); const tbody = document.getElementById('dataBody'); let tbodyHtml = '';
             
             let htmlHead = `<tr><th>STT</th><th style="width:10%">Mã kỹ thuật</th><th style="width:15%">Tên chương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th style="width:10%; text-align:center;">Mã tương đương</th><th style="width:25%">Tên Dịch vụ BHYT</th></tr>`;
@@ -236,7 +231,7 @@ function renderTable(data = null) {
                 let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
                 let safeQD = item.quyetDinh ? String(item.quyetDinh) : "";
                 
-                let tenClickable = `<a href="#" onclick="moChiTiet('${item.ma || item.maLienKet || ''}', '${encodeForJS(safeTen)}', '${encodeForJS(safePL)}', '${encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
+                let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(item.ma || item.maLienKet || '')}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
                 let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`; }).join('<br><br>') : '';
                 let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat || ''; }).join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
                 tbodyHtml += `<tr><td>${index + 1}</td><td><b>${item.ma || item.maLienKet || ''}</b></td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td style="text-align:center; background:#fff3cd;">${td_ma}</td><td style="background:#fff3cd;">${td_ten}</td></tr>`;
@@ -244,11 +239,11 @@ function renderTable(data = null) {
             tbody.innerHTML = tbodyHtml; return;
         }
 
-        if (data) { list = data; } else if (isSuperTab) { list = getAggregatedList(currentTab); } else if (isDeptTab) { 
+        if (data) { list = data; } else if (isSuperTab) { list = window.getAggregatedList(currentTab); } else if (isDeptTab) { 
             let deptObj = null; if(Array.isArray(database.depts)) { deptObj = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; }); }
             let rawList = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
             list = [...rawList];
-            list.sort(function(a, b) { return getOrderIndex(a) - getOrderIndex(b); });
+            list.sort(function(a, b) { return window.getOrderIndex(a) - window.getOrderIndex(b); });
         } else { list = Array.isArray(database[currentTab]) ? database[currentTab] : []; }
         currentFilteredData = list;
 
@@ -256,7 +251,7 @@ function renderTable(data = null) {
         let htmlHead = `<tr>`; let tbodyHtml = '';
         
         if (currentTab === 'GiaDV') {
-            htmlHead += `<th style="width:40px; text-align:center;"><input type="checkbox" id="selectAllGiaDV" onchange="toggleAllGiaDV(this)"></th>
+            htmlHead += `<th style="width:40px; text-align:center;"><input type="checkbox" id="selectAllGiaDV" onchange="window.toggleAllGiaDV(this)"></th>
                          <th>STT</th>
                          <th>Tên kỹ thuật (Click xem chi tiết)</th>
                          <th>Tên dịch vụ BHYT</th>
@@ -274,13 +269,13 @@ function renderTable(data = null) {
                 let safeQD = item.qt_quyetDinh || "Chưa phê duyệt";
                 let maPass = item.maTuongDuong || item.tenKyThuat || "";
 
-                let tenClickable = `<a href="#" onclick="moChiTiet('${maPass}', '${encodeForJS(safeTenKT)}', '${encodeForJS(safePL)}', '${encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenKT}</a>`;
+                let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maPass)}', '${window.encodeForJS(safeTenKT)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenKT}</a>`;
                 
                 let uniqueId = String(item.maTuongDuong || item.tenKyThuat || index);
                 let isChecked = selectedGiaDV.includes(uniqueId) ? "checked" : "";
 
                 tbodyHtml += `<tr>
-                    <td style="text-align:center;"><input type="checkbox" class="row-checkbox-giadv" value="${uniqueId}" onchange="toggleRowGiaDV(this, '${uniqueId}')" ${isChecked}></td>
+                    <td style="text-align:center;"><input type="checkbox" class="row-checkbox-giadv" value="${uniqueId}" onchange="window.toggleRowGiaDV(this, '${uniqueId}')" ${isChecked}></td>
                     <td>${index + 1}</td>
                     <td>${tenClickable}</td>
                     <td>${item.tenDichVu || ''}</td>
@@ -291,7 +286,7 @@ function renderTable(data = null) {
                 </tr>`;
             });
             tbody.innerHTML = tbodyHtml;
-            updateSelectAllGiaDVUI();
+            window.updateSelectAllGiaDVUI();
             return;
         }
 
@@ -306,7 +301,7 @@ function renderTable(data = null) {
                 let safeMaTD = item.maTuongDuong ? String(item.maTuongDuong) : ""; 
                 let safeMaDV = item.maDichVu ? String(item.maDichVu) : "";
                 
-                let tenClickable = `<a href="#" onclick="moChiTietDV('${safeMaDV}', '${safeMaTD}', '${encodeForJS(safeTenDV)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenDV}</a>`;
+                let tenClickable = `<a href="#" onclick="window.moChiTietDV('${window.encodeForJS(safeMaDV)}', '${window.encodeForJS(safeMaTD)}', '${window.encodeForJS(safeTenDV)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenDV}</a>`;
                 tbodyHtml += `<tr><td>${index + 1}</td><td><b>${item.maDichVu || ''}</b></td><td>${item.maTuongDuong || ''}</td><td>${tenClickable}</td><td style="color:green; text-align:right; font-weight:bold;">${gBHYT}</td><td style="color:blue; text-align:right; font-weight:bold;">${gVP}</td><td style="color:purple; text-align:right; font-weight:bold;">${gYC}</td><td style="color:red; text-align:right; font-weight:bold;">${gNN}</td></tr>`;
             });
             tbody.innerHTML = tbodyHtml; return;
@@ -347,7 +342,7 @@ function renderTable(data = null) {
             let html = "<tr>";
             if (isMultiSelectMode) {
                 let isChecked = selectedTechniques.find(function(x) { return x && x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi; }) ? "checked" : "";
-                html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="toggleSelectRow(this, '${realTenKhoa}', '${maHienThi}')" ${isChecked}></td>`;
+                html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="window.toggleSelectRow(this, '${realTenKhoa}', '${window.encodeForJS(maHienThi)}')" ${isChecked}></td>`;
             }
 
             let safeTen = item.ten ? String(item.ten) : ""; 
@@ -355,12 +350,12 @@ function renderTable(data = null) {
             let safeQD = item.quyetDinh ? String(item.quyetDinh) : ""; 
             let safeMaLienKet = item.maLienKet ? String(item.maLienKet) : "";
             
-            let tenClickable = `<a href="#" onclick="moChiTiet('${maHienThi}', '${encodeForJS(safeTen)}', '${encodeForJS(safePL)}', '${encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
+            let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
 
             html += `<td>${index + 1}</td>`;
             if (isSuperTab) { html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; } 
             else if (currentTab === 'PL1' || isDeptTab) { let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`; html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; } 
-            else { html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="jumpToPL1('${safeMaLienKet}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; }
+            else { html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="window.jumpToPL1('${window.encodeForJS(safeMaLienKet)}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; }
             
             let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
@@ -368,18 +363,18 @@ function renderTable(data = null) {
                 let fileHtml = '';
                 if(tt === 'DA_PHE_DUYET') {
                     fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br><span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
-                    if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
+                    if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
                 } else {
                     if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`; else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`; else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
 
                     if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
                         if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
-                        if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
-                        if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                        if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file Word</button>`;
+                        if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">🔄 Nộp lại</button>`;
                     } 
                     else if (currentUser && currentUser.role === 'admin') {
                         if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
-                        if(tt === 'CHO_DUYET' && !isMultiSelectMode) { fileHtml += `<button class="btn" style="background:var(--success);" onclick="chuanBiUpSinglePdf('${maHienThi}', '${realTenKhoa}', '${encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; fileHtml += `<button class="btn" style="background:var(--danger);" onclick="thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Từ chối</button>`; }
+                        if(tt === 'CHO_DUYET' && !isMultiSelectMode) { fileHtml += `<button class="btn" style="background:var(--success);" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REJECT_KHOA')">❌ Từ chối</button>`; }
                     }
                 }
                 html += `<td>${fileHtml}</td>`;
@@ -391,26 +386,26 @@ function renderTable(data = null) {
                 if (itemInCart) {
                     let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP'; let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
                     if (cartStatus === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                    else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`; }
+                    else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`; }
                 } else {
-                    html += `<td style="text-align:center;"><button class="btn btn-add" onclick="bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
+                    html += `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${window.encodeForJS(maHienThi)}')">+ Thêm</button></td>`;
                 }
             }
             else if (canRemovePL) { 
                 if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`; }
+                else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}')">🗑️ Xóa</button></td>`; }
             }
             
             html += "</tr>"; tbodyHtml += html;
         });
         
         tbody.innerHTML = tbodyHtml;
-        capNhatDanhSachQuyetDinh();
+        window.capNhatDanhSachQuyetDinh();
         
     } catch(e) { console.error(e); alert("Lỗi khi tải bảng dữ liệu: " + e.message); }
 }
 
-function capNhatTieuDe() {
+window.capNhatTieuDe = function() {
     const isDeptTab = DANH_SACH_KHOA.includes(currentTab); let textRole = "";
     if(!currentUser) textRole = "(Chế độ Khách - Chỉ Xem)"; else if (currentUser.role === 'admin') textRole = "(Quyền Quản Trị Viên)"; else textRole = `(Quyền: ${currentUser.tenKhoa})`;
     
@@ -446,9 +441,9 @@ function capNhatTieuDe() {
     else { document.getElementById('tabTitle').innerText = `DANH MỤC QTKT - ${currentTab.toUpperCase()}`; if(currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) document.getElementById('tabDesc').innerHTML = `<span style="color:var(--success); font-weight:bold">Không gian làm việc riêng của khoa bạn</span>`; else document.getElementById('tabDesc').innerText = `Bạn đang xem dữ liệu của khoa khác ${textRole}`; document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG';} 
 }
 
-function switchTab(tab, type) { 
+window.switchTab = function(tab, type) { 
     if (!type) type = 'QTKT';
-    currentTab = tab; currentTabType = type; capNhatTieuDe(); 
+    currentTab = tab; currentTabType = type; window.capNhatTieuDe(); 
     
     let sBox = document.getElementById('searchBox'); if(sBox) sBox.value = ''; 
     let fLoai = document.getElementById('filterLoai'); if(fLoai) fLoai.value = ""; 
@@ -462,13 +457,13 @@ function switchTab(tab, type) {
     }
     
     let fNam = document.getElementById('filterNamDT'); if(fNam) fNam.value = "";
-    apDungLoc(); 
+    window.apDungLoc(); 
 }
 
-function apDungLoc() { 
+window.apDungLoc = function() { 
     try {
         const searchEl = document.getElementById('searchBox');
-        const search = searchEl ? safeStr(searchEl.value) : '';
+        const search = searchEl ? window.safeStr(searchEl.value) : '';
         
         let checkedQDs = [];
         let qdCheckboxes = document.querySelectorAll('.qd-checkbox:checked');
@@ -495,11 +490,11 @@ function apDungLoc() {
             
             const filtered = sourceList.filter(function(item) {
                 if(!item) return false;
-                let matchSearch = (safeStr(item.noiDung).includes(search) || safeStr(item.kyThuat).includes(search));
+                let matchSearch = (window.safeStr(item.noiDung).includes(search) || window.safeStr(item.kyThuat).includes(search));
                 let matchYear = filterNam === "" || String(item.nam) === String(filterNam);
                 return matchSearch && matchYear;
             });
-            renderTable(filtered);
+            window.renderTable(filtered);
             
             let btnSave = document.getElementById('btnSaveDTNH');
             if (btnSave) {
@@ -521,7 +516,7 @@ function apDungLoc() {
             const maDvbvSet = new Set();
             if(Array.isArray(database.MaDVBV)) {
                 database.MaDVBV.forEach(function(dv) { 
-                    if (dv && dv.maTuongDuong) maDvbvSet.add(normalizeCodeFast(dv.maTuongDuong)); 
+                    if (dv && dv.maTuongDuong) maDvbvSet.add(window.normalizeCodeFast(dv.maTuongDuong)); 
                 });
             }
 
@@ -532,12 +527,12 @@ function apDungLoc() {
                 database.GiaDV.forEach(function(g) {
                     if(!g) return;
                     if (g.maTuongDuong) {
-                        let code = normalizeCodeFast(g.maTuongDuong);
+                        let code = window.normalizeCodeFast(g.maTuongDuong);
                         if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
                         giaDvByCode.get(code).push(g);
                     }
                     if (g.tenKyThuat) {
-                        let name = robustNormalize(g.tenKyThuat);
+                        let name = window.robustNormalize(g.tenKyThuat);
                         if (!giaDvByName.has(name)) giaDvByName.set(name, []);
                         giaDvByName.get(name).push(g);
                     }
@@ -548,10 +543,10 @@ function apDungLoc() {
             if(Array.isArray(database.PL1)) {
                 database.PL1.forEach(function(qt) {
                     if(!qt) return;
-                    let qdVal = qt.quyetDinh ? safeStr(qt.quyetDinh) : '';
+                    let qdVal = qt.quyetDinh ? window.safeStr(qt.quyetDinh) : '';
                     if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
                     
-                    let normCode = normalizeCodeFast(qt.ma);
+                    let normCode = window.normalizeCodeFast(qt.ma);
                     if (maDvbvSet.has(normCode)) return;
 
                     let matchedGiaMap = new Map(); 
@@ -559,7 +554,7 @@ function apDungLoc() {
                         giaDvByCode.get(normCode).forEach(function(g) { matchedGiaMap.set(g, g); }); 
                     }
                     if (qt.ten) {
-                        let normName = robustNormalize(qt.ten);
+                        let normName = window.robustNormalize(qt.ten);
                         if (giaDvByName.has(normName)) { 
                             giaDvByName.get(normName).forEach(function(g) { matchedGiaMap.set(g, g); }); 
                         }
@@ -577,9 +572,9 @@ function apDungLoc() {
             
             const filtered = sourceList.filter(function(item) {
                 if(!item) return false;
-                return (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tt23_ma).includes(search) || safeStr(item.tt23_ten).includes(search));
+                return (window.safeStr(item.ma).includes(search) || window.safeStr(item.ten).includes(search) || window.safeStr(item.tt23_ma).includes(search) || window.safeStr(item.tt23_ten).includes(search));
             });
-            renderTable(filtered); 
+            window.renderTable(filtered); 
             return;
         }
 
@@ -595,7 +590,7 @@ function apDungLoc() {
                 let m4 = item.maDichVu ? String(item.maDichVu).toLowerCase() : "";
                 return (m4.includes(search) || m1.includes(search) || m3.includes(search));
             });
-            renderTable(filtered); 
+            window.renderTable(filtered); 
             return;
         }
 
@@ -615,7 +610,7 @@ function apDungLoc() {
                 
                 return matchSearch && matchQD;
             });
-            renderTable(filtered); 
+            window.renderTable(filtered); 
             return;
         }
 
@@ -629,7 +624,7 @@ function apDungLoc() {
         let sourceList = []; 
         
         if (isSuperTab) { 
-            sourceList = getAggregatedList(currentTab); 
+            sourceList = window.getAggregatedList(currentTab); 
         } else if (isDeptTab) { 
             let deptObj = null;
             if(Array.isArray(database.depts)) {
@@ -637,14 +632,14 @@ function apDungLoc() {
             }
             let rawList = deptObj && Array.isArray(deptObj.danhMucQTKT) ? deptObj.danhMucQTKT : []; 
             sourceList = [...rawList];
-            sourceList.sort(function(a, b) { return getOrderIndex(a) - getOrderIndex(b); });
+            sourceList.sort(function(a, b) { return window.getOrderIndex(a) - window.getOrderIndex(b); });
         } else { 
             sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
         } 
         
         const filtered = sourceList.filter(function(item) { 
             if(!item) return false;
-            const matchSearch = (safeStr(item.ma).includes(search) || safeStr(item.ten).includes(search) || safeStr(item.tenKhoaChuQuan).includes(search)); 
+            const matchSearch = (window.safeStr(item.ma).includes(search) || window.safeStr(item.ten).includes(search) || window.safeStr(item.tenKhoaChuQuan).includes(search)); 
             
             let qd = item.quyetDinh || "Chưa phê duyệt";
             const matchQD = checkedQDs.length === 0 || checkedQDs.includes(qd);
@@ -661,14 +656,14 @@ function apDungLoc() {
             return matchSearch && matchLoai && matchQD; 
         }); 
         
-        renderTable(filtered); 
+        window.renderTable(filtered); 
     } catch(e) {
         console.error(e);
         alert("Lỗi khi Lọc Dữ liệu: " + e.message);
     }
 }
 
-function capNhatDanhSachQuyetDinh() { 
+window.capNhatDanhSachQuyetDinh = function() { 
     if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
     const optionsContainer = document.getElementById('optionsQD'); 
     if(!optionsContainer) return;
@@ -684,7 +679,7 @@ function capNhatDanhSachQuyetDinh() {
     let sourceList = []; 
     
     if (isSuperTab) {
-        sourceList = getAggregatedList(currentTab); 
+        sourceList = window.getAggregatedList(currentTab); 
     } else if (isDeptTab) {
         let foundDept = null;
         if(Array.isArray(database.depts)) {
@@ -713,7 +708,7 @@ function capNhatDanhSachQuyetDinh() {
     let chkAll = document.createElement('input');
     chkAll.type = 'checkbox';
     chkAll.id = 'selectAllQD';
-    chkAll.onchange = function() { toggleAllQD(this); };
+    chkAll.onchange = function() { window.toggleAllQD(this); };
     lblAll.appendChild(chkAll);
     lblAll.appendChild(document.createTextNode(" Chọn tất cả"));
     optionsContainer.appendChild(lblAll);
@@ -725,7 +720,7 @@ function capNhatDanhSachQuyetDinh() {
         chk.value = qd;
         chk.className = 'qd-checkbox';
         if(currentlyChecked.includes(qd)) chk.checked = true;
-        chk.onchange = apDungLoc;
+        chk.onchange = window.apDungLoc;
         lbl.appendChild(chk);
         lbl.appendChild(document.createTextNode(" " + qd));
         optionsContainer.appendChild(lbl);
@@ -743,4 +738,154 @@ function capNhatDanhSachQuyetDinh() {
         else if(checkedBoxes.length === 1) textSpan.innerText = "1 QĐ được chọn";
         else textSpan.innerText = checkedBoxes.length + " QĐ được chọn";
     }
+}
+
+window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDichVu) {
+    let maDichVu = decodeURIComponent(encodedMaDichVu || "");
+    let maTuongDuong = decodeURIComponent(encodedMaTuongDuong || "");
+    let tenDichVu = decodeURIComponent(encodedTenDichVu || "");
+
+    document.getElementById('dvTenDV').innerText = tenDichVu || ''; 
+    document.getElementById('dvMaDV').innerText = maDichVu || '';
+    
+    let qtMa = window.normalizeCodeFast(maTuongDuong);
+    let qtktInfo = null;
+    if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
+    if(!qtktInfo && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
+                   
+    if (!qtktInfo && Array.isArray(database.depts)) { 
+        for (let d of database.depts) { 
+            if(!d || !Array.isArray(d.danhMucQTKT)) continue;
+            let found = d.danhMucQTKT.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); 
+            if (found) { qtktInfo = found; break; } 
+        } 
+    }
+
+    let qtHtml = '';
+    if (qtktInfo) {
+        qtHtml = `<table class="user-table" style="width:100%;">
+            <tr><td style="background:#f2f2f2; width:30%;"><b>Mã kỹ thuật:</b></td><td>${qtktInfo.ma || qtktInfo.maLienKet || ''}</td></tr>
+            <tr><td style="background:#f2f2f2;"><b>Tên QTKT:</b></td><td>${qtktInfo.ten || ''}</td></tr>
+            <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
+            <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
+        </table>`;
+    } else { qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; }
+    document.getElementById('dvQTKTArea').innerHTML = qtHtml;
+
+    let giaDVInfo = null;
+    if(Array.isArray(database.GiaDV)){ giaDVInfo = database.GiaDV.find(function(x){ return x && window.isCodeMatch(x.maTuongDuong, maTuongDuong); }); }
+    
+    let bhytHtml = '';
+    if (giaDVInfo) {
+        let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
+        bhytHtml = `<table class="user-table" style="width:100%;"><tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr></table>`;
+    } else { bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; }
+    document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
+
+    const tbody = document.getElementById('dvKhoaBody'); tbody.innerHTML = ''; let fileHtml = ''; let coBaoCao = false;
+    
+    if (qtMa && Array.isArray(database.depts)) {
+        database.depts.forEach(function(d) {
+            if(!d || !Array.isArray(d.danhMucQTKT)) return;
+            const qt = d.danhMucQTKT.find(function(x) { return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); });
+            if(qt) {
+                coBaoCao = true;
+                let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; let ttStr = "Chưa nộp"; let col = "gray";
+                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
+                if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                    fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
+                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
+                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
+                    if(qt.filePdfChinhThuc) {
+                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                        let safeQtTen = qt.ten ? String(qt.ten) : "";
+                        let safeQtMa = qt.ma || qt.maLienKet || qtMa;
+                        if (currentUser && currentUser.role === 'admin') { fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(safeQtMa)}', '${d.tenKhoa}', '${window.encodeForJS(safeQtTen)}')">🔄 Cập nhật PDF</button>`; }
+                        fileHtml += `</div>`;
+                    }
+                    fileHtml += `</div>`;
+                }
+            }
+        });
+    }
+    if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký quy trình kỹ thuật liên kết.</td></tr>`;
+    const fileArea = document.getElementById('dvFilesArea');
+    if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Chưa có tài liệu phê duyệt nào.</span>`;
+    window.moModal('detailDVModal');
+}
+
+window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyetDinh) {
+    let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
+    let phanLoai = decodeURIComponent(encodedPhanLoai || "");
+    let quyetDinh = decodeURIComponent(encodedQuyetDinh || "");
+
+    document.getElementById('dtTenQT').innerText = ten || ''; 
+    document.getElementById('dtMaQT').innerText = ma; 
+    document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL'; 
+    document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
+    
+    const tbody = document.getElementById('dtKhoaBody'); tbody.innerHTML = ''; let fileHtml = ''; let coBaoCao = false;
+
+    if(Array.isArray(database.depts)) {
+        database.depts.forEach(function(d) {
+            if(!d || !Array.isArray(d.danhMucQTKT)) return;
+            const qt = d.danhMucQTKT.find(function(x) { 
+                let nameMatch = false;
+                if (ten && x.ten) { nameMatch = window.robustNormalize(x.ten) === window.robustNormalize(ten); }
+                return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma) || nameMatch); 
+            });
+            if(qt) {
+                coBaoCao = true; let ttRaw = qt.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; let ttStr = "Chưa nộp"; let col = "gray";
+                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
+                tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
+
+                if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
+                    fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
+                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
+                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
+                    if(qt.filePdfChinhThuc) {
+                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
+                        if (currentUser && currentUser.role === 'admin') fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(ma)}', '${d.tenKhoa}', '${window.encodeForJS(ten)}')">🔄 Cập nhật PDF</button>`;
+                        fileHtml += `</div>`;
+                    }
+                    fileHtml += `</div>`;
+                }
+            }
+        });
+    }
+    if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
+    const fileArea = document.getElementById('dtFilesArea'); if(fileHtml !== '') fileArea.innerHTML = fileHtml; else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
+
+    const giaArea = document.getElementById('dtGiaDVArea'); const giaBVArea = document.getElementById('dtMaDVBVArea');
+    let matchedPrices = [];
+    if(Array.isArray(database.GiaDV)) {
+        matchedPrices = database.GiaDV.filter(function(priceItem) {
+            if(!priceItem) return false; let isNameMatch = false; 
+            if (ten && priceItem.tenKyThuat) { if (window.robustNormalize(ten) === window.robustNormalize(priceItem.tenKyThuat)) isNameMatch = true; }
+            return window.isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
+        });
+    }
+
+    if (matchedPrices.length > 0) {
+        let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã tương đương</th><th>Tên Dịch vụ BHYT</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
+        matchedPrices.forEach(function(p) { let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá'; htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`; });
+        htmlGia += `</tbody></table>`; giaArea.innerHTML = htmlGia;
+    } else { giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; }
+
+    let matchedBVPrices = [];
+    if(Array.isArray(database.MaDVBV)) {
+        matchedBVPrices = database.MaDVBV.filter(function(priceItem) { return priceItem && window.isCodeMatch(priceItem.maTuongDuong, ma); });
+    }
+    
+    if (matchedBVPrices.length > 0) {
+        let htmlGiaBV = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã dịch vụ</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá NN</th></tr></thead><tbody>`;
+        matchedBVPrices.forEach(function(p) {
+            let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-'; let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-'; let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-'; let gNN = p.giaNuocNgoai ? Number(p.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '-';
+            htmlGiaBV += `<tr><td style="text-align:center;"><b>${p.maDichVu || ''}</b></td><td>${p.tenDichVu || ''}</td><td style="text-align:right; color:green; font-weight:bold;">${gBHYT}</td><td style="text-align:right; color:blue; font-weight:bold;">${gVP}</td><td style="text-align:right; color:purple; font-weight:bold;">${gYC}</td><td style="text-align:right; color:red; font-weight:bold;">${gNN}</td></tr>`;
+        });
+        htmlGiaBV += `</tbody></table>`; giaBVArea.innerHTML = htmlGiaBV;
+    } else { giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; }
+    window.moModal('detailModal');
 }
