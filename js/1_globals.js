@@ -56,16 +56,11 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
+// 🟢 CẬP NHẬT TẠI ĐÂY: KHÔNG DÙNG parseInt, CHỈ ĐỔI PHẨY THÀNH CHẤM (CHỐNG MẤT SỐ 0)
 window.normalizeCodeFast = function(code) {
-    if (!code) return ''; 
-    let strCode = String(code).replace(/,/g, '.').trim(); 
-    let parts = strCode.split('.');
-    if (parts.length >= 2) { 
-        let a = parseInt(parts[0], 10); 
-        let b = parseInt(parts[1], 10); 
-        if (!isNaN(a) && !isNaN(b)) return a + '.' + b; 
-    }
-    return strCode;
+    if (code === undefined || code === null || code === '') return ''; 
+    // Chuyển toàn bộ dấu phẩy thành dấu chấm và loại bỏ khoảng trắng dư thừa
+    return String(code).replace(/,/g, '.').trim();
 }
 
 window.isCodeMatch = function(maTuongDuong, targetMa) { return window.normalizeCodeFast(maTuongDuong) === window.normalizeCodeFast(targetMa); }
@@ -90,7 +85,6 @@ window.timKhoaChinhXac = function(rawName) {
     return bestMatch;
 }
 
-// 🟢 TỐI ƯU CẤP TỐC: BẢN ĐỒ TỪ ĐIỂN TỌA ĐỘ (HASH MAP)
 window.plOrderMap = new Map();
 
 window.buildOrderMap = function() {
@@ -121,7 +115,6 @@ window.getOrderIndex = function(qt) {
     let qtMa = window.normalizeCodeFast(qt.ma || qt.maLienKet);
     let qtName = window.robustNormalize(qt.ten);
 
-    // Dò tìm trong từ điển cực nhanh (0.0001 giây)
     if (qtMa && window.plOrderMap.has('ma_' + qtMa)) return window.plOrderMap.get('ma_' + qtMa);
     if (qtName && window.plOrderMap.has('ten_' + qtName)) return window.plOrderMap.get('ten_' + qtName);
     return 9999999;

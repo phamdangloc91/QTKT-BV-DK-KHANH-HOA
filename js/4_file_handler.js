@@ -185,7 +185,6 @@ window.saveDTNH = async function() {
     } catch (error) { alert("Lỗi lưu dữ liệu."); console.error(error); } finally { window.showLoading(false); }
 }
 
-// 🟢 NHẬP EXCEL ĐƯỢC BỌC TRONG SETTIMEOUT (CHỐNG TREO MÁY) & ĐỔI PHẨY THÀNH CHẤM
 window.importFromExcel = async function() { 
     const fileInput = document.getElementById('fileExcel'); 
     const file = fileInput.files[0]; 
@@ -201,14 +200,15 @@ window.importFromExcel = async function() {
 
     window.showLoading(true); 
     
-    // Tách luồng để hiển thị "Đang xử lý..." mượt mà trước khi chạy hàm nặng
     setTimeout(() => {
         const reader = new FileReader(); 
         reader.onload = async function(e) { 
             try { 
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
-                const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1 }); 
+                
+                // 🟢 THÊM THUỘC TÍNH raw: false ĐỂ SHEETJS ĐỌC RAW DẠNG TEXT (CHỐNG MẤT SỐ 0 VÀ LÀM TRÒN SỐ)
+                const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" }); 
                 
                 if (currentTabType === 'DTNH') {
                     const selectedYear = document.getElementById('filterNamDT').value;
@@ -355,8 +355,6 @@ window.importFromExcel = async function() {
                             if (v !== undefined && v !== null && v !== "") hasData = true;
                             
                             let kn = window.robustNormalizeHeader(k);
-                            
-                            // 🟢 HÀM ĐỔI DẤU PHẨY THÀNH DẤU CHẤM CHO CÁC LOẠI MÃ
                             let formatCode = function(val) {
                                 if (val === undefined || val === null || val === "") return val;
                                 return String(val).replace(/,/g, '.').trim();
@@ -413,7 +411,6 @@ window.importFromExcel = async function() {
     }, 50); // Delay 50ms để giải phóng render UI
 }
 
-// 🟢 XUẤT EXCEL ĐƯỢC BỌC SETTIMEOUT CHỐNG LAG
 window.exportToExcel = function() { 
     if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
