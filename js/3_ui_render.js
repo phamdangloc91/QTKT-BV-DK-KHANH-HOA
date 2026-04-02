@@ -1,11 +1,10 @@
-// 🟢 TỐI ƯU 1: BIẾN QUẢN LÝ PHÂN TRANG
 window.currentPage = 1;
-window.rowsPerPage = 100; // Hiển thị 100 dòng mỗi trang (Tốc độ ánh sáng)
+window.rowsPerPage = 100; 
 
 window.changePage = function(step) {
     window.currentPage += step;
-    window.renderTable(); // Gọi lại hàm vẽ bảng với trang mới
-    document.querySelector('.table-container').scrollTop = 0; // Cuộn lên đầu
+    window.renderTable(); 
+    document.querySelector('.table-container').scrollTop = 0; 
 }
 
 window.jumpToPL1 = function(maLienKet) { 
@@ -112,6 +111,9 @@ window.layDuLieu = async function() {
             return d;
         });
         
+        // 🟢 BẬT BẢN ĐỒ TỪ ĐIỂN TỐC ĐỘ CAO
+        if (window.buildOrderMap) window.buildOrderMap();
+        
         window.enrichGiaDV(); 
         window.prepareKeywords(); 
         window.apDungLoc(); 
@@ -171,7 +173,7 @@ window.toggleAllQD = function(source) {
 window.renderTable = function(data = null) {
     try {
         const isDeptTab = DANH_SACH_KHOA.includes(currentTab); const isSuperTab = currentTab.startsWith('KHTH_'); 
-        let list = data !== null ? data : currentFilteredData; // Lấy danh sách đã được lọc
+        let list = data !== null ? data : currentFilteredData; 
         let canEdit = false;
         
         if (currentUser && currentUser.role === 'admin') canEdit = true;
@@ -182,23 +184,21 @@ window.renderTable = function(data = null) {
         let tbodyHtml = '';
         let htmlHead = `<tr>`;
 
-        // 🟢 TỐI ƯU: TRÍCH XUẤT DỮ LIỆU CỦA TRANG HIỆN TẠI (PAGINATION)
         let totalPages = Math.ceil(list.length / window.rowsPerPage);
         if (window.currentPage < 1) window.currentPage = 1;
         if (window.currentPage > totalPages && totalPages > 0) window.currentPage = totalPages;
         
         let startIdx = (window.currentPage - 1) * window.rowsPerPage;
         let endIdx = startIdx + window.rowsPerPage;
-        let pageData = list.slice(startIdx, endIdx); // Chỉ vẽ 100 dòng
+        let pageData = list.slice(startIdx, endIdx); 
 
-        // 1. RENDER TAB ĐÀO TẠO NGẮN HẠN
         if (currentTabType === 'DTNH') {
             htmlHead = `<tr>
                 <th style="width:40px; text-align:center;">STT</th><th style="width:25%">Nội dung đào tạo</th><th style="width:25%">Kỹ thuật cụ thể (Click xem liên kết QTKT)</th><th>Thời gian</th><th style="text-align:center;" title="Cử nhân Sinh học">CN.SH</th><th style="text-align:center;" title="Nữ hộ sinh">NHS</th><th style="text-align:center;" title="Kỹ thuật viên">KTV</th><th style="text-align:center;" title="Điều dưỡng">ĐD</th><th style="text-align:center;" title="Bác sĩ">BS</th><th>Đơn vị chủ trì</th><th style="text-align:right;">Kinh phí (Tr)</th>
             </tr>`;
             thead.innerHTML = htmlHead; 
             
-            let sttCounter = startIdx + 1; // Đánh số STT nối tiếp
+            let sttCounter = startIdx + 1; 
             
             pageData.forEach(function(item, index) {
                 if(!item) return; let isFirst = false; let rowspan = 1; let prevItem = pageData[index - 1];
@@ -245,7 +245,6 @@ window.renderTable = function(data = null) {
                 }
             });
         }
-        // 2. RENDER CÁC BẢNG QUY TRÌNH / GIÁ
         else {
             if (currentTab === 'KHTH_CHUA_AP_GIA') {
                 htmlHead += `<th>STT</th><th style="width:10%">Mã kỹ thuật</th><th style="width:15%">Tên chương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th style="width:10%; text-align:center;">Mã tương đương</th><th style="width:25%">Tên Dịch vụ BHYT</th></tr>`;
@@ -279,7 +278,7 @@ window.renderTable = function(data = null) {
 
             pageData.forEach(function(item, index) {
                 if(!item) return;
-                let realIndex = startIdx + index; // Đảm bảo STT đúng
+                let realIndex = startIdx + index; 
 
                 if (currentTab === 'KHTH_CHUA_AP_GIA') {
                     let safeTen = item.ten ? String(item.ten) : ""; 
@@ -323,7 +322,6 @@ window.renderTable = function(data = null) {
                     return;
                 }
 
-                // CÁC TAB CÒN LẠI (PL1, PL2, KHOA, ADMIN)
                 let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
                 if (isSuperTab && realTenKhoa !== currentKhoaGroup) {
                     currentKhoaGroup = realTenKhoa; let colSpan = isMultiSelectMode ? 10 : 9;
@@ -413,7 +411,6 @@ window.renderTable = function(data = null) {
             });
         }
         
-        // 🟢 NÚT ĐIỀU HƯỚNG PHÂN TRANG (PAGINATION CONTROLS)
         if (totalPages > 1) {
             tbodyHtml += `<tr style="background: #fff;"><td colspan="100%" style="text-align:center; padding: 15px;">
                 <button class="btn" style="background:#6c757d; font-size:13px; padding:8px 15px;" onclick="window.changePage(-1)" ${window.currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>⬅️ Trang Trước</button>
@@ -474,7 +471,7 @@ window.switchTab = function(tab, type) {
     if (!type) type = 'QTKT';
     currentTab = tab; currentTabType = type; window.capNhatTieuDe(); 
     
-    window.currentPage = 1; // Reset về trang 1 khi đổi tab
+    window.currentPage = 1; 
 
     let sBox = document.getElementById('searchBox'); if(sBox) sBox.value = ''; 
     let fLoai = document.getElementById('filterLoai'); if(fLoai) fLoai.value = ""; 
@@ -491,15 +488,13 @@ window.switchTab = function(tab, type) {
     window.thucHienLocGoc(); 
 }
 
-// 🟢 TỐI ƯU 2: DEBOUNCE TÌM KIẾM CHỐNG LAG KHI GÕ
 window.searchTimeout = null;
 window.apDungLoc = function() {
     clearTimeout(window.searchTimeout);
-    // Thay đổi trang về 1 khi bắt đầu gõ tìm kiếm mới
     window.currentPage = 1;
     window.searchTimeout = setTimeout(() => {
         window.thucHienLocGoc();
-    }, 300); // Trì hoãn 0.3 giây
+    }, 300); 
 }
 
 window.thucHienLocGoc = function() { 

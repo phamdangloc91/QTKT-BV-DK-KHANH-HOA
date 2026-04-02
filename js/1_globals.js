@@ -21,7 +21,6 @@ var DANH_SACH_KHOA = [
     "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
 ]; 
 
-// HÀM ÉP MÃ HÓA JS: TRÁNH ĐỨT NÚT BẤM KHI CHỨA DẤU NHÁY ĐƠN (') HOẶC NHÁY KÉP (")
 window.encodeForJS = function(str) {
     if (!str) return '';
     return encodeURIComponent(String(str)).replace(/'/g, "%27").replace(/"/g, "%22");
@@ -32,7 +31,6 @@ window.safeStr = function(val) {
     return String(val).toLowerCase().trim(); 
 };
 
-// HÀM LỌC CHỮ CĂN BẢN (CHỐNG TRẮNG TRANG)
 window.robustNormalize = function(t) { 
     if (t === null || t === undefined) return '';
     let s = String(t).toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
@@ -58,10 +56,8 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
-// 🟢 CẬP NHẬT TẠI ĐÂY: Tự động đổi dấu phẩy thành dấu chấm khi xử lý Mã Kỹ thuật
 window.normalizeCodeFast = function(code) {
     if (!code) return ''; 
-    // Đổi dấu phẩy thành chấm để quét mọi dạng nhập liệu
     let strCode = String(code).replace(/,/g, '.').trim(); 
     let parts = strCode.split('.');
     if (parts.length >= 2) { 
@@ -94,25 +90,42 @@ window.timKhoaChinhXac = function(rawName) {
     return bestMatch;
 }
 
+// 🟢 TỐI ƯU CẤP TỐC: BẢN ĐỒ TỪ ĐIỂN TỌA ĐỘ (HASH MAP)
+window.plOrderMap = new Map();
+
+window.buildOrderMap = function() {
+    window.plOrderMap.clear();
+    if (Array.isArray(database.PL1)) {
+        database.PL1.forEach(function(item, index) {
+            if (!item) return;
+            let ma = window.normalizeCodeFast(item.ma || item.maLienKet);
+            let ten = window.robustNormalize(item.ten);
+            if (ma && !window.plOrderMap.has('ma_' + ma)) window.plOrderMap.set('ma_' + ma, index);
+            if (ten && !window.plOrderMap.has('ten_' + ten)) window.plOrderMap.set('ten_' + ten, index);
+        });
+    }
+    if (Array.isArray(database.PL2)) {
+        database.PL2.forEach(function(item, index) {
+            if (!item) return;
+            let ma = window.normalizeCodeFast(item.ma || item.maLienKet);
+            let ten = window.robustNormalize(item.ten);
+            let base = 100000 + index;
+            if (ma && !window.plOrderMap.has('ma_' + ma)) window.plOrderMap.set('ma_' + ma, base);
+            if (ten && !window.plOrderMap.has('ten_' + ten)) window.plOrderMap.set('ten_' + ten, base);
+        });
+    }
+};
+
 window.getOrderIndex = function(qt) {
-    if(!qt) return 9999999;
+    if (!qt) return 9999999;
     let qtMa = window.normalizeCodeFast(qt.ma || qt.maLienKet);
     let qtName = window.robustNormalize(qt.ten);
 
-    if (qtMa) {
-        for(let i=0; i<database.PL1.length; i++) {
-            if (database.PL1[i] && (window.normalizeCodeFast(database.PL1[i].ma) === qtMa || window.normalizeCodeFast(database.PL1[i].maLienKet) === qtMa)) return i;
-        }
-        for(let i=0; i<database.PL2.length; i++) {
-            if (database.PL2[i] && (window.normalizeCodeFast(database.PL2[i].ma) === qtMa || window.normalizeCodeFast(database.PL2[i].maLienKet) === qtMa)) return 100000 + i;
-        }
-    }
-    if (qtName) {
-        for(let i=0; i<database.PL1.length; i++) { if (database.PL1[i] && window.robustNormalize(database.PL1[i].ten) === qtName) return i; }
-        for(let i=0; i<database.PL2.length; i++) { if (database.PL2[i] && window.robustNormalize(database.PL2[i].ten) === qtName) return 100000 + i; }
-    }
+    // Dò tìm trong từ điển cực nhanh (0.0001 giây)
+    if (qtMa && window.plOrderMap.has('ma_' + qtMa)) return window.plOrderMap.get('ma_' + qtMa);
+    if (qtName && window.plOrderMap.has('ten_' + qtName)) return window.plOrderMap.get('ten_' + qtName);
     return 9999999;
-}
+};
 
 window.moModal = function(id) { let m = document.getElementById(id); if(m) m.style.display = 'flex'; }
 window.dongModal = function(id) { let m = document.getElementById(id); if(m) m.style.display = 'none'; }
