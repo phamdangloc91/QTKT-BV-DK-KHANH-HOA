@@ -213,9 +213,8 @@ window.importFromExcel = async function() {
                 for (let i = 0; i < Math.min(1000, rawData.length); i++) {
                     let rowData = rawData[i]; 
                     if (!rowData || rowData.length === 0) continue;
-                    // BỌC ROBUST NORMALIZE ĐỂ TÌM KHÔNG DẤU
-                    let rowStr = rowData.map(function(c){ return window.robustNormalize(c); }).join(" ");
-                    if (rowStr.includes("noi dung dao tao") && (rowStr.includes("ki thuat") || rowStr.includes("ky thuat"))) {
+                    let rowStr = rowData.map(function(c){ return window.safeStr(c); }).join(" ");
+                    if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
                         headerRowIndex = i; 
                         break;
                     }
@@ -236,20 +235,20 @@ window.importFromExcel = async function() {
                 headRow1.forEach(function(k, idx) {
                     if (!k) return;
                     if (k === "khoa") colKhoa = idx;
-                    if (k.includes("noi dung dao tao")) colNoiDung = idx;
-                    if (k.includes("ki thuat cu the") || k.includes("ky thuat cu the")) colKyThuat = idx;
-                    if (k.includes("thoi gian")) colThoiGian = idx;
-                    if (k.includes("don vi chu tri")) colDonVi = idx;
-                    if (k.includes("kinh phi")) colKinhPhi = idx;
+                    if (k.includes("nội dung đào tạo")) colNoiDung = idx;
+                    if (k.includes("kĩ thuật cụ thể") || k.includes("kỹ thuật cụ thể")) colKyThuat = idx;
+                    if (k.includes("thời gian")) colThoiGian = idx;
+                    if (k.includes("đơn vị chủ trì")) colDonVi = idx;
+                    if (k.includes("kinh phí")) colKinhPhi = idx;
                 });
 
                 headRow2.forEach(function(k, idx) {
                     if (!k) return;
-                    if (k.includes("sinh hoc") || k.includes("cu nhan")) colCNSH = idx;
-                    if (k.includes("ho sinh") || k.includes("nhs")) colNHS = idx;
-                    if (k === "ktv" || k.includes("ky thuat vien")) colKTV = idx;
-                    if (k === "dd" || k.includes("dieu duong")) colDD = idx;
-                    if (k === "bs" || k.includes("bac si")) colBS = idx;
+                    if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
+                    if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
+                    if (k === "ktv" || k.includes("kỹ thuật viên")) colKTV = idx;
+                    if (k === "đd" || k.includes("điều dưỡng")) colDD = idx;
+                    if (k === "bs" || k.includes("bác sĩ")) colBS = idx;
                 });
 
                 let parsedDataByKhoa = {};
@@ -325,7 +324,6 @@ window.importFromExcel = async function() {
                 let headerRowIndex = -1; 
                 let headers = [];
                 for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                    // BỌC ROBUST NORMALIZE ĐỂ LỌC KHÔNG DẤU (Khắc phục lỗi Phụ lục 2)
                     let rowStr = rawData[i].map(function(c){ return window.robustNormalize(c); }).join(" ");
                     if (rowStr.includes("ma dich vu") || rowStr.includes("ma_dichvu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || rowStr.includes("muc gia") || rowStr.includes("ma lien ket") || rowStr.includes("ten ky thuat")) {
                         headerRowIndex = i; 
@@ -563,7 +561,7 @@ window.exportToExcel = function() {
                 row["PHÂN LOẠI"] = item.phanLoai || "";
                 row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
             } else { 
-                row["MÃ CHƯƠNG"] = item.maChuong || "";
+                row["STT CỦA CHƯƠNG"] = item.maChuong || "";
                 row["TÊN CHƯƠNG"] = item.chuong || "";
                 row["MÃ LIÊN KẾT"] = item.maLienKet || "";
                 row["TÊN KỸ THUẬT"] = item.ten || "";

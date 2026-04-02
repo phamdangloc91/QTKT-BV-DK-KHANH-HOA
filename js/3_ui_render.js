@@ -319,7 +319,10 @@ window.renderTable = function(data = null) {
         
         if (isSuperTab) { htmlHead += `<th>Mã kỹ thuật</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; } 
         else if (currentTab === 'PL1' || isDeptTab) { htmlHead += `<th>Mã kỹ thuật</th><th>Tên chương</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; } 
-        else { htmlHead += `<th>Mã chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; }
+        else { 
+            // 🟢 THAY ĐỔI: Đã chuyển Mã chương thành STT của chương
+            htmlHead += `<th>STT của chương</th><th>Tên chương</th><th>Mã liên kết</th><th>Tên kỹ thuật (Click để xem)</th><th>Phân loại</th><th>Quyết định</th>`; 
+        }
 
         let canAddPL = false; let canRemovePL = false; let showFileCol = false;
         if (currentUser && currentUser.role === 'khoa') { if (!isDeptTab && !isSuperTab) canAddPL = true; if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; }
@@ -579,7 +582,6 @@ window.apDungLoc = function() {
             
             const filtered = sourceList.filter(function(item) {
                 if(!item) return false;
-                // BỔ SUNG LỌC BẰNG MÃ LIÊN KẾT CHO TAB CHƯA ÁP GIÁ
                 return (window.safeStr(item.ma).includes(search) || window.safeStr(item.maLienKet).includes(search) || window.safeStr(item.ten).includes(search) || window.safeStr(item.tt23_ma).includes(search) || window.safeStr(item.tt23_ten).includes(search));
             });
             window.renderTable(filtered); 
@@ -647,7 +649,6 @@ window.apDungLoc = function() {
         
         const filtered = sourceList.filter(function(item) { 
             if(!item) return false;
-            // BỔ SUNG LỌC THEO MÃ LIÊN KẾT (CHO PHỤ LỤC 2)
             const matchSearch = (window.safeStr(item.ma).includes(search) || window.safeStr(item.maLienKet).includes(search) || window.safeStr(item.ten).includes(search) || window.safeStr(item.tenKhoaChuQuan).includes(search)); 
             
             let qd = item.quyetDinh || "Chưa phê duyệt";
@@ -952,19 +953,16 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
         giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; 
     }
     
-    // 🟢 BỔ SUNG: VÙNG TÌM KIẾM LIÊN KẾT CHÉO GIỮA PL1 VÀ PL2 (DỰA VÀO MÃ LIÊN KẾT)
     let crossHtml = '';
     let pl1Matches = [];
     let pl2Matches = [];
     
-    // Tìm các kỹ thuật trong PL1 có cùng mã hoặc mã liên kết
     if (Array.isArray(database.PL1)) {
         pl1Matches = database.PL1.filter(function(x) { 
             return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); 
         });
     }
     
-    // Tìm các kỹ thuật trong PL2 có cùng mã hoặc mã liên kết
     if (Array.isArray(database.PL2)) {
         pl2Matches = database.PL2.filter(function(x) { 
             return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); 
