@@ -1,4 +1,3 @@
-// Khai báo biến Global sử dụng "var" để chống lỗi giới hạn Scope giữa các file
 var currentTab = 'PL1';
 var currentTabType = 'QTKT'; 
 var database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
@@ -56,14 +55,40 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
-// 🟢 CẬP NHẬT TẠI ĐÂY: KHÔNG DÙNG parseInt, CHỈ ĐỔI PHẨY THÀNH CHẤM (CHỐNG MẤT SỐ 0)
+// 🟢 THUẬT TOÁN ĐỒNG NHẤT MÃ: Cắt số 0 thừa ở đầu, Giữ số 0 ở đuôi, Đổi phẩy thành chấm
 window.normalizeCodeFast = function(code) {
-    if (code === undefined || code === null || code === '') return ''; 
-    // Chuyển toàn bộ dấu phẩy thành dấu chấm và loại bỏ khoảng trắng dư thừa
-    return String(code).replace(/,/g, '.').trim();
+    if (code === undefined || code === null || code === '') return '';
+    // Đổi phẩy thành chấm, xóa khoảng trắng
+    let str = String(code).replace(/,/g, '.').replace(/\s+/g, '').toLowerCase();
+    let parts = str.split('.');
+    let normalizedParts = parts.map(p => {
+        // Nếu phần tử bắt đầu bằng số 0 nhưng toàn là số (vd: 01, 05) thì cắt 0 đi
+        // Nếu là "490" thì giữ nguyên "490"
+        if (/^0+\d+$/.test(p)) {
+            return parseInt(p, 10).toString();
+        }
+        return p;
+    });
+    return normalizedParts.join('.');
 }
 
-window.isCodeMatch = function(maTuongDuong, targetMa) { return window.normalizeCodeFast(maTuongDuong) === window.normalizeCodeFast(targetMa); }
+// 🟢 THUẬT TOÁN LIÊN KẾT: Hỗ trợ trường hợp có nhiều mã ghép chung (ngăn cách bằng ; / |)
+window.isCodeMatch = function(maTuongDuong, targetMa) { 
+    if (!maTuongDuong || !targetMa) return false;
+    let m1 = window.normalizeCodeFast(maTuongDuong);
+    let m2 = window.normalizeCodeFast(targetMa);
+    if (m1 === m2) return true;
+    
+    // Tách mã nếu có nhiều mã bị gộp
+    let arr1 = m1.split(/;|\/|\|/).filter(Boolean);
+    let arr2 = m2.split(/;|\/|\|/).filter(Boolean);
+    for (let a of arr1) {
+        for (let b of arr2) {
+            if (a === b) return true;
+        }
+    }
+    return false;
+}
 
 window.timKhoaChinhXac = function(rawName) {
     if (!rawName) return null; let normRaw = window.robustNormalize(rawName);
