@@ -120,12 +120,25 @@ window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
     window.showLoading(false);
 }
 
-window.bocQuyTrinh = async function(encodedMa) {
+// 🟢 THAY ĐỔI 4: HỖ TRỢ THÊM KỸ THUẬT KHÔNG CÓ MÃ DỰA VÀO TÊN
+window.bocQuyTrinh = async function(encodedMa, encodedTen) {
     if(!currentUser || currentUser.role !== 'khoa') return;
     let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
     let qtInfo = null;
-    if(Array.isArray(database.PL1)) { qtInfo = database.PL1.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
-    if(!qtInfo && Array.isArray(database.PL2)) { qtInfo = database.PL2.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
+    
+    if (ma) {
+        if(Array.isArray(database.PL1)) { qtInfo = database.PL1.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
+        if(!qtInfo && Array.isArray(database.PL2)) { qtInfo = database.PL2.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
+    }
+    
+    // Nếu vẫn không tìm thấy bằng mã, thử tìm trực tiếp bằng Tên trong PL2 rồi đến PL1
+    if (!qtInfo && ten) {
+        let normTen = window.robustNormalize(ten);
+        if(Array.isArray(database.PL2)) { qtInfo = database.PL2.find(function(x) { return x && window.robustNormalize(x.ten) === normTen; }); }
+        if(!qtInfo && Array.isArray(database.PL1)) { qtInfo = database.PL1.find(function(x) { return x && window.robustNormalize(x.ten) === normTen; }); }
+    }
+
     if(!qtInfo) return alert("Không tìm thấy thông tin kỹ thuật!");
     
     let myDept = database.depts.find(function(d) { return d && d.tenKhoa === currentUser.tenKhoa; });
@@ -139,16 +152,25 @@ window.bocQuyTrinh = async function(encodedMa) {
     try { fetch('/api/dept-data/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo }) }); } catch(e) { console.error(e); }
 }
 
-window.xoaQuyTrinh = async function(encodedMa, tenKhoa) {
+// 🟢 THAY ĐỔI 5: HỖ TRỢ XÓA KỸ THUẬT KHÔNG CÓ MÃ
+window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
     if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
     let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
     let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
+    
     if (targetDept && Array.isArray(targetDept.danhMucQTKT)) {
-        targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) { return qt && !(window.isCodeMatch(qt.ma, ma) || window.isCodeMatch(qt.maLienKet, ma)); });
+        targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) { 
+            if (!qt) return false;
+            if (ma) return !(window.isCodeMatch(qt.ma, ma) || window.isCodeMatch(qt.maLienKet, ma));
+            if (ten) return window.robustNormalize(qt.ten) !== window.robustNormalize(ten);
+            return true;
+        });
     }
     window.apDungLoc(); 
 
-    try { fetch('/api/dept-data/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma }) }); } catch(e) { console.error(e); }
+    // Gửi cả mã lẫn tên lên server để đề phòng trường hợp không có mã
+    try { fetch('/api/dept-data/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten }) }); } catch(e) { console.error(e); }
 }
 
 window.saveDTNH = async function() {
@@ -207,7 +229,6 @@ window.importFromExcel = async function() {
                 const workbook = XLSX.read(new Uint8Array(e.target.result), { type: 'array' }); 
                 const sheet = workbook.Sheets[workbook.SheetNames[0]];
                 
-                // 🟢 THÊM THUỘC TÍNH raw: false ĐỂ SHEETJS ĐỌC RAW DẠNG TEXT (CHỐNG MẤT SỐ 0 VÀ LÀM TRÒN SỐ)
                 const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" }); 
                 
                 if (currentTabType === 'DTNH') {
@@ -408,7 +429,7 @@ window.importFromExcel = async function() {
             } 
         }; 
         reader.readAsArrayBuffer(file); 
-    }, 50); // Delay 50ms để giải phóng render UI
+    }, 50); 
 }
 
 window.exportToExcel = function() { 

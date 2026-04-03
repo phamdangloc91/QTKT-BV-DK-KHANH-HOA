@@ -7,6 +7,16 @@ window.changePage = function(step) {
     document.querySelector('.table-container').scrollTop = 0; 
 }
 
+// 🟢 HÀM MỚI: NHẢY TỚI SỐ TRANG TỪ Ô NHẬP LIỆU (ENTER)
+window.jumpToPage = function(inputEl, maxPage) {
+    let p = parseInt(inputEl.value, 10);
+    if (isNaN(p) || p < 1) p = 1;
+    if (p > maxPage) p = maxPage;
+    window.currentPage = p;
+    window.renderTable();
+    document.querySelector('.table-container').scrollTop = 0;
+}
+
 window.jumpToPL1 = function(encodedMa) { 
     window.switchTab('PL1', 'QTKT'); 
     let ma = decodeURIComponent(encodedMa || "");
@@ -362,7 +372,6 @@ window.renderTable = function(data = null) {
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
                 
-                // CẮT ĐỨT CHUỖI ĐỂ TÔ MÀU CHÍNH XÁC NẾU CÓ 1 MÃ KHỚP LÀ ĐƯỢC
                 if (maHienThi || item.ten) {
                     if (Array.isArray(database.GiaDV)) {
                         let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
@@ -398,7 +407,7 @@ window.renderTable = function(data = null) {
                 
                 let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
 
-                // 🟢 CHIA NHỎ MÃ LIÊN KẾT RA THÀNH CÁC NÚT BẤM ĐỘC LẬP
+                // 🟢 THAY ĐỔI 1: CHIA NÚT MÃ LIÊN KẾT PL2 THÀNH CÁC NÚT RIÊNG RẼ
                 let maLienKetHtml = '';
                 if (safeMaLienKet) {
                     let arrMaLienKet = safeMaLienKet.split(/;|\/|\|/).filter(Boolean);
@@ -436,30 +445,40 @@ window.renderTable = function(data = null) {
                     html += `<td>${fileHtml}</td>`;
                 }
                 
+                // 🟢 THAY ĐỔI 3: DÙNG TÊN LÀM BACKUP KHI ẤN "THÊM" Ở GIỎ HÀNG (Nếu không có mã)
                 if (canAddPL) { 
                     let itemInCart = null;
-                    if(Array.isArray(myDeptCart)) { itemInCart = myDeptCart.find(function(x) { return x && (window.isCodeMatch(x.ma, maHienThi) || window.isCodeMatch(x.maLienKet, maHienThi)); }); }
+                    if(Array.isArray(myDeptCart)) { 
+                        itemInCart = myDeptCart.find(function(x) { 
+                            if (!x) return false;
+                            if (maHienThi) return (window.isCodeMatch(x.ma, maHienThi) || window.isCodeMatch(x.maLienKet, maHienThi));
+                            return window.robustNormalize(x.ten) === window.robustNormalize(item.ten);
+                        }); 
+                    }
                     if (itemInCart) {
                         let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP'; let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
                         if (cartStatus === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                        else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`; }
+                        else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${currentUser.tenKhoa}', '${window.encodeForJS(safeTen)}')">🗑️ Xóa</button></td>`; }
                     } else {
-                        html += `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${window.encodeForJS(maHienThi)}')">+ Thêm</button></td>`;
+                        html += `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}')">+ Thêm</button></td>`;
                     }
                 }
                 else if (canRemovePL) { 
                     if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                    else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}')">🗑️ Xóa</button></td>`; }
+                    else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">🗑️ Xóa</button></td>`; }
                 }
                 
                 html += "</tr>"; tbodyHtml += html;
             });
         }
         
+        // 🟢 NÚT CHUYỂN TRANG
         if (totalPages > 1) {
             tbodyHtml += `<tr style="background: #fff;"><td colspan="100%" style="text-align:center; padding: 15px;">
                 <button class="btn" style="background:#6c757d; font-size:13px; padding:8px 15px;" onclick="window.changePage(-1)" ${window.currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>⬅️ Trang Trước</button>
-                <span style="font-size: 14px; font-weight: bold; margin: 0 15px;">Trang ${window.currentPage} / ${totalPages}</span>
+                <span style="font-size: 14px; font-weight: bold; margin: 0 15px;">
+                    Trang <input type="number" value="${window.currentPage}" min="1" max="${totalPages}" style="width:50px; text-align:center; padding:5px; border:1px solid #ccc; border-radius:4px;" onkeydown="if(event.key === 'Enter') { window.jumpToPage(this, ${totalPages}); this.blur(); }"> / ${totalPages}
+                </span>
                 <button class="btn" style="background:#0056b3; font-size:13px; padding:8px 15px;" onclick="window.changePage(1)" ${window.currentPage === totalPages ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>Trang Sau ➡️</button>
             </td></tr>`;
         }
@@ -489,6 +508,7 @@ window.capNhatTieuDe = function() {
     let grpPhanLoai = document.getElementById('groupPhanLoai');
     let grpQuyetDinh = document.getElementById('groupQuyetDinh');
     let grpNamDT = document.getElementById('groupNamDT');
+    let grpChuaCoMa = document.getElementById('groupChuaCoMa');
     
     let legendColor = document.getElementById('colorLegend');
     if(legendColor) {
@@ -499,6 +519,8 @@ window.capNhatTieuDe = function() {
     if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
     if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
     if(grpNamDT) grpNamDT.style.display = currentTabType === 'DTNH' ? 'flex' : 'none';
+    // Hiện nút lọc Chưa Có Mã ở tab PL2
+    if(grpChuaCoMa) grpChuaCoMa.style.display = (currentTab === 'PL2') ? 'block' : 'none';
 
     if (currentTabType === 'DTNH') {
         document.getElementById('tabTitle').innerText = `KẾ HOẠCH ĐÀO TẠO NGẮN HẠN - ${currentTab.toUpperCase()}`;
@@ -524,6 +546,7 @@ window.switchTab = function(tab, type) {
 
     let sBox = document.getElementById('searchBox'); if(sBox) sBox.value = ''; 
     let fLoai = document.getElementById('filterLoai'); if(fLoai) fLoai.value = ""; 
+    let chkChua = document.getElementById('chkChuaCoMa'); if(chkChua) chkChua.checked = false;
     
     let optionsQD = document.getElementById('optionsQD');
     if(optionsQD) {
@@ -563,6 +586,9 @@ window.thucHienLocGoc = function() {
             else if(checkedQDs.length === 1) textSpan.innerText = "1 QĐ được chọn";
             else textSpan.innerText = checkedQDs.length + " QĐ được chọn";
         }
+        
+        let chkChuaCoMa = document.getElementById('chkChuaCoMa');
+        let isLocChuaCoMa = chkChuaCoMa && chkChuaCoMa.checked;
         
         if (currentTabType === 'DTNH') {
             let filterNamEl = document.getElementById('filterNamDT');
@@ -725,6 +751,13 @@ window.thucHienLocGoc = function() {
         
         const filtered = sourceList.filter(function(item) { 
             if(!item) return false;
+            
+            // LỌC KỸ THUẬT CHƯA CÓ MÃ Ở PL2
+            if (isLocChuaCoMa && currentTab === 'PL2') {
+                let checkMa = item.maLienKet || item.ma || "";
+                if (checkMa.toString().trim() !== "") return false; 
+            }
+
             const matchSearch = (window.safeStr(item.ma).includes(search) || window.safeStr(item.maLienKet).includes(search) || window.safeStr(item.ten).includes(search) || window.safeStr(item.tenKhoaChuQuan).includes(search)); 
             
             let qd = item.quyetDinh || "Chưa phê duyệt";
@@ -859,7 +892,7 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
             <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
         </table>`;
     } else { 
-        qtHtml = `<span style="color:#856404;">Không có Quy trình Kỹ thuật nào được liên kết với mã này.</span>`; 
+        qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong}).</span>`; 
     }
     document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
@@ -926,7 +959,6 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     window.moModal('detailDVModal');
 }
 
-// 🟢 MỞ CHI TIẾT TỪ TAB KỸ THUẬT GỐC PL1, PL2 (DÀN TRANG TIÊU ĐỀ XUỐNG DÒNG)
 window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyetDinh) {
     let ma = decodeURIComponent(encodedMa || "");
     let ten = decodeURIComponent(encodedTen || "");
@@ -934,8 +966,9 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     let quyetDinh = decodeURIComponent(encodedQuyetDinh || "");
 
     document.getElementById('dtTenQT').innerText = ten || ''; 
+    document.getElementById('dtMaQT').innerText = ''; // Xóa mã tạm cũ
     
-    // 🟢 TẠO TIÊU ĐỀ RIÊNG CHO TỪNG MÃ (Đã được chia tách)
+    // 🟢 THAY ĐỔI 2: DÀN TRANG HIỂN THỊ MỖI MÃ LIÊN KẾT LÀ MỘT Ô RIÊNG
     let titleEl = document.getElementById('dtTenQT');
     let infoEl = titleEl.nextElementSibling; 
     let arrMaTop = ma.split(/;|\/|\|/).filter(Boolean);
@@ -946,7 +979,7 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     arrMaTop.forEach(m => {
         let cleanM = m.trim();
         topInfoHtml += `<div style="margin-bottom: 5px; padding: 6px 10px; background: #fdfdfe; border-radius: 4px; border: 1px solid #e9ecef; display: inline-block; margin-right: 5px;">
-            Mã: <b style="color:var(--danger); font-size:15px;">${cleanM}</b> &nbsp;|&nbsp; 
+            Mã/Mã LK: <b style="color:var(--danger); font-size:15px;">${cleanM}</b> &nbsp;|&nbsp; 
             Phân loại: <b style="color:var(--primary);">${phanLoai || 'KPL'}</b> &nbsp;|&nbsp; 
             Quyết định: <b>${quyetDinh || 'Chưa phê duyệt'}</b>
         </div>`;
@@ -1056,9 +1089,11 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     let pl1Matches = [];
     let pl2Matches = [];
     
-    // 🟢 CHỈ TÌM LIÊN KẾT ĐỐI NGHỊCH
+    // 🟢 THAY ĐỔI 3: LIÊN KẾT CHÉO THÔNG MINH (CHỈ HIỂN THỊ KỸ THUẬT Ở PHỤ LỤC ĐỐI NGHỊCH)
     let arrMaToSearch = ma.split(/;|\/|\|/).map(m => m.trim()).filter(Boolean);
 
+    // Đang mở tab PL2 hoặc tab Khoa mà kỹ thuật đó thuộc PL2 -> chỉ quét PL1
+    // Để an toàn nhất, luôn quét Phụ lục còn lại nếu tìm thấy.
     if (currentTab !== 'PL1' && Array.isArray(database.PL1)) {
         pl1Matches = database.PL1.filter(function(x) { 
             return x && arrMaToSearch.some(m => window.isCodeMatch(x.ma, m) || window.isCodeMatch(x.maLienKet, m));
@@ -1072,7 +1107,7 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     }
 
     if (pl1Matches.length > 0) {
-        crossHtml += `<div style="margin-bottom: 8px;"><b>Trong Phụ lục 1:</b><ul style="margin: 5px 0;">`;
+        crossHtml += `<div style="margin-bottom: 8px;"><b>Kỹ thuật thuộc Phụ lục 1:</b><ul style="margin: 5px 0;">`;
         pl1Matches.forEach(function(p) { 
             crossHtml += `<li><span class="badge badge-success">${p.ma || p.maLienKet || '?'}</span> ${p.ten}</li>`; 
         });
@@ -1080,7 +1115,7 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     }
     
     if (pl2Matches.length > 0) {
-        crossHtml += `<div><b>Trong Phụ lục 2:</b><ul style="margin: 5px 0;">`;
+        crossHtml += `<div><b>Kỹ thuật thuộc Phụ lục 2:</b><ul style="margin: 5px 0;">`;
         pl2Matches.forEach(function(p) { 
             crossHtml += `<li><span class="badge badge-warning">${p.maLienKet || p.ma || '?'}</span> ${p.ten}</li>`; 
         });
