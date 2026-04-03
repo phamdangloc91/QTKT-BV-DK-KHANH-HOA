@@ -368,20 +368,19 @@ window.renderTable = function(data = null) {
 
                 let maHienThi = item.ma || item.maLienKet || ''; 
                 
+                // 🟢 THUẬT TOÁN ĐỔI MÀU CHÍNH XÁC (TUYỆT ĐỐI KHÔNG DÙNG TÊN ĐỂ TÔ MÀU)
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
                 
-                if (maHienThi || item.ten) {
+                let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
+                if (arrSearch.length > 0) {
                     if (Array.isArray(database.GiaDV)) {
-                        let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
-                        let normCheckTen = window.robustNormalize(item.ten || "");
                         isHasBHYT = database.GiaDV.some(g => {
                             if (!window.isValidForCrossLink(g.maTuongDuong)) return false;
-                            return arrSearch.some(m => window.isCodeMatch(g.maTuongDuong, m)) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen);
+                            return arrSearch.some(m => window.isCodeMatch(g.maTuongDuong, m));
                         });
                     }
                     if (Array.isArray(database.MaDVBV)) {
-                        let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
                         isHasBV = database.MaDVBV.some(b => {
                             if (!window.isValidForCrossLink(b.maTuongDuong)) return false;
                             return arrSearch.some(m => window.isCodeMatch(b.maTuongDuong, m));
