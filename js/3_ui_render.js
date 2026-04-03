@@ -80,12 +80,15 @@ window.enrichGiaDV = function() {
     if(Array.isArray(database.GiaDV)) {
         database.GiaDV.forEach(function(item) {
             if(!item) return;
-            let qtMa = window.normalizeCodeFast(item.maTuongDuong);
-            let qtName = window.robustNormalize(item.tenKyThuat);
-            
             let qtktInfo = null;
-            if (qtName && qtktMapByName.has(qtName)) { qtktInfo = qtktMapByName.get(qtName); } 
-            else if (qtMa && qtktMapByCode.has(qtMa)) { qtktInfo = qtktMapByCode.get(qtMa); }
+            
+            // CHỈ GHÉP VỚI KỸ THUẬT NẾU LÀ MÃ HỢP LỆ (> 2 PHẦN)
+            if (window.isValidForCrossLink(item.maTuongDuong)) {
+                let qtMa = window.normalizeCodeFast(item.maTuongDuong);
+                let qtName = window.robustNormalize(item.tenKyThuat);
+                if (qtName && qtktMapByName.has(qtName)) { qtktInfo = qtktMapByName.get(qtName); } 
+                else if (qtMa && qtktMapByCode.has(qtMa)) { qtktInfo = qtktMapByCode.get(qtMa); }
+            }
 
             item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten).replace(/['"`\n\r\\]/g, "") : (item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "");
             item.qt_phanLoai = (qtktInfo && qtktInfo.phanLoai) ? String(qtktInfo.phanLoai).replace(/['"`\n\r\\]/g, "") : "KPL";
@@ -344,16 +347,26 @@ window.renderTable = function(data = null) {
 
                 let maHienThi = item.ma || item.maLienKet || ''; 
                 
+                // 🟢 THUẬT TOÁN ĐỔI MÀU CHÍNH XÁC
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
                 let normCheckMa = window.normalizeCodeFast(maHienThi);
+                let normCheckTen = window.robustNormalize(item.ten || "");
                 
-                if (normCheckMa) {
+                if (normCheckMa || normCheckTen) {
                     if (Array.isArray(database.GiaDV)) {
-                        isHasBHYT = database.GiaDV.some(g => window.isCodeMatch(g.maTuongDuong, normCheckMa));
+                        isHasBHYT = database.GiaDV.some(g => {
+                            // Chỉ tô màu nếu Mã kỹ thuật này ĐƯỢC PHÉP liên kết với TT23
+                            if (!window.isValidForCrossLink(g.maTuongDuong)) return false;
+                            return (normCheckMa && window.normalizeCodeFast(g.maTuongDuong) === normCheckMa) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen);
+                        });
                     }
                     if (Array.isArray(database.MaDVBV)) {
-                        isHasBV = database.MaDVBV.some(b => window.isCodeMatch(b.maTuongDuong, normCheckMa));
+                        // MaDVBV sử dụng StrictMatch để tìm ra chính xác TT23, rồi từ đó mới gọt để map với PL1
+                        isHasBV = database.MaDVBV.some(b => {
+                            if (!window.isValidForCrossLink(b.maTuongDuong)) return false;
+                            return normCheckMa && window.normalizeCodeFast(b.maTuongDuong) === normCheckMa;
+                        });
                     }
                 }
                 if (isHasBHYT && isHasBV) rowClass = "row-full";
@@ -421,7 +434,6 @@ window.renderTable = function(data = null) {
             });
         }
         
-        // HIỂN THỊ NÚT CHUYỂN TRANG
         if (totalPages > 1) {
             tbodyHtml += `<tr style="background: #fff;"><td colspan="100%" style="text-align:center; padding: 15px;">
                 <button class="btn" style="background:#6c757d; font-size:13px; padding:8px 15px;" onclick="window.changePage(-1)" ${window.currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>⬅️ Trang Trước</button>
@@ -568,6 +580,7 @@ window.thucHienLocGoc = function() {
             const maDvbvSet = new Set();
             if(Array.isArray(database.MaDVBV)) {
                 database.MaDVBV.forEach(function(dv) { 
+                    // Ở Tab chưa áp giá, chỉ những QTKT chưa có trong Bệnh viện (Dù đã được quy đổi mã) mới hiện ra
                     if (dv && dv.maTuongDuong) maDvbvSet.add(window.normalizeCodeFast(dv.maTuongDuong)); 
                 });
             }
@@ -792,6 +805,7 @@ window.capNhatDanhSachQuyetDinh = function() {
     }
 }
 
+// 🟢 MỞ CHI TIẾT TỪ TAB MÃ BỆNH VIỆN
 window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDichVu) {
     let maDichVu = decodeURIComponent(encodedMaDichVu || "");
     let maTuongDuong = decodeURIComponent(encodedMaTuongDuong || "");
@@ -800,17 +814,21 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     document.getElementById('dvTenDV').innerText = tenDichVu || ''; 
     document.getElementById('dvMaDV').innerText = maDichVu || '';
     
-    let qtMa = window.normalizeCodeFast(maTuongDuong);
     let qtktInfo = null;
-    if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
-    if(!qtktInfo && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
-                   
-    if (!qtktInfo && Array.isArray(database.depts)) { 
-        for (let d of database.depts) { 
-            if(!d || !Array.isArray(d.danhMucQTKT)) continue;
-            let found = d.danhMucQTKT.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); 
-            if (found) { qtktInfo = found; break; } 
-        } 
+    
+    // NẾU MÃ HỢP LỆ THÌ MỚI ĐI TÌM QTKT (Gọt số 0 để ghép với PL1)
+    if (window.isValidForCrossLink(maTuongDuong)) {
+        let qtMa = window.normalizeCodeFast(maTuongDuong);
+        if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
+        if(!qtktInfo && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
+                       
+        if (!qtktInfo && Array.isArray(database.depts)) { 
+            for (let d of database.depts) { 
+                if(!d || !Array.isArray(d.danhMucQTKT)) continue;
+                let found = d.danhMucQTKT.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); 
+                if (found) { qtktInfo = found; break; } 
+            } 
+        }
     }
 
     let qtHtml = '';
@@ -822,11 +840,11 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
             <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
         </table>`;
     } else { 
-        qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong} -> QT: ${qtMa}).</span>`; 
+        qtHtml = `<span style="color:#856404;">Không có Quy trình Kỹ thuật nào được liên kết với mã này.</span>`; 
     }
     document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-    // 🟢 SỬ DỤNG HÀM LIÊN KẾT TUYỆT ĐỐI CHO GIÁ DỊCH VỤ BHYT
+    // TÌM GIÁ TT23 BẰNG LIÊN KẾT TUYỆT ĐỐI 1-1 (Giữ nguyên mọi số 0)
     let giaDVInfo = null;
     if(Array.isArray(database.GiaDV)){ 
         giaDVInfo = database.GiaDV.find(function(x){ return x && window.isStrictCodeMatch(x.maTuongDuong, maTuongDuong); }); 
@@ -837,7 +855,7 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
         let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
         bhytHtml = `<table class="user-table" style="width:100%;"><tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr></table>`;
     } else { 
-        bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp chính xác với mã tương đương ${maTuongDuong}.</span>`; 
+        bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; 
     }
     document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
@@ -846,10 +864,11 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     let fileHtml = ''; 
     let coBaoCao = false;
     
-    if (qtMa && Array.isArray(database.depts)) {
+    if (qtktInfo && Array.isArray(database.depts)) {
+        let qtMaGoc = window.normalizeCodeFast(qtktInfo.ma || qtktInfo.maLienKet);
         database.depts.forEach(function(d) {
             if(!d || !Array.isArray(d.danhMucQTKT)) return;
-            const qt = d.danhMucQTKT.find(function(x) { return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); });
+            const qt = d.danhMucQTKT.find(function(x) { return x && (window.isCodeMatch(x.ma, qtMaGoc) || window.isCodeMatch(x.maLienKet, qtMaGoc)); });
             if(qt) {
                 coBaoCao = true;
                 let ttRaw = qt.trangThai || 'CHUA_NOP'; 
@@ -870,7 +889,7 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
                     if(qt.filePdfChinhThuc) {
                         fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
                         let safeQtTen = qt.ten ? String(qt.ten) : "";
-                        let safeQtMa = qt.ma || qt.maLienKet || qtMa;
+                        let safeQtMa = qt.ma || qt.maLienKet || qtMaGoc;
                         if (currentUser && currentUser.role === 'admin') { 
                             fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(safeQtMa)}', '${d.tenKhoa}', '${window.encodeForJS(safeQtTen)}')">🔄 Cập nhật PDF</button>`; 
                         }
@@ -889,6 +908,7 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     window.moModal('detailDVModal');
 }
 
+// 🟢 MỞ CHI TIẾT TỪ TAB KỸ THUẬT GỐC PL1, PL2
 window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyetDinh) {
     let ma = decodeURIComponent(encodedMa || "");
     let ten = decodeURIComponent(encodedTen || "");
@@ -953,10 +973,10 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     const giaBVArea = document.getElementById('dtMaDVBVArea');
     let matchedPrices = [];
     
-    // 🟢 TÌM GIA DỊCH VỤ DỰA THEO MÃ LIÊN KẾT NỀN
+    // TÌM BHYT (Chỉ tìm khi mã hợp lệ)
     if(Array.isArray(database.GiaDV)) {
         matchedPrices = database.GiaDV.filter(function(priceItem) {
-            if(!priceItem) return false; 
+            if(!priceItem || !window.isValidForCrossLink(priceItem.maTuongDuong)) return false; 
             let isNameMatch = false; 
             if (ten && priceItem.tenKyThuat) { 
                 if (window.robustNormalize(ten) === window.robustNormalize(priceItem.tenKyThuat)) isNameMatch = true; 
@@ -979,7 +999,9 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
 
     let matchedBVPrices = [];
     if(Array.isArray(database.MaDVBV)) {
-        matchedBVPrices = database.MaDVBV.filter(function(priceItem) { return priceItem && window.isCodeMatch(priceItem.maTuongDuong, ma); });
+        matchedBVPrices = database.MaDVBV.filter(function(priceItem) { 
+            return priceItem && window.isValidForCrossLink(priceItem.maTuongDuong) && window.isCodeMatch(priceItem.maTuongDuong, ma); 
+        });
     }
     
     if (matchedBVPrices.length > 0) {

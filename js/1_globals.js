@@ -55,13 +55,22 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
-// 🟢 1. CHUẨN HÓA TUYỆT ĐỐI (Chỉ đổi phẩy thành chấm, giữ nguyên mọi số 0)
+// 🟢 1. CẤP ĐỘ CÁCH LY: Kiểm tra mã tương đương có đủ 3 phần (xx.xxxx.xxxx) hay không
+window.isValidForCrossLink = function(maTuongDuong) {
+    if (!maTuongDuong) return false;
+    let str = String(maTuongDuong).replace(/,/g, '.').trim();
+    let parts = str.split('.');
+    // Từ chối liên kết với Mã kỹ thuật nếu mã chỉ có 2 phần (VD: 02.03)
+    return parts.length > 2;
+};
+
+// 🟢 2. CHUẨN HÓA TUYỆT ĐỐI (Chỉ đổi phẩy thành chấm, giữ nguyên mọi số 0)
 window.formatStrictCode = function(code) {
     if (code === undefined || code === null || code === '') return ''; 
     return String(code).replace(/,/g, '.').replace(/\s+/g, '').toLowerCase();
 };
 
-// 🟢 2. CHUẨN HÓA LIÊN KẾT NỀN (Gọt số 0 ở đầu, giữ nguyên đuôi, chặt bỏ phần mở rộng)
+// 🟢 3. CHUẨN HÓA LIÊN KẾT NỀN (Gọt số 0 ở đầu, giữ nguyên đuôi, chặt bỏ phần mở rộng)
 window.normalizeCodeFast = function(code) {
     if (!code) return ''; 
     let strCode = window.formatStrictCode(code);
@@ -83,7 +92,7 @@ window.normalizeCodeFast = function(code) {
     return strCode;
 };
 
-// 🟢 KIỂM TRA LIÊN KẾT NỀN (Áp dụng cho Phụ lục 1, Phụ lục 2 và Giá)
+// 🟢 KIỂM TRA LIÊN KẾT NỀN (Áp dụng ghép PL1, PL2 và Giá)
 window.isCodeMatch = function(maTuongDuong, targetMa) { 
     if (!maTuongDuong || !targetMa) return false;
     let m1 = window.normalizeCodeFast(maTuongDuong);
