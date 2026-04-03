@@ -20,6 +20,7 @@ var DANH_SACH_KHOA = [
     "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
 ]; 
 
+// MÃ HÓA CẢ DẤU NHÁY VÀ DẤU XUỐNG DÒNG (ALT+ENTER) ĐỂ BẢO VỆ HTML
 window.encodeForJS = function(str) {
     if (!str) return '';
     return encodeURIComponent(String(str)).replace(/'/g, "%27").replace(/"/g, "%22");
@@ -55,52 +56,53 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
-// 🟢 1. CẤP ĐỘ CÁCH LY: Kiểm tra mã tương đương có đủ 3 phần (xx.xxxx.xxxx) hay không
 window.isValidForCrossLink = function(maTuongDuong) {
     if (!maTuongDuong) return false;
     let str = String(maTuongDuong).replace(/,/g, '.').trim();
     let parts = str.split('.');
-    // Từ chối liên kết với Mã kỹ thuật nếu mã chỉ có 2 phần (VD: 02.03)
     return parts.length > 2;
 };
 
-// 🟢 2. CHUẨN HÓA TUYỆT ĐỐI (Chỉ đổi phẩy thành chấm, giữ nguyên mọi số 0)
 window.formatStrictCode = function(code) {
     if (code === undefined || code === null || code === '') return ''; 
     return String(code).replace(/,/g, '.').replace(/\s+/g, '').toLowerCase();
 };
 
-// 🟢 3. CHUẨN HÓA LIÊN KẾT NỀN (Gọt số 0 ở đầu, giữ nguyên đuôi, chặt bỏ phần mở rộng)
-window.normalizeCodeFast = function(code) {
-    if (!code) return ''; 
-    let strCode = window.formatStrictCode(code);
-    let parts = strCode.split('.');
-    
+// 🟢 TÁCH BIỆT: CHỈ CHUẨN HÓA 1 MÃ ĐƠN LẺ SAU KHI ĐÃ CẮT BỞI DẤU CHẤM PHẨY
+window.normalizeSingleCode = function(singleCode) {
+    if (!singleCode) return '';
+    let parts = singleCode.split('.');
     if (parts.length >= 2) {
         let part1 = parts[0];
         let part2 = parts[1];
-        
-        // Gọt số 0 vô nghĩa ở đầu nhưng giữ nguyên nếu có số 0 ở đuôi (vd: 0005 -> 5, 0500 -> 500)
         if (/^\d+$/.test(part1)) part1 = parseInt(part1, 10).toString();
         if (/^\d+$/.test(part2)) part2 = parseInt(part2, 10).toString();
-        
-        // Ép ghép đúng 2 phần đầu, KHÔNG lấy phần mở rộng thứ 3 (vd bỏ .0815)
         return part1 + '.' + part2;
     }
-    
-    if (/^\d+$/.test(strCode)) return parseInt(strCode, 10).toString();
-    return strCode;
+    if (/^\d+$/.test(singleCode)) return parseInt(singleCode, 10).toString();
+    return singleCode;
 };
 
-// 🟢 KIỂM TRA LIÊN KẾT NỀN (Áp dụng ghép PL1, PL2 và Giá)
+// 🟢 CHUẨN HÓA LIÊN KẾT NỀN (GIẢI QUYẾT ĐA MÃ)
+window.normalizeCodeFast = function(code) {
+    if (!code) return ''; 
+    let strCode = window.formatStrictCode(code);
+    // Tách các mã bằng dấu ; hoặc / hoặc | ra thành mảng trước
+    let arr = strCode.split(/;|\/|\|/).filter(Boolean);
+    // Chuẩn hóa từng mã nhỏ một cách độc lập
+    let normArr = arr.map(c => window.normalizeSingleCode(c));
+    // Ghép lại thành chuỗi hoàn chỉnh
+    return normArr.join(';');
+};
+
 window.isCodeMatch = function(maTuongDuong, targetMa) { 
     if (!maTuongDuong || !targetMa) return false;
     let m1 = window.normalizeCodeFast(maTuongDuong);
     let m2 = window.normalizeCodeFast(targetMa);
     if (m1 === m2) return true;
     
-    let arr1 = m1.split(/;|\/|\|/).filter(Boolean);
-    let arr2 = m2.split(/;|\/|\|/).filter(Boolean);
+    let arr1 = m1.split(';').filter(Boolean);
+    let arr2 = m2.split(';').filter(Boolean);
     for (let a of arr1) {
         for (let b of arr2) {
             if (a === b) return true;
@@ -109,7 +111,6 @@ window.isCodeMatch = function(maTuongDuong, targetMa) {
     return false;
 };
 
-// 🟢 KIỂM TRA LIÊN KẾT TUYỆT ĐỐI (Chỉ dùng riêng cho MaDVBV khớp 1-1 với BHYT)
 window.isStrictCodeMatch = function(ma1, ma2) {
     if (!ma1 || !ma2) return false;
     let m1 = window.formatStrictCode(ma1);
@@ -153,19 +154,26 @@ window.buildOrderMap = function() {
     if (Array.isArray(database.PL1)) {
         database.PL1.forEach(function(item, index) {
             if (!item) return;
-            let ma = window.normalizeCodeFast(item.ma || item.maLienKet);
+            // Ánh xạ bằng mã đã xử lý tách mảng
+            let maRaw = item.ma || item.maLienKet || "";
+            if (maRaw) {
+                let mArr = window.normalizeCodeFast(maRaw).split(';').filter(Boolean);
+                mArr.forEach(m => { if (!window.plOrderMap.has('ma_' + m)) window.plOrderMap.set('ma_' + m, index); });
+            }
             let ten = window.robustNormalize(item.ten);
-            if (ma && !window.plOrderMap.has('ma_' + ma)) window.plOrderMap.set('ma_' + ma, index);
             if (ten && !window.plOrderMap.has('ten_' + ten)) window.plOrderMap.set('ten_' + ten, index);
         });
     }
     if (Array.isArray(database.PL2)) {
         database.PL2.forEach(function(item, index) {
             if (!item) return;
-            let ma = window.normalizeCodeFast(item.ma || item.maLienKet);
-            let ten = window.robustNormalize(item.ten);
             let base = 100000 + index;
-            if (ma && !window.plOrderMap.has('ma_' + ma)) window.plOrderMap.set('ma_' + ma, base);
+            let maRaw = item.ma || item.maLienKet || "";
+            if (maRaw) {
+                let mArr = window.normalizeCodeFast(maRaw).split(';').filter(Boolean);
+                mArr.forEach(m => { if (!window.plOrderMap.has('ma_' + m)) window.plOrderMap.set('ma_' + m, base); });
+            }
+            let ten = window.robustNormalize(item.ten);
             if (ten && !window.plOrderMap.has('ten_' + ten)) window.plOrderMap.set('ten_' + ten, base);
         });
     }
@@ -173,7 +181,7 @@ window.buildOrderMap = function() {
 
 window.getOrderIndex = function(qt) {
     if (!qt) return 9999999;
-    let qtMa = window.normalizeCodeFast(qt.ma || qt.maLienKet);
+    let qtMa = window.normalizeCodeFast(qt.ma || qt.maLienKet).split(';').filter(Boolean)[0];
     let qtName = window.robustNormalize(qt.ten);
 
     if (qtMa && window.plOrderMap.has('ma_' + qtMa)) return window.plOrderMap.get('ma_' + qtMa);

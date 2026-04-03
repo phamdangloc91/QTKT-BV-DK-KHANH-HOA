@@ -7,11 +7,18 @@ window.changePage = function(step) {
     document.querySelector('.table-container').scrollTop = 0; 
 }
 
-window.jumpToPL1 = function(maLienKet) { 
+window.toggleSelectRow = function(checkbox, tenKhoa, encodedMa) {
+    let ma = decodeURIComponent(encodedMa || "");
+    if (checkbox.checked) { selectedTechniques.push({ tenKhoa: tenKhoa, maQuyTrinh: ma }); } 
+    else { selectedTechniques = selectedTechniques.filter(function(item) { return item && !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma); }); }
+}
+
+window.jumpToPL1 = function(encodedMa) { 
     window.switchTab('PL1', 'QTKT'); 
+    let ma = decodeURIComponent(encodedMa || "");
     let sBox = document.getElementById('searchBox'); 
     if(sBox) { 
-        sBox.value = maLienKet; 
+        sBox.value = ma; 
         window.apDungLoc(); 
     } 
 }
@@ -70,8 +77,14 @@ window.enrichGiaDV = function() {
         let m2 = window.normalizeCodeFast(i.maLienKet);
         let n = window.robustNormalize(i.ten); 
         
-        if (m1 && !qtktMapByCode.has(m1)) qtktMapByCode.set(m1, i);
-        if (m2 && !qtktMapByCode.has(m2)) qtktMapByCode.set(m2, i);
+        if (m1) {
+            let arr1 = m1.split(';').filter(Boolean);
+            arr1.forEach(a => { if(!qtktMapByCode.has(a)) qtktMapByCode.set(a, i); });
+        }
+        if (m2) {
+            let arr2 = m2.split(';').filter(Boolean);
+            arr2.forEach(b => { if(!qtktMapByCode.has(b)) qtktMapByCode.set(b, i); });
+        }
         if (n && !qtktMapByName.has(n)) qtktMapByName.set(n, i);
     };
     if(Array.isArray(database.PL1)) database.PL1.forEach(addTolist); 
@@ -82,12 +95,16 @@ window.enrichGiaDV = function() {
             if(!item) return;
             let qtktInfo = null;
             
-            // CHỈ GHÉP VỚI KỸ THUẬT NẾU LÀ MÃ HỢP LỆ (> 2 PHẦN)
             if (window.isValidForCrossLink(item.maTuongDuong)) {
                 let qtMa = window.normalizeCodeFast(item.maTuongDuong);
                 let qtName = window.robustNormalize(item.tenKyThuat);
                 if (qtName && qtktMapByName.has(qtName)) { qtktInfo = qtktMapByName.get(qtName); } 
-                else if (qtMa && qtktMapByCode.has(qtMa)) { qtktInfo = qtktMapByCode.get(qtMa); }
+                else if (qtMa) {
+                    let arr = qtMa.split(';').filter(Boolean);
+                    for(let m of arr) {
+                        if (qtktMapByCode.has(m)) { qtktInfo = qtktMapByCode.get(m); break; }
+                    }
+                }
             }
 
             item.qt_ten = (qtktInfo && qtktInfo.ten) ? String(qtktInfo.ten).replace(/['"`\n\r\\]/g, "") : (item.tenKyThuat ? String(item.tenKyThuat).replace(/['"`\n\r\\]/g, "") : "");
@@ -134,11 +151,6 @@ window.toggleMultiSelect = function(state) {
         document.getElementById('batchStatusText').innerHTML = `<b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.`;
     }
     window.apDungLoc(); 
-}
-
-window.toggleSelectRow = function(checkbox, tenKhoa, ma) {
-    if (checkbox.checked) { selectedTechniques.push({ tenKhoa: tenKhoa, maQuyTrinh: ma }); } 
-    else { selectedTechniques = selectedTechniques.filter(function(item) { return item && !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma); }); }
 }
 
 window.toggleAllGiaDV = function(source) {
@@ -237,7 +249,7 @@ window.renderTable = function(data = null) {
                         let safeQD = matchedQT.quyetDinh ? String(matchedQT.quyetDinh) : ""; 
                         let maHienThi = matchedQT.ma || matchedQT.maLienKet || '';
                         
-                        kyThuatHtml = `<a href="#" onclick="window.moChiTiet('${maHienThi}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
+                        kyThuatHtml = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none; border-bottom: 1px dashed var(--info);" title="Bấm để xem chi tiết QTKT liên kết">${rawKT}</a>`;
                     } else {
                         kyThuatHtml = `<span style="color:var(--primary); font-weight:bold;">${rawKT}</span>`;
                         if (canEdit) { let suggested = window.getSuggestion(rawKT); if (suggested) { let safeSug = String(suggested).replace(/"/g, '&quot;'); suggestionHtml = `<div class="suggestion-box">💡 Ý bạn là: <button class="suggestion-btn" data-suggestion="${safeSug}" onclick="window.acceptSuggestion(this)">${suggested}</button>?</div>`; } }
@@ -301,7 +313,7 @@ window.renderTable = function(data = null) {
                     let safeTen = item.ten ? String(item.ten) : ""; 
                     let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
                     let safeQD = item.quyetDinh ? String(item.quyetDinh) : "";
-                    let tenClickable = `<a href="#" onclick="window.moChiTiet('${item.ma || item.maLienKet || ''}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
+                    let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(item.ma || item.maLienKet || '')}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTen}</a>`;
                     let td_ma = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`; }).join('<br><br>') : '';
                     let td_ten = item.matchedGia && item.matchedGia.length > 0 ? item.matchedGia.map(function(g){ return g.tenDichVu || g.tenKyThuat || ''; }).join('<hr style="border:0; border-top:1px dashed #ccc; margin: 4px 0;">') : '<span style="color:#888;">Chưa có trong TT23</span>';
                     tbodyHtml += `<tr class="row-bhyt"><td>${realIndex + 1}</td><td><b>${item.ma || item.maLienKet || ''}</b></td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td style="text-align:center; background:#fff3cd;">${td_ma}</td><td style="background:#fff3cd;">${td_ten}</td></tr>`;
@@ -314,7 +326,7 @@ window.renderTable = function(data = null) {
                     let safePL = item.qt_phanLoai || "KPL";
                     let safeQD = item.qt_quyetDinh || "Chưa phê duyệt";
                     let maPass = item.maTuongDuong || item.tenKyThuat || "";
-                    let tenClickable = `<a href="#" onclick="window.moChiTiet('${maPass}', '${window.encodeForJS(safeTenKT)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenKT}</a>`;
+                    let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maPass)}', '${window.encodeForJS(safeTenKT)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:var(--info); font-weight:bold; text-decoration:none;">${safeTenKT}</a>`;
                     let uniqueId = String(item.maTuongDuong || item.tenKyThuat || realIndex);
                     let isChecked = selectedGiaDV.includes(uniqueId) ? "checked" : "";
                     tbodyHtml += `<tr>
@@ -347,28 +359,26 @@ window.renderTable = function(data = null) {
 
                 let maHienThi = item.ma || item.maLienKet || ''; 
                 
-                // 🟢 THUẬT TOÁN ĐỔI MÀU CHÍNH XÁC
+                // 🟢 ĐỊNH DANH MÀU SẮC BHYT / BỆNH VIỆN BẰNG LIÊN KẾT ĐÚNG CHUẨN
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
-                let normCheckMa = window.normalizeCodeFast(maHienThi);
-                let normCheckTen = window.robustNormalize(item.ten || "");
                 
-                if (normCheckMa || normCheckTen) {
+                if (maHienThi || item.ten) {
                     if (Array.isArray(database.GiaDV)) {
                         isHasBHYT = database.GiaDV.some(g => {
-                            // Chỉ tô màu nếu Mã kỹ thuật này ĐƯỢC PHÉP liên kết với TT23
                             if (!window.isValidForCrossLink(g.maTuongDuong)) return false;
-                            return (normCheckMa && window.normalizeCodeFast(g.maTuongDuong) === normCheckMa) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen);
+                            return window.isCodeMatch(g.maTuongDuong, maHienThi) || (item.ten && window.robustNormalize(g.tenKyThuat) === window.robustNormalize(item.ten));
                         });
                     }
                     if (Array.isArray(database.MaDVBV)) {
-                        // MaDVBV sử dụng StrictMatch để tìm ra chính xác TT23, rồi từ đó mới gọt để map với PL1
                         isHasBV = database.MaDVBV.some(b => {
                             if (!window.isValidForCrossLink(b.maTuongDuong)) return false;
-                            return normCheckMa && window.normalizeCodeFast(b.maTuongDuong) === normCheckMa;
+                            // Phải khớp với định dạng normalize (tách mảng)
+                            return window.isCodeMatch(b.maTuongDuong, maHienThi);
                         });
                     }
                 }
+                
                 if (isHasBHYT && isHasBV) rowClass = "row-full";
                 else if (isHasBHYT) rowClass = "row-bhyt";
 
@@ -376,7 +386,7 @@ window.renderTable = function(data = null) {
                 
                 if (isMultiSelectMode) {
                     let isChecked = selectedTechniques.find(function(x) { return x && x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi; }) ? "checked" : "";
-                    html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="window.toggleSelectRow(this, '${realTenKhoa}', '${maHienThi}')" ${isChecked}></td>`;
+                    html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="window.toggleSelectRow(this, '${realTenKhoa}', '${window.encodeForJS(maHienThi)}')" ${isChecked}></td>`;
                 }
 
                 let safeTen = item.ten ? String(item.ten) : ""; 
@@ -384,7 +394,7 @@ window.renderTable = function(data = null) {
                 let safeQD = item.quyetDinh ? String(item.quyetDinh) : ""; 
                 let safeMaLienKet = item.maLienKet ? String(item.maLienKet) : "";
                 
-                let tenClickable = `<a href="#" onclick="window.moChiTiet('${maHienThi}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
+                let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
 
                 html += `<td>${realIndex + 1}</td>`;
                 if (isSuperTab) { html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; } 
@@ -397,18 +407,18 @@ window.renderTable = function(data = null) {
                     let fileHtml = '';
                     if(tt === 'DA_PHE_DUYET') {
                         fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br><span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
-                        if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
+                        if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
                     } else {
                         if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`; else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`; else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
 
                         if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
                             if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
-                            if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="window.chuanBiNopKhoa('${maHienThi}')">📤 Nộp file Word</button>`;
-                            if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                            if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file Word</button>`;
+                            if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">🔄 Nộp lại</button>`;
                         } 
                         else if (currentUser && currentUser.role === 'admin') {
                             if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
-                            if(tt === 'CHO_DUYET' && !isMultiSelectMode) { fileHtml += `<button class="btn" style="background:var(--success);" onclick="window.chuanBiUpSinglePdf('${maHienThi}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${maHienThi}', 'REJECT_KHOA')">❌ Từ chối</button>`; }
+                            if(tt === 'CHO_DUYET' && !isMultiSelectMode) { fileHtml += `<button class="btn" style="background:var(--success);" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REJECT_KHOA')">❌ Từ chối</button>`; }
                         }
                     }
                     html += `<td>${fileHtml}</td>`;
@@ -420,14 +430,14 @@ window.renderTable = function(data = null) {
                     if (itemInCart) {
                         let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP'; let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
                         if (cartStatus === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                        else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${maHienThi}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`; }
+                        else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${currentUser.tenKhoa}')">🗑️ Xóa</button></td>`; }
                     } else {
-                        html += `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${maHienThi}')">+ Thêm</button></td>`;
+                        html += `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${window.encodeForJS(maHienThi)}')">+ Thêm</button></td>`;
                     }
                 }
                 else if (canRemovePL) { 
                     if (currentUser.role === 'khoa' && tt === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                    else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${maHienThi}', '${realTenKhoa}')">🗑️ Xóa</button></td>`; }
+                    else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}')">🗑️ Xóa</button></td>`; }
                 }
                 
                 html += "</tr>"; tbodyHtml += html;
@@ -580,7 +590,6 @@ window.thucHienLocGoc = function() {
             const maDvbvSet = new Set();
             if(Array.isArray(database.MaDVBV)) {
                 database.MaDVBV.forEach(function(dv) { 
-                    // Ở Tab chưa áp giá, chỉ những QTKT chưa có trong Bệnh viện (Dù đã được quy đổi mã) mới hiện ra
                     if (dv && dv.maTuongDuong) maDvbvSet.add(window.normalizeCodeFast(dv.maTuongDuong)); 
                 });
             }
