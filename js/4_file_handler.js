@@ -69,51 +69,34 @@ window.xuLyNopFileKhoa = async function() {
     window.showLoading(false);
 }
 
-// 🟢 THUẬT TOÁN XÓA FILE TRIỆT ĐỂ (Xóa UI + Xóa Data + Xóa Drive)
+// 🟢 GỌI CHÍNH XÁC LÊN API XÓA FILE TRÊN BACKEND (Render)
 window.xoaFileKhoa = async function(encodedMa) {
     if(!confirm("Xác nhận XÓA VĨNH VIỄN file đính kèm này khỏi hệ thống? (File sẽ bị xóa khỏi Google Drive)")) return;
     let ma = decodeURIComponent(encodedMa || "");
     
     window.showLoading(true);
     try {
-        let myDept = database.depts.find(d => d && d.tenKhoa === currentUser.tenKhoa);
-        if (myDept && Array.isArray(myDept.danhMucQTKT)) {
-            let qt = myDept.danhMucQTKT.find(x => x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)));
-            if (qt) {
-                let fileUrlToTrash = qt.fileKhoa; // Lấy URL file để gửi lên Backend xóa
+        // Xóa tên file khỏi bộ nhớ đệm UI
+        try {
+            let mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}');
+            delete mapNames[ma];
+            localStorage.setItem('fileNamesMap', JSON.stringify(mapNames));
+        } catch(e){}
 
-                // Bước 1: Xóa trắng dữ liệu file trong Local Storage & Object
-                qt.fileKhoa = null;
-                qt.tenFileKhoa = null;
-                qt.trangThai = "CHUA_NOP"; 
-                
-                try {
-                    let mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}');
-                    delete mapNames[ma];
-                    localStorage.setItem('fileNamesMap', JSON.stringify(mapNames));
-                } catch(e){}
-
-                // Bước 2: Gọi API cập nhật Database & XÓA FILE TRÊN DRIVE
-                // Gửi cả thông tin cập nhật Database (dept-data/update-all) 
-                // VÀ yêu cầu Backend xóa file (cần cấu hình Backend nhận fileUrlToTrash)
-                const res = await fetch('/api/dept-data/update-all', {
-                    method: 'POST',
-                    headers: {'Content-Type': 'application/json'},
-                    body: JSON.stringify({ 
-                        tenKhoa: currentUser.tenKhoa, 
-                        danhMucQTKT: myDept.danhMucQTKT,
-                        fileUrlToTrash: fileUrlToTrash // Gửi link file cần xóa cho Backend xử lý
-                    })
-                });
-
-                if (res.ok) {
-                    alert("Đã xóa file vĩnh viễn thành công!");
-                } else {
-                    alert("Đã gỡ file khỏi giao diện, nhưng có lỗi khi xóa trên Drive.");
-                }
-            }
+        // Gọi Backend để xóa DB + Xóa Drive
+        const res = await fetch('/api/upload/delete-khoa', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, maQuyTrinh: ma }) 
+        });
+        
+        const data = await res.json();
+        
+        if (res.ok) { 
+            await window.layDuLieu(); // Tải lại toàn bộ dữ liệu, giao diện sẽ tự cập nhật thành nút "Nộp file QTKT"
+        } else {
+            alert("Lỗi: " + data.message);
         }
-        window.apDungLoc(); // Vẽ lại giao diện lập tức (Sẽ hiện nút Nộp File)
     } catch(e) { 
         console.error(e);
         alert("Lỗi kết nối khi xóa file!"); 
