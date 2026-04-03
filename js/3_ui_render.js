@@ -7,7 +7,6 @@ window.changePage = function(step) {
     document.querySelector('.table-container').scrollTop = 0; 
 }
 
-// 🟢 HÀM MỚI: NHẢY TỚI SỐ TRANG TỪ Ô NHẬP LIỆU (ENTER)
 window.jumpToPage = function(inputEl, maxPage) {
     let p = parseInt(inputEl.value, 10);
     if (isNaN(p) || p < 1) p = 1;
@@ -407,7 +406,6 @@ window.renderTable = function(data = null) {
                 
                 let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
 
-                // 🟢 THAY ĐỔI 1: CHIA NÚT MÃ LIÊN KẾT PL2 THÀNH CÁC NÚT RIÊNG RẼ
                 let maLienKetHtml = '';
                 if (safeMaLienKet) {
                     let arrMaLienKet = safeMaLienKet.split(/;|\/|\|/).filter(Boolean);
@@ -445,7 +443,6 @@ window.renderTable = function(data = null) {
                     html += `<td>${fileHtml}</td>`;
                 }
                 
-                // 🟢 THAY ĐỔI 3: DÙNG TÊN LÀM BACKUP KHI ẤN "THÊM" Ở GIỎ HÀNG (Nếu không có mã)
                 if (canAddPL) { 
                     let itemInCart = null;
                     if(Array.isArray(myDeptCart)) { 
@@ -472,7 +469,6 @@ window.renderTable = function(data = null) {
             });
         }
         
-        // 🟢 NÚT CHUYỂN TRANG
         if (totalPages > 1) {
             tbodyHtml += `<tr style="background: #fff;"><td colspan="100%" style="text-align:center; padding: 15px;">
                 <button class="btn" style="background:#6c757d; font-size:13px; padding:8px 15px;" onclick="window.changePage(-1)" ${window.currentPage === 1 ? 'disabled style="opacity:0.5;cursor:not-allowed;"' : ''}>⬅️ Trang Trước</button>
@@ -519,7 +515,6 @@ window.capNhatTieuDe = function() {
     if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
     if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
     if(grpNamDT) grpNamDT.style.display = currentTabType === 'DTNH' ? 'flex' : 'none';
-    // Hiện nút lọc Chưa Có Mã ở tab PL2
     if(grpChuaCoMa) grpChuaCoMa.style.display = (currentTab === 'PL2') ? 'block' : 'none';
 
     if (currentTabType === 'DTNH') {
@@ -752,7 +747,6 @@ window.thucHienLocGoc = function() {
         const filtered = sourceList.filter(function(item) { 
             if(!item) return false;
             
-            // LỌC KỸ THUẬT CHƯA CÓ MÃ Ở PL2
             if (isLocChuaCoMa && currentTab === 'PL2') {
                 let checkMa = item.maLienKet || item.ma || "";
                 if (checkMa.toString().trim() !== "") return false; 
@@ -857,279 +851,4 @@ window.capNhatDanhSachQuyetDinh = function() {
         else if(checkedBoxes.length === 1) textSpan.innerText = "1 QĐ được chọn";
         else textSpan.innerText = checkedBoxes.length + " QĐ được chọn";
     }
-}
-
-window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDichVu) {
-    let maDichVu = decodeURIComponent(encodedMaDichVu || "");
-    let maTuongDuong = decodeURIComponent(encodedMaTuongDuong || "");
-    let tenDichVu = decodeURIComponent(encodedTenDichVu || "");
-
-    document.getElementById('dvTenDV').innerText = tenDichVu || ''; 
-    document.getElementById('dvMaDV').innerText = maDichVu || '';
-    
-    let qtktInfo = null;
-    
-    if (window.isValidForCrossLink(maTuongDuong)) {
-        let qtMa = window.normalizeCodeFast(maTuongDuong);
-        if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
-        if(!qtktInfo && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
-                       
-        if (!qtktInfo && Array.isArray(database.depts)) { 
-            for (let d of database.depts) { 
-                if(!d || !Array.isArray(d.danhMucQTKT)) continue;
-                let found = d.danhMucQTKT.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); 
-                if (found) { qtktInfo = found; break; } 
-            } 
-        }
-    }
-
-    let qtHtml = '';
-    if (qtktInfo) {
-        qtHtml = `<table class="user-table" style="width:100%;">
-            <tr><td style="background:#f2f2f2; width:30%;"><b>Mã kỹ thuật:</b></td><td>${qtktInfo.ma || qtktInfo.maLienKet || ''}</td></tr>
-            <tr><td style="background:#f2f2f2;"><b>Tên QTKT:</b></td><td>${qtktInfo.ten || ''}</td></tr>
-            <tr><td style="background:#f2f2f2;"><b>Phân loại:</b></td><td><span class="badge badge-type">${qtktInfo.phanLoai || 'KPL'}</span></td></tr>
-            <tr><td style="background:#f2f2f2;"><b>Quyết định:</b></td><td>${qtktInfo.quyetDinh || 'Chưa phê duyệt'}</td></tr>
-        </table>`;
-    } else { 
-        qtHtml = `<span style="color:#856404;">Không tìm thấy Quy trình Kỹ thuật gốc cho mã tương đương này (${maTuongDuong}).</span>`; 
-    }
-    document.getElementById('dvQTKTArea').innerHTML = qtHtml;
-
-    let giaDVInfo = null;
-    if(Array.isArray(database.GiaDV)){ 
-        giaDVInfo = database.GiaDV.find(function(x){ return x && window.isStrictCodeMatch(x.maTuongDuong, maTuongDuong); }); 
-    }
-    
-    let bhytHtml = '';
-    if (giaDVInfo) {
-        let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
-        bhytHtml = `<table class="user-table" style="width:100%;"><tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr></table>`;
-    } else { 
-        bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; 
-    }
-    document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
-
-    const tbody = document.getElementById('dvKhoaBody'); 
-    tbody.innerHTML = ''; 
-    let fileHtml = ''; 
-    let coBaoCao = false;
-    
-    if (qtktInfo && Array.isArray(database.depts)) {
-        let qtMaGoc = window.normalizeCodeFast(qtktInfo.ma || qtktInfo.maLienKet);
-        database.depts.forEach(function(d) {
-            if(!d || !Array.isArray(d.danhMucQTKT)) return;
-            const qt = d.danhMucQTKT.find(function(x) { return x && (window.isCodeMatch(x.ma, qtMaGoc) || window.isCodeMatch(x.maLienKet, qtMaGoc)); });
-            if(qt) {
-                coBaoCao = true;
-                let ttRaw = qt.trangThai || 'CHUA_NOP'; 
-                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                let ttStr = "Chưa nộp"; 
-                let col = "gray";
-                
-                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } 
-                else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } 
-                else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
-                
-                tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
-                
-                if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
-                    fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
-                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
-                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
-                    if(qt.filePdfChinhThuc) {
-                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
-                        let safeQtTen = qt.ten ? String(qt.ten) : "";
-                        let safeQtMa = qt.ma || qt.maLienKet || qtMaGoc;
-                        if (currentUser && currentUser.role === 'admin') { 
-                            fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(safeQtMa)}', '${d.tenKhoa}', '${window.encodeForJS(safeQtTen)}')">🔄 Cập nhật PDF</button>`; 
-                        }
-                        fileHtml += `</div>`;
-                    }
-                    fileHtml += `</div>`;
-                }
-            }
-        });
-    }
-    if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký quy trình kỹ thuật liên kết.</td></tr>`;
-    const fileArea = document.getElementById('dvFilesArea');
-    if(fileHtml !== '') fileArea.innerHTML = fileHtml; 
-    else fileArea.innerHTML = `<span style="color:#888;">Chưa có tài liệu phê duyệt nào.</span>`;
-    
-    window.moModal('detailDVModal');
-}
-
-window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyetDinh) {
-    let ma = decodeURIComponent(encodedMa || "");
-    let ten = decodeURIComponent(encodedTen || "");
-    let phanLoai = decodeURIComponent(encodedPhanLoai || "");
-    let quyetDinh = decodeURIComponent(encodedQuyetDinh || "");
-
-    document.getElementById('dtTenQT').innerText = ten || ''; 
-    document.getElementById('dtMaQT').innerText = ''; // Xóa mã tạm cũ
-    
-    // 🟢 THAY ĐỔI 2: DÀN TRANG HIỂN THỊ MỖI MÃ LIÊN KẾT LÀ MỘT Ô RIÊNG
-    let titleEl = document.getElementById('dtTenQT');
-    let infoEl = titleEl.nextElementSibling; 
-    let arrMaTop = ma.split(/;|\/|\|/).filter(Boolean);
-    if (arrMaTop.length === 0 && ma) arrMaTop = [ma];
-    else if (!ma) arrMaTop = ["Chưa có mã"];
-    
-    let topInfoHtml = '';
-    arrMaTop.forEach(m => {
-        let cleanM = m.trim();
-        topInfoHtml += `<div style="margin-bottom: 5px; padding: 6px 10px; background: #fdfdfe; border-radius: 4px; border: 1px solid #e9ecef; display: inline-block; margin-right: 5px;">
-            Mã/Mã LK: <b style="color:var(--danger); font-size:15px;">${cleanM}</b> &nbsp;|&nbsp; 
-            Phân loại: <b style="color:var(--primary);">${phanLoai || 'KPL'}</b> &nbsp;|&nbsp; 
-            Quyết định: <b>${quyetDinh || 'Chưa phê duyệt'}</b>
-        </div>`;
-    });
-    infoEl.innerHTML = topInfoHtml;
-    
-    const tbody = document.getElementById('dtKhoaBody'); 
-    tbody.innerHTML = ''; 
-    let fileHtml = ''; 
-    let coBaoCao = false;
-
-    if(Array.isArray(database.depts)) {
-        database.depts.forEach(function(d) {
-            if(!d || !Array.isArray(d.danhMucQTKT)) return;
-            const qt = d.danhMucQTKT.find(function(x) { 
-                let nameMatch = false;
-                if (ten && x.ten) { nameMatch = window.robustNormalize(x.ten) === window.robustNormalize(ten); }
-                return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma) || nameMatch); 
-            });
-            if(qt) {
-                coBaoCao = true; 
-                let ttRaw = qt.trangThai || 'CHUA_NOP'; 
-                let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                let ttStr = "Chưa nộp"; 
-                let col = "gray";
-                
-                if(tt === 'CHO_DUYET') { ttStr = "Chờ KHTH duyệt"; col = "var(--warning)"; } 
-                else if(tt === 'KHONG_DUYET') { ttStr = "Bị KHTH từ chối"; col = "var(--danger)"; } 
-                else if(tt === 'DA_PHE_DUYET') { ttStr = "Đã phê duyệt"; col = "var(--success)"; }
-                
-                tbody.innerHTML += `<tr><td><b>${d.tenKhoa}</b></td><td style="color:${col}; font-weight:bold;">${ttStr}</td></tr>`;
-
-                if(qt.fileQuyetDinh || qt.fileBienBan || qt.filePdfChinhThuc) {
-                    fileHtml += `<div style="margin-bottom:15px; padding-bottom:10px; border-bottom: 1px dashed #ccc;"><b>Tài liệu của ${d.tenKhoa}:</b><br>`;
-                    if(qt.fileQuyetDinh) fileHtml += `<a class="file-online-link" href="${qt.fileQuyetDinh}" target="_blank">📄 Xem Quyết định Phê duyệt</a>`;
-                    if(qt.fileBienBan) fileHtml += `<a class="file-online-link" href="${qt.fileBienBan}" target="_blank">📄 Xem Biên bản HĐKHKT</a>`;
-                    if(qt.filePdfChinhThuc) {
-                        fileHtml += `<div style="display:flex; align-items:center; gap:10px; margin-top:5px; margin-bottom:5px;"><a class="file-online-link" href="${qt.filePdfChinhThuc}" target="_blank" style="background:#28a745; color:white; border:none; width:auto; margin:0;">📄 Quy trình PDF Chính thức</a>`;
-                        if (currentUser && currentUser.role === 'admin') {
-                            fileHtml += `<button class="btn" style="background:var(--warning); color:black; margin:0;" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(ma)}', '${d.tenKhoa}', '${window.encodeForJS(ten)}')">🔄 Cập nhật PDF</button>`;
-                        }
-                        fileHtml += `</div>`;
-                    }
-                    fileHtml += `</div>`;
-                }
-            }
-        });
-    }
-    
-    if(!coBaoCao) tbody.innerHTML = `<tr><td colspan="2">Chưa có khoa nào đăng ký kỹ thuật này.</td></tr>`;
-    
-    const fileArea = document.getElementById('dtFilesArea'); 
-    if(fileHtml !== '') fileArea.innerHTML = fileHtml; 
-    else fileArea.innerHTML = `<span style="color:#888;">Kỹ thuật này chưa có tài liệu phê duyệt nào.</span>`;
-
-    const giaArea = document.getElementById('dtGiaDVArea'); 
-    const giaBVArea = document.getElementById('dtMaDVBVArea');
-    let matchedPrices = [];
-    
-    // TÌM BHYT (Chỉ tìm khi mã hợp lệ để ghép)
-    if(Array.isArray(database.GiaDV)) {
-        matchedPrices = database.GiaDV.filter(function(priceItem) {
-            if(!priceItem || !window.isValidForCrossLink(priceItem.maTuongDuong)) return false; 
-            let isNameMatch = false; 
-            if (ten && priceItem.tenKyThuat) { 
-                if (window.robustNormalize(ten) === window.robustNormalize(priceItem.tenKyThuat)) isNameMatch = true; 
-            }
-            return window.isCodeMatch(priceItem.maTuongDuong, ma) || isNameMatch;
-        });
-    }
-
-    if (matchedPrices.length > 0) {
-        let htmlGia = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã tương đương</th><th>Tên Dịch vụ BHYT</th><th>Giá phê duyệt</th></tr></thead><tbody>`;
-        matchedPrices.forEach(function(p) { 
-            let formattedPrice = p.giaMax ? Number(p.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá'; 
-            htmlGia += `<tr><td style="text-align:center;"><b>${p.maTuongDuong || ''}</b></td><td>${p.tenDichVu || p.tenKyThuat || ''}</td><td style="text-align:right; color:red; font-weight:bold;">${formattedPrice}</td></tr>`; 
-        });
-        htmlGia += `</tbody></table>`; 
-        giaArea.innerHTML = htmlGia;
-    } else { 
-        giaArea.innerHTML = `<span style="color:#856404;">Chưa tìm thấy giá dịch vụ tương đương (TT23) cho kỹ thuật này.</span>`; 
-    }
-
-    let matchedBVPrices = [];
-    if(Array.isArray(database.MaDVBV)) {
-        matchedBVPrices = database.MaDVBV.filter(function(priceItem) { 
-            return priceItem && window.isValidForCrossLink(priceItem.maTuongDuong) && window.isCodeMatch(priceItem.maTuongDuong, ma); 
-        });
-    }
-    
-    if (matchedBVPrices.length > 0) {
-        let htmlGiaBV = `<table class="user-table" style="margin-top: 5px; width: 100%; background: white;"><thead><tr><th>Mã dịch vụ</th><th>Tên dịch vụ (BV)</th><th>Giá BHYT</th><th>Giá Viện Phí</th><th>Giá Yêu Cầu</th><th>Giá NN</th></tr></thead><tbody>`;
-        matchedBVPrices.forEach(function(p) {
-            let gBHYT = p.giaBHYT ? Number(p.giaBHYT).toLocaleString('vi-VN') + ' đ' : '-'; 
-            let gVP = p.giaVienPhi ? Number(p.giaVienPhi).toLocaleString('vi-VN') + ' đ' : '-'; 
-            let gYC = p.giaYeuCau ? Number(p.giaYeuCau).toLocaleString('vi-VN') + ' đ' : '-'; 
-            let gNN = p.giaNuocNgoai ? Number(p.giaNuocNgoai).toLocaleString('vi-VN') + ' đ' : '-';
-            htmlGiaBV += `<tr><td style="text-align:center;"><b>${p.maDichVu || ''}</b></td><td>${p.tenDichVu || ''}</td><td style="text-align:right; color:green; font-weight:bold;">${gBHYT}</td><td style="text-align:right; color:blue; font-weight:bold;">${gVP}</td><td style="text-align:right; color:purple; font-weight:bold;">${gYC}</td><td style="text-align:right; color:red; font-weight:bold;">${gNN}</td></tr>`;
-        });
-        htmlGiaBV += `</tbody></table>`; 
-        giaBVArea.innerHTML = htmlGiaBV;
-    } else { 
-        giaBVArea.innerHTML = `<span style="color:#0c5460;">Chưa tìm thấy mã dịch vụ bệnh viện thiết lập cho kỹ thuật này.</span>`; 
-    }
-    
-    let crossHtml = '';
-    let pl1Matches = [];
-    let pl2Matches = [];
-    
-    // 🟢 THAY ĐỔI 3: LIÊN KẾT CHÉO THÔNG MINH (CHỈ HIỂN THỊ KỸ THUẬT Ở PHỤ LỤC ĐỐI NGHỊCH)
-    let arrMaToSearch = ma.split(/;|\/|\|/).map(m => m.trim()).filter(Boolean);
-
-    // Đang mở tab PL2 hoặc tab Khoa mà kỹ thuật đó thuộc PL2 -> chỉ quét PL1
-    // Để an toàn nhất, luôn quét Phụ lục còn lại nếu tìm thấy.
-    if (currentTab !== 'PL1' && Array.isArray(database.PL1)) {
-        pl1Matches = database.PL1.filter(function(x) { 
-            return x && arrMaToSearch.some(m => window.isCodeMatch(x.ma, m) || window.isCodeMatch(x.maLienKet, m));
-        });
-    }
-    
-    if (currentTab !== 'PL2' && Array.isArray(database.PL2)) {
-        pl2Matches = database.PL2.filter(function(x) { 
-            return x && arrMaToSearch.some(m => window.isCodeMatch(x.ma, m) || window.isCodeMatch(x.maLienKet, m));
-        });
-    }
-
-    if (pl1Matches.length > 0) {
-        crossHtml += `<div style="margin-bottom: 8px;"><b>Kỹ thuật thuộc Phụ lục 1:</b><ul style="margin: 5px 0;">`;
-        pl1Matches.forEach(function(p) { 
-            crossHtml += `<li><span class="badge badge-success">${p.ma || p.maLienKet || '?'}</span> ${p.ten}</li>`; 
-        });
-        crossHtml += `</ul></div>`;
-    }
-    
-    if (pl2Matches.length > 0) {
-        crossHtml += `<div><b>Kỹ thuật thuộc Phụ lục 2:</b><ul style="margin: 5px 0;">`;
-        pl2Matches.forEach(function(p) { 
-            crossHtml += `<li><span class="badge badge-warning">${p.maLienKet || p.ma || '?'}</span> ${p.ten}</li>`; 
-        });
-        crossHtml += `</ul></div>`;
-    }
-    
-    let crossArea = document.getElementById('dtCrossLinkContent');
-    if (crossArea) {
-        if (!crossHtml) {
-            crossArea.innerHTML = `<span style="color:#888;">Kỹ thuật này không có thông tin liên kết chéo.</span>`;
-        } else {
-            crossArea.innerHTML = crossHtml;
-        }
-    }
-    
-    window.moModal('detailModal');
 }
