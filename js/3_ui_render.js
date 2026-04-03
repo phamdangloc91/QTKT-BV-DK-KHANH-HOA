@@ -7,12 +7,6 @@ window.changePage = function(step) {
     document.querySelector('.table-container').scrollTop = 0; 
 }
 
-window.toggleSelectRow = function(checkbox, tenKhoa, encodedMa) {
-    let ma = decodeURIComponent(encodedMa || "");
-    if (checkbox.checked) { selectedTechniques.push({ tenKhoa: tenKhoa, maQuyTrinh: ma }); } 
-    else { selectedTechniques = selectedTechniques.filter(function(item) { return item && !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma); }); }
-}
-
 window.jumpToPL1 = function(encodedMa) { 
     window.switchTab('PL1', 'QTKT'); 
     let ma = decodeURIComponent(encodedMa || "");
@@ -151,6 +145,12 @@ window.toggleMultiSelect = function(state) {
         document.getElementById('batchStatusText').innerHTML = `<b>Công cụ Admin:</b> Tick chọn các kỹ thuật bên dưới để tải Quyết định & Biên bản hàng loạt.`;
     }
     window.apDungLoc(); 
+}
+
+window.toggleSelectRow = function(checkbox, tenKhoa, encodedMa) {
+    let ma = decodeURIComponent(encodedMa || "");
+    if (checkbox.checked) { selectedTechniques.push({ tenKhoa: tenKhoa, maQuyTrinh: ma }); } 
+    else { selectedTechniques = selectedTechniques.filter(function(item) { return item && !(item.tenKhoa === tenKhoa && item.maQuyTrinh === ma); }); }
 }
 
 window.toggleAllGiaDV = function(source) {
@@ -359,22 +359,24 @@ window.renderTable = function(data = null) {
 
                 let maHienThi = item.ma || item.maLienKet || ''; 
                 
-                // 🟢 ĐỊNH DANH MÀU SẮC BHYT / BỆNH VIỆN BẰNG LIÊN KẾT ĐÚNG CHUẨN
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
                 
+                // CẮT ĐỨT CHUỖI ĐỂ TÔ MÀU CHÍNH XÁC NẾU CÓ 1 MÃ KHỚP LÀ ĐƯỢC
                 if (maHienThi || item.ten) {
                     if (Array.isArray(database.GiaDV)) {
+                        let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
+                        let normCheckTen = window.robustNormalize(item.ten || "");
                         isHasBHYT = database.GiaDV.some(g => {
                             if (!window.isValidForCrossLink(g.maTuongDuong)) return false;
-                            return window.isCodeMatch(g.maTuongDuong, maHienThi) || (item.ten && window.robustNormalize(g.tenKyThuat) === window.robustNormalize(item.ten));
+                            return arrSearch.some(m => window.isCodeMatch(g.maTuongDuong, m)) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen);
                         });
                     }
                     if (Array.isArray(database.MaDVBV)) {
+                        let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
                         isHasBV = database.MaDVBV.some(b => {
                             if (!window.isValidForCrossLink(b.maTuongDuong)) return false;
-                            // Phải khớp với định dạng normalize (tách mảng)
-                            return window.isCodeMatch(b.maTuongDuong, maHienThi);
+                            return arrSearch.some(m => window.isCodeMatch(b.maTuongDuong, m));
                         });
                     }
                 }
@@ -396,10 +398,20 @@ window.renderTable = function(data = null) {
                 
                 let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
 
+                // 🟢 CHIA NHỎ MÃ LIÊN KẾT RA THÀNH CÁC NÚT BẤM ĐỘC LẬP
+                let maLienKetHtml = '';
+                if (safeMaLienKet) {
+                    let arrMaLienKet = safeMaLienKet.split(/;|\/|\|/).filter(Boolean);
+                    maLienKetHtml = arrMaLienKet.map(m => {
+                        let cleanM = m.trim();
+                        return `<span style="color:blue;cursor:pointer;font-weight:bold;text-decoration:underline;display:inline-block;margin:2px 4px;" onclick="window.jumpToPL1('${window.encodeForJS(cleanM)}')">${cleanM}</span>`;
+                    }).join('');
+                }
+
                 html += `<td>${realIndex + 1}</td>`;
                 if (isSuperTab) { html += `<td><b>${maHienThi}</b></td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; } 
                 else if (currentTab === 'PL1' || isDeptTab) { let textMa = item.ma ? `<b>${item.ma}</b>` : `<span style="color:blue">${item.maLienKet}</span>`; html += `<td>${textMa}</td><td>${item.chuong || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; } 
-                else { html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td style="color:blue;cursor:pointer;font-weight:bold" onclick="window.jumpToPL1('${window.encodeForJS(safeMaLienKet)}')">${item.maLienKet || ''}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; }
+                else { html += `<td>${item.maChuong || ''}</td><td>${item.chuong || ''}</td><td>${maLienKetHtml}</td><td>${tenClickable}</td><td><span class="badge badge-type">${safePL}</span></td><td>${safeQD}</td>`; }
                 
                 let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
@@ -814,7 +826,6 @@ window.capNhatDanhSachQuyetDinh = function() {
     }
 }
 
-// 🟢 MỞ CHI TIẾT TỪ TAB MÃ BỆNH VIỆN
 window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDichVu) {
     let maDichVu = decodeURIComponent(encodedMaDichVu || "");
     let maTuongDuong = decodeURIComponent(encodedMaTuongDuong || "");
@@ -825,7 +836,6 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     
     let qtktInfo = null;
     
-    // NẾU MÃ HỢP LỆ THÌ MỚI ĐI TÌM QTKT (Gọt số 0 để ghép với PL1)
     if (window.isValidForCrossLink(maTuongDuong)) {
         let qtMa = window.normalizeCodeFast(maTuongDuong);
         if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x){ return x && (window.isCodeMatch(x.ma, qtMa) || window.isCodeMatch(x.maLienKet, qtMa)); }); if(found) qtktInfo = found; }
@@ -853,7 +863,6 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     }
     document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
-    // TÌM GIÁ TT23 BẰNG LIÊN KẾT TUYỆT ĐỐI 1-1 (Giữ nguyên mọi số 0)
     let giaDVInfo = null;
     if(Array.isArray(database.GiaDV)){ 
         giaDVInfo = database.GiaDV.find(function(x){ return x && window.isStrictCodeMatch(x.maTuongDuong, maTuongDuong); }); 
@@ -917,7 +926,7 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     window.moModal('detailDVModal');
 }
 
-// 🟢 MỞ CHI TIẾT TỪ TAB KỸ THUẬT GỐC PL1, PL2
+// 🟢 MỞ CHI TIẾT TỪ TAB KỸ THUẬT GỐC PL1, PL2 (DÀN TRANG TIÊU ĐỀ XUỐNG DÒNG)
 window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyetDinh) {
     let ma = decodeURIComponent(encodedMa || "");
     let ten = decodeURIComponent(encodedTen || "");
@@ -925,9 +934,24 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     let quyetDinh = decodeURIComponent(encodedQuyetDinh || "");
 
     document.getElementById('dtTenQT').innerText = ten || ''; 
-    document.getElementById('dtMaQT').innerText = ma; 
-    document.getElementById('dtPhanLoai').innerText = phanLoai || 'KPL'; 
-    document.getElementById('dtQuyetDinh').innerText = quyetDinh || 'Chưa phê duyệt';
+    
+    // 🟢 TẠO TIÊU ĐỀ RIÊNG CHO TỪNG MÃ (Đã được chia tách)
+    let titleEl = document.getElementById('dtTenQT');
+    let infoEl = titleEl.nextElementSibling; 
+    let arrMaTop = ma.split(/;|\/|\|/).filter(Boolean);
+    if (arrMaTop.length === 0 && ma) arrMaTop = [ma];
+    else if (!ma) arrMaTop = ["Chưa có mã"];
+    
+    let topInfoHtml = '';
+    arrMaTop.forEach(m => {
+        let cleanM = m.trim();
+        topInfoHtml += `<div style="margin-bottom: 5px; padding: 6px 10px; background: #fdfdfe; border-radius: 4px; border: 1px solid #e9ecef; display: inline-block; margin-right: 5px;">
+            Mã: <b style="color:var(--danger); font-size:15px;">${cleanM}</b> &nbsp;|&nbsp; 
+            Phân loại: <b style="color:var(--primary);">${phanLoai || 'KPL'}</b> &nbsp;|&nbsp; 
+            Quyết định: <b>${quyetDinh || 'Chưa phê duyệt'}</b>
+        </div>`;
+    });
+    infoEl.innerHTML = topInfoHtml;
     
     const tbody = document.getElementById('dtKhoaBody'); 
     tbody.innerHTML = ''; 
@@ -982,7 +1006,7 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     const giaBVArea = document.getElementById('dtMaDVBVArea');
     let matchedPrices = [];
     
-    // TÌM BHYT (Chỉ tìm khi mã hợp lệ)
+    // TÌM BHYT (Chỉ tìm khi mã hợp lệ để ghép)
     if(Array.isArray(database.GiaDV)) {
         matchedPrices = database.GiaDV.filter(function(priceItem) {
             if(!priceItem || !window.isValidForCrossLink(priceItem.maTuongDuong)) return false; 
@@ -1032,15 +1056,18 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     let pl1Matches = [];
     let pl2Matches = [];
     
-    if (Array.isArray(database.PL1)) {
+    // 🟢 CHỈ TÌM LIÊN KẾT ĐỐI NGHỊCH
+    let arrMaToSearch = ma.split(/;|\/|\|/).map(m => m.trim()).filter(Boolean);
+
+    if (currentTab !== 'PL1' && Array.isArray(database.PL1)) {
         pl1Matches = database.PL1.filter(function(x) { 
-            return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); 
+            return x && arrMaToSearch.some(m => window.isCodeMatch(x.ma, m) || window.isCodeMatch(x.maLienKet, m));
         });
     }
     
-    if (Array.isArray(database.PL2)) {
+    if (currentTab !== 'PL2' && Array.isArray(database.PL2)) {
         pl2Matches = database.PL2.filter(function(x) { 
-            return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); 
+            return x && arrMaToSearch.some(m => window.isCodeMatch(x.ma, m) || window.isCodeMatch(x.maLienKet, m));
         });
     }
 
