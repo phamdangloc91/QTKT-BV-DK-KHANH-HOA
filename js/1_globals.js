@@ -1,4 +1,3 @@
-// Khai báo biến Global sử dụng "var" để chống lỗi giới hạn Scope giữa các file
 var currentTab = 'PL1';
 var currentTabType = 'QTKT'; 
 var database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
@@ -56,35 +55,67 @@ window.robustNormalizeHeader = function(t) {
             .replace(/đ/g, "d");
 };
 
-// 🟢 THUẬT TOÁN ĐỒNG NHẤT MÃ BHYT VÀ QUY TRÌNH KỸ THUẬT (Đã cập nhật theo logic mới)
-window.normalizeCodeFast = function(code) {
+// 🟢 1. CHUẨN HÓA TUYỆT ĐỐI (Chỉ đổi phẩy thành chấm, giữ nguyên mọi số 0)
+window.formatStrictCode = function(code) {
     if (code === undefined || code === null || code === '') return ''; 
-    
-    // 1. Đổi dấu phẩy thành dấu chấm và xóa khoảng trắng
-    let strCode = String(code).replace(/,/g, '.').replace(/\s+/g, '').toLowerCase();
-    
-    // 2. Cắt chuỗi theo dấu chấm
+    return String(code).replace(/,/g, '.').replace(/\s+/g, '').toLowerCase();
+};
+
+// 🟢 2. CHUẨN HÓA LIÊN KẾT NỀN (Gọt số 0 ở đầu, giữ nguyên đuôi, chặt bỏ phần mở rộng)
+window.normalizeCodeFast = function(code) {
+    if (!code) return ''; 
+    let strCode = window.formatStrictCode(code);
     let parts = strCode.split('.');
     
-    // 3. Xử lý quy tắc ép mã: Chỉ lấy 2 phần đầu, cắt số 0 thừa ở phần 2
     if (parts.length >= 2) {
         let part1 = parts[0];
         let part2 = parts[1];
         
-        // Nếu phần 2 chỉ chứa các chữ số (VD: 0005, 0500, 5000)
-        // Dùng parseInt để loại bỏ các số 0 ở đầu (0005 -> 5) nhưng giữ nguyên số 0 ở đuôi (0500 -> 500)
-        if (/^\d+$/.test(part2)) {
-            part2 = parseInt(part2, 10).toString();
-        }
+        // Gọt số 0 vô nghĩa ở đầu nhưng giữ nguyên nếu có số 0 ở đuôi (vd: 0005 -> 5, 0500 -> 500)
+        if (/^\d+$/.test(part1)) part1 = parseInt(part1, 10).toString();
+        if (/^\d+$/.test(part2)) part2 = parseInt(part2, 10).toString();
         
-        // Gộp lại và BỎ QUA hoàn toàn phần thứ 3 trở đi (phần .0815)
+        // Ép ghép đúng 2 phần đầu, KHÔNG lấy phần mở rộng thứ 3 (vd bỏ .0815)
         return part1 + '.' + part2;
     }
     
+    if (/^\d+$/.test(strCode)) return parseInt(strCode, 10).toString();
     return strCode;
-}
+};
 
-window.isCodeMatch = function(maTuongDuong, targetMa) { return window.normalizeCodeFast(maTuongDuong) === window.normalizeCodeFast(targetMa); }
+// 🟢 KIỂM TRA LIÊN KẾT NỀN (Áp dụng cho Phụ lục 1, Phụ lục 2 và Giá)
+window.isCodeMatch = function(maTuongDuong, targetMa) { 
+    if (!maTuongDuong || !targetMa) return false;
+    let m1 = window.normalizeCodeFast(maTuongDuong);
+    let m2 = window.normalizeCodeFast(targetMa);
+    if (m1 === m2) return true;
+    
+    let arr1 = m1.split(/;|\/|\|/).filter(Boolean);
+    let arr2 = m2.split(/;|\/|\|/).filter(Boolean);
+    for (let a of arr1) {
+        for (let b of arr2) {
+            if (a === b) return true;
+        }
+    }
+    return false;
+};
+
+// 🟢 KIỂM TRA LIÊN KẾT TUYỆT ĐỐI (Chỉ dùng riêng cho MaDVBV khớp 1-1 với BHYT)
+window.isStrictCodeMatch = function(ma1, ma2) {
+    if (!ma1 || !ma2) return false;
+    let m1 = window.formatStrictCode(ma1);
+    let m2 = window.formatStrictCode(ma2);
+    if (m1 === m2) return true;
+    
+    let arr1 = m1.split(/;|\/|\|/).filter(Boolean);
+    let arr2 = m2.split(/;|\/|\|/).filter(Boolean);
+    for (let a of arr1) {
+        for (let b of arr2) {
+            if (a === b) return true;
+        }
+    }
+    return false;
+};
 
 window.timKhoaChinhXac = function(rawName) {
     if (!rawName) return null; let normRaw = window.robustNormalize(rawName);

@@ -344,7 +344,6 @@ window.renderTable = function(data = null) {
 
                 let maHienThi = item.ma || item.maLienKet || ''; 
                 
-                // 🟢 ĐỊNH DANH MÀU SẮC BHYT / BỆNH VIỆN
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
                 let normCheckMa = window.normalizeCodeFast(maHienThi);
@@ -716,6 +715,83 @@ window.thucHienLocGoc = function() {
     }
 }
 
+window.capNhatDanhSachQuyetDinh = function() { 
+    if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
+    const optionsContainer = document.getElementById('optionsQD'); 
+    if(!optionsContainer) return;
+    
+    let currentlyChecked = [];
+    let qdCheckboxes = document.querySelectorAll('.qd-checkbox:checked');
+    if(qdCheckboxes) {
+        for(let i=0; i<qdCheckboxes.length; i++) currentlyChecked.push(qdCheckboxes[i].value);
+    }
+
+    const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
+    const isSuperTab = currentTab.startsWith('KHTH_'); 
+    let sourceList = []; 
+    
+    if (isSuperTab) {
+        sourceList = window.getAggregatedList(currentTab); 
+    } else if (isDeptTab) {
+        let foundDept = null;
+        if(Array.isArray(database.depts)) {
+            foundDept = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; });
+        }
+        sourceList = foundDept && Array.isArray(foundDept.danhMucQTKT) ? foundDept.danhMucQTKT : []; 
+    } else {
+        sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
+    }
+    
+    let fieldName = currentTab === 'GiaDV' ? 'qt_quyetDinh' : 'quyetDinh';
+
+    let validList = sourceList.filter(function(i){ return i && i[fieldName]; });
+    const dsQD = [];
+    validList.forEach(function(item) {
+        let qd = item[fieldName] || "Chưa phê duyệt";
+        if(dsQD.indexOf(qd) === -1) dsQD.push(qd);
+    });
+    
+    optionsContainer.innerHTML = ''; 
+    
+    let lblAll = document.createElement('label');
+    lblAll.style.fontWeight = 'bold';
+    lblAll.style.borderBottom = '2px solid #ccc';
+    lblAll.style.backgroundColor = '#f8f9fa';
+    let chkAll = document.createElement('input');
+    chkAll.type = 'checkbox';
+    chkAll.id = 'selectAllQD';
+    chkAll.onchange = function() { window.toggleAllQD(this); };
+    lblAll.appendChild(chkAll);
+    lblAll.appendChild(document.createTextNode(" Chọn tất cả"));
+    optionsContainer.appendChild(lblAll);
+
+    dsQD.sort().forEach(function(qd) { 
+        let lbl = document.createElement('label');
+        let chk = document.createElement('input');
+        chk.type = 'checkbox';
+        chk.value = qd;
+        chk.className = 'qd-checkbox';
+        if(currentlyChecked.includes(qd)) chk.checked = true;
+        chk.onchange = window.apDungLoc;
+        lbl.appendChild(chk);
+        lbl.appendChild(document.createTextNode(" " + qd));
+        optionsContainer.appendChild(lbl);
+    }); 
+    
+    let qdBoxes = document.querySelectorAll('.qd-checkbox');
+    let allChecked = qdBoxes.length > 0;
+    qdBoxes.forEach(function(cb) { if(!cb.checked) allChecked = false; });
+    if (chkAll) chkAll.checked = allChecked;
+
+    let textSpan = document.getElementById('selectedQDText');
+    if(textSpan) {
+        let checkedBoxes = document.querySelectorAll('.qd-checkbox:checked');
+        if(checkedBoxes.length === 0) textSpan.innerText = "-- Tất cả --";
+        else if(checkedBoxes.length === 1) textSpan.innerText = "1 QĐ được chọn";
+        else textSpan.innerText = checkedBoxes.length + " QĐ được chọn";
+    }
+}
+
 window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDichVu) {
     let maDichVu = decodeURIComponent(encodedMaDichVu || "");
     let maTuongDuong = decodeURIComponent(encodedMaTuongDuong || "");
@@ -750,9 +826,10 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
     }
     document.getElementById('dvQTKTArea').innerHTML = qtHtml;
 
+    // 🟢 SỬ DỤNG HÀM LIÊN KẾT TUYỆT ĐỐI CHO GIÁ DỊCH VỤ BHYT
     let giaDVInfo = null;
     if(Array.isArray(database.GiaDV)){ 
-        giaDVInfo = database.GiaDV.find(function(x){ return x && window.isCodeMatch(x.maTuongDuong, maTuongDuong); }); 
+        giaDVInfo = database.GiaDV.find(function(x){ return x && window.isStrictCodeMatch(x.maTuongDuong, maTuongDuong); }); 
     }
     
     let bhytHtml = '';
@@ -760,7 +837,7 @@ window.moChiTietDV = function(encodedMaDichVu, encodedMaTuongDuong, encodedTenDi
         let formattedPrice = giaDVInfo.giaMax ? Number(giaDVInfo.giaMax).toLocaleString('vi-VN') + ' đ' : 'Chưa có giá';
         bhytHtml = `<table class="user-table" style="width:100%;"><tr><td style="background:#f2f2f2; width:30%;"><b>Mã tương đương:</b></td><td>${giaDVInfo.maTuongDuong || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Tên Dịch vụ BHYT:</b></td><td>${giaDVInfo.tenDichVu || giaDVInfo.tenKyThuat || ''}</td></tr><tr><td style="background:#f2f2f2;"><b>Giá phê duyệt:</b></td><td style="color:red; font-weight:bold;">${formattedPrice}</td></tr></table>`;
     } else { 
-        bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp với mã tương đương này.</span>`; 
+        bhytHtml = `<span style="color:#856404;">Không tìm thấy Dịch vụ BHYT (TT23) khớp chính xác với mã tương đương ${maTuongDuong}.</span>`; 
     }
     document.getElementById('dvBHYTArea').innerHTML = bhytHtml;
 
@@ -876,6 +953,7 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     const giaBVArea = document.getElementById('dtMaDVBVArea');
     let matchedPrices = [];
     
+    // 🟢 TÌM GIA DỊCH VỤ DỰA THEO MÃ LIÊN KẾT NỀN
     if(Array.isArray(database.GiaDV)) {
         matchedPrices = database.GiaDV.filter(function(priceItem) {
             if(!priceItem) return false; 
