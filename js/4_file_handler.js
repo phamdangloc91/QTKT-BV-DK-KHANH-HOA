@@ -44,15 +44,20 @@ window.xuLyNopFileKhoa = async function() {
     const fileInput = document.getElementById('fileNopKhoa'); 
     if (!fileInput.files[0]) return; 
     
+    // 🟢 BỘ NHỚ ĐỆM TÊN FILE: Giúp hiển thị đúng tên file.doc ở giao diện mà không cần Backend can thiệp
+    try {
+        let mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}');
+        mapNames[targetUpload.ma] = fileInput.files[0].name;
+        localStorage.setItem('fileNamesMap', JSON.stringify(mapNames));
+    } catch(e) {}
+
     window.showLoading(true);
     try {
         const formData = new FormData(); 
         formData.append('fileQuyTrinh', fileInput.files[0]); 
         formData.append('tenKhoa', targetUpload.tenKhoa); 
         formData.append('maQuyTrinh', targetUpload.ma);
-        
-        // 🟢 CẬP NHẬT: GỬI KÈM TÊN FILE GỐC ĐỂ BACKEND LƯU TRỮ
-        formData.append('tenFileKhoa', fileInput.files[0].name); 
+        // KHÔNG gửi thêm bất kỳ thông tin nào để đảm bảo Backend (Google Drive) giữ nguyên 100% tên gốc
         
         const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
         const data = await res.json(); 
@@ -62,46 +67,6 @@ window.xuLyNopFileKhoa = async function() {
         alert("Lỗi khi tải file lên!"); 
     } 
     fileInput.value = ''; 
-    window.showLoading(false);
-}
-
-// 🟢 CHỨC NĂNG MỚI: XÓA FILE BẢN NHÁP CỦA KHOA
-window.xoaFileKhoa = async function(encodedMa) {
-    if(!confirm("Xác nhận XÓA file đính kèm này? Bạn có thể nộp lại file khác sau khi xóa.")) return;
-    let ma = decodeURIComponent(encodedMa || "");
-    
-    window.showLoading(true);
-    try {
-        // Gọi API lên Backend để xóa (Bạn có thể cần cấu hình Backend hỗ trợ route này)
-        const res = await fetch('/api/upload/delete-khoa', { 
-            method: 'POST', 
-            headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, maQuyTrinh: ma }) 
-        });
-        
-        if (res.ok) { 
-            await window.layDuLieu(); 
-        } else {
-            // FALLBACK DỰ PHÒNG: Nếu Backend chưa có API này, ta tự cập nhật cục bộ và lưu lại
-            let myDept = database.depts.find(d => d && d.tenKhoa === currentUser.tenKhoa);
-            if (myDept && Array.isArray(myDept.danhMucQTKT)) {
-                let qt = myDept.danhMucQTKT.find(x => x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)));
-                if (qt) {
-                    qt.fileKhoa = null;
-                    qt.tenFileKhoa = null;
-                    qt.trangThai = "CHUA_NOP"; // Gỡ nháp thì lùi về Chưa nộp
-                    fetch('/api/dept-data/update-all', {
-                        method: 'POST',
-                        headers: {'Content-Type': 'application/json'},
-                        body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, danhMucQTKT: myDept.danhMucQTKT })
-                    }).catch(e=>{});
-                }
-            }
-            window.apDungLoc();
-        }
-    } catch(e) { 
-        alert("Lỗi kết nối khi xóa file!"); 
-    } 
     window.showLoading(false);
 }
 
@@ -143,9 +108,11 @@ window.xuLyUploadSinglePdf = async function() {
 
 window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
     let ma = decodeURIComponent(encodedMa || "");
-    let msg = "Xác nhận?";
+    let msg = "Xác nhận thao tác này?";
     if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
     if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
+    // 🟢 THAY ĐỔI CÂU HỎI KHI BẤM VÀO DẤU X ĐỎ (Dùng cơ chế RESUBMIT gốc của hệ thống)
+    if (action === 'RESUBMIT') msg = "Xác nhận XÓA file hiện tại để nộp lại file khác?";
     
     if (!confirm(msg)) return; 
     window.showLoading(true);

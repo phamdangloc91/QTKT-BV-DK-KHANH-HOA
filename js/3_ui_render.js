@@ -314,6 +314,10 @@ window.renderTable = function(data = null) {
                 if (myDept && Array.isArray(myDept.danhMucQTKT)) myDeptCart = myDept.danhMucQTKT;
             }
 
+            // LẤY BỘ NHỚ ĐỆM TÊN FILE
+            let mapNames = {};
+            try { mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}'); } catch(e){}
+
             pageData.forEach(function(item, index) {
                 if(!item) return;
                 let realIndex = startIdx + index; 
@@ -420,33 +424,38 @@ window.renderTable = function(data = null) {
                 
                 let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
+                // 🟢 THAY ĐỔI: SỬA LỖI ĐÈ GIAO DIỆN TRẠNG THÁI VÀ NÚT XÓA FILE
                 if (showFileCol) {
                     let fileHtml = '';
                     if(tt === 'DA_PHE_DUYET') {
                         fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br><span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
                         if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
                     } else {
-                        // HIỂN THỊ TÊN FILE GỐC VÀ DẤU X ĐỎ NẾU LÀ KHOA
+                        // LUÔN VẼ HUY HIỆU TRẠNG THÁI ĐẦU TIÊN ĐỂ KHÔNG BAO GIỜ BỊ MẤT
+                        if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray" style="margin-bottom:5px; display:inline-block;">Chưa nộp</span><br>`; 
+                        else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning" style="margin-bottom:5px; display:inline-block;">Chờ KHTH duyệt</span><br>`; 
+                        else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger" style="margin-bottom:5px; display:inline-block;">Bị KHTH từ chối</span><br>`;
+
+                        let dispNameLocal = mapNames[maHienThi] || "📄 Tài liệu đính kèm";
+
                         if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
                             if(item.fileKhoa) {
-                                let dispName = item.tenFileKhoa ? item.tenFileKhoa : "Bản nháp đã nộp";
-                                fileHtml += `<div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
-                                                <a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispName}">📄 ${dispName}</a>
-                                                <span style="color:red; cursor:pointer; font-weight:bold; font-size:14px;" title="Xóa file này để nộp lại" onclick="window.xoaFileKhoa('${window.encodeForJS(maHienThi)}')">❌</span>
+                                fileHtml += `<div style="display:flex; align-items:center; gap:5px; margin-top:5px;">
+                                                <a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispNameLocal}">${dispNameLocal}</a>
+                                                <span style="color:red; cursor:pointer; font-weight:bold; font-size:14px; background:#ffe6e6; padding:2px 5px; border-radius:4px;" title="Xóa file này để nộp lại" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">❌</span>
                                              </div>`;
                             } else {
-                                if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file Word</button>`;
-                                if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                                if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info); margin-top:5px;" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file Word</button>`;
+                                if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">🔄 Nộp lại</button>`;
                             }
                         } 
                         else if (currentUser && currentUser.role === 'admin') {
                             if(item.fileKhoa) {
-                                let dispNameAd = item.tenFileKhoa ? item.tenFileKhoa : "Bản Khoa nộp";
-                                fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px; display:inline-block; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispNameAd}">📄 ${dispNameAd}</a><br>`;
+                                fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; display:inline-block; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; margin-top:5px;" title="${dispNameLocal}">${dispNameLocal}</a><br>`;
                             }
                             if(tt === 'CHO_DUYET' && !isMultiSelectMode) { 
-                                fileHtml += `<button class="btn" style="background:var(--success);" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; 
-                                fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REJECT_KHOA')">❌ Từ chối</button>`; 
+                                fileHtml += `<button class="btn" style="background:var(--success); margin-top:5px;" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; 
+                                fileHtml += `<button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REJECT_KHOA')">❌ Từ chối</button>`; 
                             }
                         }
                     }
@@ -783,82 +792,5 @@ window.thucHienLocGoc = function() {
     } catch(e) {
         console.error(e);
         alert("Lỗi khi Lọc Dữ liệu: " + e.message);
-    }
-}
-
-window.capNhatDanhSachQuyetDinh = function() { 
-    if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
-    const optionsContainer = document.getElementById('optionsQD'); 
-    if(!optionsContainer) return;
-    
-    let currentlyChecked = [];
-    let qdCheckboxes = document.querySelectorAll('.qd-checkbox:checked');
-    if(qdCheckboxes) {
-        for(let i=0; i<qdCheckboxes.length; i++) currentlyChecked.push(qdCheckboxes[i].value);
-    }
-
-    const isDeptTab = DANH_SACH_KHOA.includes(currentTab); 
-    const isSuperTab = currentTab.startsWith('KHTH_'); 
-    let sourceList = []; 
-    
-    if (isSuperTab) {
-        sourceList = window.getAggregatedList(currentTab); 
-    } else if (isDeptTab) {
-        let foundDept = null;
-        if(Array.isArray(database.depts)) {
-            foundDept = database.depts.find(function(d){ return d && d.tenKhoa === currentTab; });
-        }
-        sourceList = foundDept && Array.isArray(foundDept.danhMucQTKT) ? foundDept.danhMucQTKT : []; 
-    } else {
-        sourceList = Array.isArray(database[currentTab]) ? database[currentTab] : []; 
-    }
-    
-    let fieldName = currentTab === 'GiaDV' ? 'qt_quyetDinh' : 'quyetDinh';
-
-    let validList = sourceList.filter(function(i){ return i && i[fieldName]; });
-    const dsQD = [];
-    validList.forEach(function(item) {
-        let qd = item[fieldName] || "Chưa phê duyệt";
-        if(dsQD.indexOf(qd) === -1) dsQD.push(qd);
-    });
-    
-    optionsContainer.innerHTML = ''; 
-    
-    let lblAll = document.createElement('label');
-    lblAll.style.fontWeight = 'bold';
-    lblAll.style.borderBottom = '2px solid #ccc';
-    lblAll.style.backgroundColor = '#f8f9fa';
-    let chkAll = document.createElement('input');
-    chkAll.type = 'checkbox';
-    chkAll.id = 'selectAllQD';
-    chkAll.onchange = function() { window.toggleAllQD(this); };
-    lblAll.appendChild(chkAll);
-    lblAll.appendChild(document.createTextNode(" Chọn tất cả"));
-    optionsContainer.appendChild(lblAll);
-
-    dsQD.sort().forEach(function(qd) { 
-        let lbl = document.createElement('label');
-        let chk = document.createElement('input');
-        chk.type = 'checkbox';
-        chk.value = qd;
-        chk.className = 'qd-checkbox';
-        if(currentlyChecked.includes(qd)) chk.checked = true;
-        chk.onchange = window.apDungLoc;
-        lbl.appendChild(chk);
-        lbl.appendChild(document.createTextNode(" " + qd));
-        optionsContainer.appendChild(lbl);
-    }); 
-    
-    let qdBoxes = document.querySelectorAll('.qd-checkbox');
-    let allChecked = qdBoxes.length > 0;
-    qdBoxes.forEach(function(cb) { if(!cb.checked) allChecked = false; });
-    if (chkAll) chkAll.checked = allChecked;
-
-    let textSpan = document.getElementById('selectedQDText');
-    if(textSpan) {
-        let checkedBoxes = document.querySelectorAll('.qd-checkbox:checked');
-        if(checkedBoxes.length === 0) textSpan.innerText = "-- Tất cả --";
-        else if(checkedBoxes.length === 1) textSpan.innerText = "1 QĐ được chọn";
-        else textSpan.innerText = checkedBoxes.length + " QĐ được chọn";
     }
 }
