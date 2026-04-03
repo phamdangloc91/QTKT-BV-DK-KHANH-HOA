@@ -99,6 +99,14 @@
                 <div class="select-options" id="optionsQD"></div>
             </div>
         </div>
+
+        <div class="filter-group" id="groupChuaCoMa" style="display: none;">
+            <label style="color:var(--danger);">LỌC NHANH</label>
+            <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
+                <input type="checkbox" id="chkChuaCoMa" onchange="window.apDungLoc()" style="cursor:pointer; width:16px; height:16px; margin:0;">
+                <span style="font-size:13px; font-weight:bold; color:#333; cursor:pointer;" onclick="document.getElementById('chkChuaCoMa').click()">Chưa có mã LK</span>
+            </div>
+        </div>
         
         <div class="filter-group" id="groupNamDT" style="display: none;">
             <label style="color:var(--danger);">* NĂM ĐÀO TẠO</label>
@@ -216,7 +224,7 @@
         <span class="close-btn" onclick="window.dongModal('detailModal')">&times;</span>
         <h3 style="border-bottom:none; margin-bottom: 0;">THÔNG TIN QUY TRÌNH KỸ THUẬT</h3>
         <h4 id="dtTenQT" style="color: var(--primary); margin-top: 5px;"></h4>
-        <p style="font-size: 14px;">Mã KT / Mã Liên kết: <b id="dtMaQT"></b> | Phân loại: <b id="dtPhanLoai"></b> | Quyết định: <b id="dtQuyetDinh"></b></p>
+        <div id="dtMaQTArea"></div>
         <div style="margin-top: 15px;"><b>1. Các khoa đăng ký áp dụng:</b><table class="user-table" style="margin-top: 5px;"><thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead><tbody id="dtKhoaBody"></tbody></table></div>
         <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;"><b>2. Tài liệu Phê duyệt (Xem Online):</b><div id="dtFilesArea" style="margin-top: 15px;"></div></div>
         <div style="margin-top: 20px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;"><b style="color: #856404;">3. Áp giá Dịch vụ tương đương (TT 23/2024):</b><div id="dtGiaDVArea" style="margin-top: 10px; font-size: 14px;"></div></div>
