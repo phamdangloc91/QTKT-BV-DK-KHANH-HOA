@@ -328,6 +328,38 @@ app.post('/api/dept-data/status', async (req, res) => {
         res.json({ message: "Đã cập nhật trạng thái thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
+// 🟢 API MỚI: XÓA VĨNH VIỄN FILE BẢN NHÁP CỦA KHOA KHỎI DRIVE VÀ DATABASE
+app.post('/api/upload/delete-khoa', async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh } = req.body;
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        
+        if (!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
 
+        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
+        
+        if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy quy trình này!" });
+
+        const qt = dept.danhMucQTKT[qtIndex];
+        
+        // 1. Nếu có file trên Drive, tiến hành xóa
+        if (qt.fileKhoa) {
+            await deleteFromDrive(qt.fileKhoa); // Gọi hàm xóa Drive đã được định nghĩa ở trên
+        }
+
+        // 2. Xóa dữ liệu file trong Database và đưa trạng thái về CHUA_NOP
+        qt.fileKhoa = null;
+        qt.tenFileKhoa = null;
+        qt.trangThai = 'CHUA_NOP';
+        
+        dept.markModified('danhMucQTKT'); 
+        await dept.save();
+
+        res.json({ message: "Đã xóa file vĩnh viễn và thiết lập lại trạng thái thành công!" });
+    } catch (error) { 
+        console.error(error); 
+        res.status(500).json({ message: "Lỗi hệ thống khi xóa file: " + (error.message || "Unknown Error") }); 
+    }
+});
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(PORT, () => console.log(`📡 Server chạy tại cổng: ${PORT}`));
