@@ -368,7 +368,6 @@ window.renderTable = function(data = null) {
 
                 let maHienThi = item.ma || item.maLienKet || ''; 
                 
-                // 🟢 THUẬT TOÁN ĐỔI MÀU CHÍNH XÁC (TUYỆT ĐỐI KHÔNG DÙNG TÊN ĐỂ TÔ MÀU)
                 let rowClass = "";
                 let isHasBHYT = false; let isHasBV = false;
                 
@@ -427,16 +426,28 @@ window.renderTable = function(data = null) {
                         fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br><span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
                         if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
                     } else {
-                        if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray">Chưa nộp</span><br>`; else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning">Chờ KHTH duyệt</span><br>`; else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger">Bị KHTH từ chối</span><br>`;
-
+                        // HIỂN THỊ TÊN FILE GỐC VÀ DẤU X ĐỎ NẾU LÀ KHOA
                         if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
-                            if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue;">📄 Bản nháp đã nộp</a><br>`;
-                            if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file Word</button>`;
-                            if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                            if(item.fileKhoa) {
+                                let dispName = item.tenFileKhoa ? item.tenFileKhoa : "Bản nháp đã nộp";
+                                fileHtml += `<div style="display:flex; align-items:center; gap:5px; margin-bottom:5px;">
+                                                <a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispName}">📄 ${dispName}</a>
+                                                <span style="color:red; cursor:pointer; font-weight:bold; font-size:14px;" title="Xóa file này để nộp lại" onclick="window.xoaFileKhoa('${window.encodeForJS(maHienThi)}')">❌</span>
+                                             </div>`;
+                            } else {
+                                if(tt === 'CHUA_NOP') fileHtml += `<button class="btn" style="background:var(--info);" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file Word</button>`;
+                                if(tt === 'KHONG_DUYET') fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'RESUBMIT')">🔄 Nộp lại</button>`;
+                            }
                         } 
                         else if (currentUser && currentUser.role === 'admin') {
-                            if(item.fileKhoa) fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px;">📄 Bản Khoa nộp</a>`;
-                            if(tt === 'CHO_DUYET' && !isMultiSelectMode) { fileHtml += `<button class="btn" style="background:var(--success);" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REJECT_KHOA')">❌ Từ chối</button>`; }
+                            if(item.fileKhoa) {
+                                let dispNameAd = item.tenFileKhoa ? item.tenFileKhoa : "Bản Khoa nộp";
+                                fileHtml += `<a href="${item.fileKhoa}" target="_blank" style="font-size:12px; color:blue; margin-right:10px; display:inline-block; max-width: 180px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispNameAd}">📄 ${dispNameAd}</a><br>`;
+                            }
+                            if(tt === 'CHO_DUYET' && !isMultiSelectMode) { 
+                                fileHtml += `<button class="btn" style="background:var(--success);" onclick="window.chuanBiUpSinglePdf('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">📥 Tải File Chính Thức (PDF)</button> `; 
+                                fileHtml += `<button class="btn" style="background:var(--danger);" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REJECT_KHOA')">❌ Từ chối</button>`; 
+                            }
                         }
                     }
                     html += `<td>${fileHtml}</td>`;

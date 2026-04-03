@@ -51,6 +51,9 @@ window.xuLyNopFileKhoa = async function() {
         formData.append('tenKhoa', targetUpload.tenKhoa); 
         formData.append('maQuyTrinh', targetUpload.ma);
         
+        // 🟢 CẬP NHẬT: GỬI KÈM TÊN FILE GỐC ĐỂ BACKEND LƯU TRỮ
+        formData.append('tenFileKhoa', fileInput.files[0].name); 
+        
         const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
         const data = await res.json(); 
         alert(data.message); 
@@ -59,6 +62,46 @@ window.xuLyNopFileKhoa = async function() {
         alert("Lỗi khi tải file lên!"); 
     } 
     fileInput.value = ''; 
+    window.showLoading(false);
+}
+
+// 🟢 CHỨC NĂNG MỚI: XÓA FILE BẢN NHÁP CỦA KHOA
+window.xoaFileKhoa = async function(encodedMa) {
+    if(!confirm("Xác nhận XÓA file đính kèm này? Bạn có thể nộp lại file khác sau khi xóa.")) return;
+    let ma = decodeURIComponent(encodedMa || "");
+    
+    window.showLoading(true);
+    try {
+        // Gọi API lên Backend để xóa (Bạn có thể cần cấu hình Backend hỗ trợ route này)
+        const res = await fetch('/api/upload/delete-khoa', { 
+            method: 'POST', 
+            headers: { 'Content-Type': 'application/json' }, 
+            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, maQuyTrinh: ma }) 
+        });
+        
+        if (res.ok) { 
+            await window.layDuLieu(); 
+        } else {
+            // FALLBACK DỰ PHÒNG: Nếu Backend chưa có API này, ta tự cập nhật cục bộ và lưu lại
+            let myDept = database.depts.find(d => d && d.tenKhoa === currentUser.tenKhoa);
+            if (myDept && Array.isArray(myDept.danhMucQTKT)) {
+                let qt = myDept.danhMucQTKT.find(x => x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)));
+                if (qt) {
+                    qt.fileKhoa = null;
+                    qt.tenFileKhoa = null;
+                    qt.trangThai = "CHUA_NOP"; // Gỡ nháp thì lùi về Chưa nộp
+                    fetch('/api/dept-data/update-all', {
+                        method: 'POST',
+                        headers: {'Content-Type': 'application/json'},
+                        body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, danhMucQTKT: myDept.danhMucQTKT })
+                    }).catch(e=>{});
+                }
+            }
+            window.apDungLoc();
+        }
+    } catch(e) { 
+        alert("Lỗi kết nối khi xóa file!"); 
+    } 
     window.showLoading(false);
 }
 
@@ -120,7 +163,6 @@ window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
     window.showLoading(false);
 }
 
-// 🟢 THAY ĐỔI 4: HỖ TRỢ THÊM KỸ THUẬT KHÔNG CÓ MÃ DỰA VÀO TÊN
 window.bocQuyTrinh = async function(encodedMa, encodedTen) {
     if(!currentUser || currentUser.role !== 'khoa') return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -132,7 +174,6 @@ window.bocQuyTrinh = async function(encodedMa, encodedTen) {
         if(!qtInfo && Array.isArray(database.PL2)) { qtInfo = database.PL2.find(function(x) { return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)); }); }
     }
     
-    // Nếu vẫn không tìm thấy bằng mã, thử tìm trực tiếp bằng Tên trong PL2 rồi đến PL1
     if (!qtInfo && ten) {
         let normTen = window.robustNormalize(ten);
         if(Array.isArray(database.PL2)) { qtInfo = database.PL2.find(function(x) { return x && window.robustNormalize(x.ten) === normTen; }); }
@@ -152,7 +193,6 @@ window.bocQuyTrinh = async function(encodedMa, encodedTen) {
     try { fetch('/api/dept-data/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo }) }); } catch(e) { console.error(e); }
 }
 
-// 🟢 THAY ĐỔI 5: HỖ TRỢ XÓA KỸ THUẬT KHÔNG CÓ MÃ
 window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
     if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -169,7 +209,6 @@ window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
     }
     window.apDungLoc(); 
 
-    // Gửi cả mã lẫn tên lên server để đề phòng trường hợp không có mã
     try { fetch('/api/dept-data/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten }) }); } catch(e) { console.error(e); }
 }
 
