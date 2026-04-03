@@ -44,7 +44,6 @@ window.xuLyNopFileKhoa = async function() {
     const fileInput = document.getElementById('fileNopKhoa'); 
     if (!fileInput.files[0]) return; 
     
-    // 🟢 BỘ NHỚ ĐỆM TÊN FILE: Giúp hiển thị đúng tên file.doc ở giao diện mà không cần Backend can thiệp
     try {
         let mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}');
         mapNames[targetUpload.ma] = fileInput.files[0].name;
@@ -57,7 +56,7 @@ window.xuLyNopFileKhoa = async function() {
         formData.append('fileQuyTrinh', fileInput.files[0]); 
         formData.append('tenKhoa', targetUpload.tenKhoa); 
         formData.append('maQuyTrinh', targetUpload.ma);
-        // KHÔNG gửi thêm bất kỳ thông tin nào để đảm bảo Backend (Google Drive) giữ nguyên 100% tên gốc
+        formData.append('tenFileKhoa', fileInput.files[0].name); 
         
         const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
         const data = await res.json(); 
@@ -67,6 +66,58 @@ window.xuLyNopFileKhoa = async function() {
         alert("Lỗi khi tải file lên!"); 
     } 
     fileInput.value = ''; 
+    window.showLoading(false);
+}
+
+// 🟢 THUẬT TOÁN XÓA FILE TRIỆT ĐỂ (Xóa UI + Xóa Data + Xóa Drive)
+window.xoaFileKhoa = async function(encodedMa) {
+    if(!confirm("Xác nhận XÓA VĨNH VIỄN file đính kèm này khỏi hệ thống? (File sẽ bị xóa khỏi Google Drive)")) return;
+    let ma = decodeURIComponent(encodedMa || "");
+    
+    window.showLoading(true);
+    try {
+        let myDept = database.depts.find(d => d && d.tenKhoa === currentUser.tenKhoa);
+        if (myDept && Array.isArray(myDept.danhMucQTKT)) {
+            let qt = myDept.danhMucQTKT.find(x => x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma)));
+            if (qt) {
+                let fileUrlToTrash = qt.fileKhoa; // Lấy URL file để gửi lên Backend xóa
+
+                // Bước 1: Xóa trắng dữ liệu file trong Local Storage & Object
+                qt.fileKhoa = null;
+                qt.tenFileKhoa = null;
+                qt.trangThai = "CHUA_NOP"; 
+                
+                try {
+                    let mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}');
+                    delete mapNames[ma];
+                    localStorage.setItem('fileNamesMap', JSON.stringify(mapNames));
+                } catch(e){}
+
+                // Bước 2: Gọi API cập nhật Database & XÓA FILE TRÊN DRIVE
+                // Gửi cả thông tin cập nhật Database (dept-data/update-all) 
+                // VÀ yêu cầu Backend xóa file (cần cấu hình Backend nhận fileUrlToTrash)
+                const res = await fetch('/api/dept-data/update-all', {
+                    method: 'POST',
+                    headers: {'Content-Type': 'application/json'},
+                    body: JSON.stringify({ 
+                        tenKhoa: currentUser.tenKhoa, 
+                        danhMucQTKT: myDept.danhMucQTKT,
+                        fileUrlToTrash: fileUrlToTrash // Gửi link file cần xóa cho Backend xử lý
+                    })
+                });
+
+                if (res.ok) {
+                    alert("Đã xóa file vĩnh viễn thành công!");
+                } else {
+                    alert("Đã gỡ file khỏi giao diện, nhưng có lỗi khi xóa trên Drive.");
+                }
+            }
+        }
+        window.apDungLoc(); // Vẽ lại giao diện lập tức (Sẽ hiện nút Nộp File)
+    } catch(e) { 
+        console.error(e);
+        alert("Lỗi kết nối khi xóa file!"); 
+    } 
     window.showLoading(false);
 }
 
@@ -111,8 +162,7 @@ window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
     let msg = "Xác nhận thao tác này?";
     if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
     if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
-    // 🟢 THAY ĐỔI CÂU HỎI KHI BẤM VÀO DẤU X ĐỎ (Dùng cơ chế RESUBMIT gốc của hệ thống)
-    if (action === 'RESUBMIT') msg = "Xác nhận XÓA file hiện tại để nộp lại file khác?";
+    if (action === 'RESUBMIT') msg = "Xác nhận GỠ file hiện tại để nộp lại file khác?";
     
     if (!confirm(msg)) return; 
     window.showLoading(true);
