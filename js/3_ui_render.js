@@ -70,6 +70,54 @@ window.acceptSuggestion = function(btn) {
     if(cell) cell.innerText = suggestedText; btn.closest('.suggestion-box').remove();
 }
 
+// 🟢 THUẬT TOÁN ĐỒNG BỘ QUYẾT ĐỊNH TỪ PL1 SANG PL2
+window.enrichPL2 = function() {
+    if (!Array.isArray(database.PL1) || !Array.isArray(database.PL2)) return;
+
+    // Tạo bản đồ Quyết định của Phụ lục 1 để tra cứu nhanh
+    let pl1Map = new Map();
+    database.PL1.forEach(function(pl1Item) {
+        if (!pl1Item) return;
+        let ma = window.normalizeCodeFast(pl1Item.ma || pl1Item.maLienKet);
+        if (ma) {
+            let arr = ma.split(';').filter(Boolean);
+            arr.forEach(function(m) {
+                if (!pl1Map.has(m)) pl1Map.set(m, []);
+                pl1Map.get(m).push(pl1Item);
+            });
+        }
+    });
+
+    // Quét Phụ lục 2 và gom các Quyết định từ Phụ lục 1
+    database.PL2.forEach(function(pl2Item) {
+        if (!pl2Item) return;
+        let maToSearch = window.normalizeCodeFast(pl2Item.ma || pl2Item.maLienKet);
+        let qdSet = new Set();
+
+        if (maToSearch) {
+            let arrSearch = maToSearch.split(';').filter(Boolean);
+            arrSearch.forEach(function(m) {
+                // Chỉ đối chiếu nếu mã hợp lệ và có trong PL1
+                if (window.isValidForCrossLink && window.isValidForCrossLink(m) && pl1Map.has(m)) {
+                    pl1Map.get(m).forEach(function(matchedPL1) {
+                        let qd = matchedPL1.quyetDinh;
+                        if (qd && String(qd).trim() !== "" && !String(qd).toLowerCase().includes("chưa phê duyệt") && !String(qd).toLowerCase().includes("chua phe duyet")) {
+                            qdSet.add(String(qd).trim());
+                        }
+                    });
+                }
+            });
+        }
+
+        // Ép Quyết định mới cho Phụ lục 2
+        if (qdSet.size > 0) {
+            pl2Item.quyetDinh = Array.from(qdSet).join('; ');
+        } else {
+            pl2Item.quyetDinh = "Chưa phê duyệt";
+        }
+    });
+};
+
 window.enrichGiaDV = function() {
     let qtktMapByCode = new Map();
     let qtktMapByName = new Map();
@@ -136,6 +184,9 @@ window.layDuLieu = async function() {
         });
         
         if (window.buildOrderMap) window.buildOrderMap();
+        
+        // Kích hoạt đồng bộ Quyết định
+        if (window.enrichPL2) window.enrichPL2();
         
         window.enrichGiaDV(); 
         window.prepareKeywords(); 
@@ -314,7 +365,6 @@ window.renderTable = function(data = null) {
                 if (myDept && Array.isArray(myDept.danhMucQTKT)) myDeptCart = myDept.danhMucQTKT;
             }
 
-            // LẤY BỘ NHỚ ĐỆM TÊN FILE TỪ LOCAL STORAGE ĐỂ HIỂN THỊ CHUẨN XÁC
             let mapNames = {};
             try { mapNames = JSON.parse(localStorage.getItem('fileNamesMap') || '{}'); } catch(e){}
 
@@ -424,14 +474,12 @@ window.renderTable = function(data = null) {
                 
                 let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
-                // 🟢 THAY ĐỔI: TÁI CẤU TRÚC VÙNG HIỂN THỊ NÚT (ẨN HOÀN TOÀN FILE KHI BỊ XÓA HOẶC CHƯA NỘP)
                 if (showFileCol) {
                     let fileHtml = '';
                     if(tt === 'DA_PHE_DUYET') {
                         fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br><span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
                         if (currentUser && currentUser.role === 'admin' && !isMultiSelectMode) { fileHtml += `<br><button class="btn" style="background:var(--danger); margin-top:5px;" onclick="window.thayDoiTrangThai('${realTenKhoa}', '${window.encodeForJS(maHienThi)}', 'REVERT_FINAL')">🔙 Hủy Phê Duyệt</button>`; }
                     } else {
-                        // LUÔN VẼ HUY HIỆU TRẠNG THÁI ĐẦU TIÊN
                         if(tt === 'CHUA_NOP') fileHtml += `<span class="badge badge-gray" style="margin-bottom:5px; display:inline-block;">Chưa nộp</span><br>`; 
                         else if(tt === 'CHO_DUYET') fileHtml += `<span class="badge badge-warning" style="margin-bottom:5px; display:inline-block;">Chờ KHTH duyệt</span><br>`; 
                         else if(tt === 'KHONG_DUYET') fileHtml += `<span class="badge badge-danger" style="margin-bottom:5px; display:inline-block;">Bị KHTH từ chối</span><br>`;
@@ -439,14 +487,12 @@ window.renderTable = function(data = null) {
                         let dispNameLocal = mapNames[maHienThi] || "📄 Tài liệu đính kèm";
 
                         if (currentUser && currentUser.role === 'khoa' && currentUser.tenKhoa === currentTab) {
-                            // NẾU CÓ FILE VÀ TRẠNG THÁI HIỆN TẠI KHÁC CHƯA NỘP -> Hiển thị tên file và Nút Xóa vĩnh viễn
                             if(item.fileKhoa && tt !== 'CHUA_NOP') {
                                 fileHtml += `<div style="display:flex; align-items:center; gap:5px; margin-top:5px;">
                                                 <a href="${item.fileKhoa}" target="_blank" style="font-size:13px; color:blue; max-width: 140px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="${dispNameLocal}">${dispNameLocal}</a>
                                                 <span style="color:red; cursor:pointer; font-weight:bold; font-size:14px; background:#ffe6e6; padding:2px 5px; border-radius:4px;" title="Xóa vĩnh viễn file này" onclick="window.xoaFileKhoa('${window.encodeForJS(maHienThi)}')">❌</span>
                                              </div>`;
                             } 
-                            // NẾU KHÔNG CÓ FILE HOẶC BỊ XÓA -> Chỉ hiện nút Nộp File
                             else {
                                 fileHtml += `<button class="btn" style="background:var(--info); margin-top:5px; font-weight:bold;" onclick="window.chuanBiNopKhoa('${window.encodeForJS(maHienThi)}')">📤 Nộp file QTKT</button>`;
                             }
