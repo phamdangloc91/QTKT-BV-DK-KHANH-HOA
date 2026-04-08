@@ -106,7 +106,7 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi lưu dữ liệu" }); }
 });
 
-// 🟢 API MỚI: XỬ LÝ NHẬP EXCEL KẾ HOẠCH ĐÀO TẠO
+// 🟢 API XỬ LÝ NHẬP EXCEL KẾ HOẠCH ĐÀO TẠO
 app.post('/api/upload-dtnh', async (req, res) => {
     try {
         const payload = req.body.payload; 
@@ -115,9 +115,7 @@ app.post('/api/upload-dtnh', async (req, res) => {
         for (let khoa in payload) {
             const dept = await DeptDataModel.findOne({ tenKhoa: khoa });
             if (dept) {
-                // Xóa dữ liệu cũ của NĂM ĐÓ trong khoa đó để cập nhật mới
                 let filtered = dept.daoTaoNganHan.filter(item => String(item.nam) !== String(year));
-                // Thêm dữ liệu mới
                 filtered.push(...payload[khoa]);
                 dept.daoTaoNganHan = filtered;
                 dept.markModified('daoTaoNganHan');
@@ -328,7 +326,8 @@ app.post('/api/dept-data/status', async (req, res) => {
         res.json({ message: "Đã cập nhật trạng thái thành công!" });
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
-// 🟢 API MỚI: XÓA VĨNH VIỄN FILE BẢN NHÁP CỦA KHOA KHỎI DRIVE VÀ DATABASE
+
+// 🟢 API: XÓA VĨNH VIỄN FILE BẢN NHÁP CỦA KHOA KHỎI DRIVE VÀ DATABASE
 app.post('/api/upload/delete-khoa', async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
@@ -344,7 +343,7 @@ app.post('/api/upload/delete-khoa', async (req, res) => {
         
         // 1. Nếu có file trên Drive, tiến hành xóa
         if (qt.fileKhoa) {
-            await deleteFromDrive(qt.fileKhoa); // Gọi hàm xóa Drive đã được định nghĩa ở trên
+            await deleteFromDrive(qt.fileKhoa); 
         }
 
         // 2. Xóa dữ liệu file trong Database và đưa trạng thái về CHUA_NOP
@@ -361,5 +360,23 @@ app.post('/api/upload/delete-khoa', async (req, res) => {
         res.status(500).json({ message: "Lỗi hệ thống khi xóa file: " + (error.message || "Unknown Error") }); 
     }
 });
+
+// 🟢 BỔ SUNG: API NẠP DỮ LIỆU ICD-10 TỪ FILE LOCAL LÊN GIAO DIỆN
+app.get('/api/icd10', (req, res) => {
+    try {
+        // Mở file icd10.json nếu có (Nếu bạn chưa có file này trên máy chủ, mảng rỗng sẽ được trả về)
+        const icdPath = path.join(__dirname, 'icd10.json');
+        if (fs.existsSync(icdPath)) {
+            const data = fs.readFileSync(icdPath, 'utf8');
+            res.json(JSON.parse(data));
+        } else {
+            res.json([]); 
+        }
+    } catch (e) {
+        console.error("Lỗi đọc file ICD-10:", e);
+        res.status(500).json({message: "Lỗi hệ thống khi tải danh mục ICD"});
+    }
+});
+
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.listen(PORT, () => console.log(`📡 Server chạy tại cổng: ${PORT}`));
