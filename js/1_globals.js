@@ -1,6 +1,7 @@
 var currentTab = 'PL1';
 var currentTabType = 'QTKT'; 
-var database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [] };
+// 🟢 ĐÃ BỔ SUNG ICD10 VÀO DATABASE
+var database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [], ICD10: [] };
 var currentFilteredData = [];
 var currentUser = null;
 var targetUpload = { ma: null, tenKhoa: null }; 

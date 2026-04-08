@@ -406,7 +406,6 @@ window.renderTable = function(data = null) {
                 }
             });
         }
-        // 🟢 BỔ SUNG: VẼ BẢNG ICD10
         else if (currentTab === 'ICD10') {
             htmlHead += `<th>STT</th><th style="width:15%">Mã ICD-10 (Click xem chi tiết)</th><th style="width:50%">Tên bệnh (Tiếng Việt)</th><th style="text-align:center;">Phác đồ Khoa</th></tr>`;
             thead.innerHTML = htmlHead;
@@ -829,7 +828,7 @@ window.thucHienLocGoc = function() {
         }
 
         if (currentTab === 'ICD10') {
-            document.getElementById('lblSearch').innerText = 'TÌM MÃ ICD HOẶC TÊN BỆNH';
+            document.getElementById('lblSearch').innerText = 'TÌM MẾ ICD HOẶC TÊN BỆNH';
             let sourceList = database.ICD10 || [];
             
             const filtered = sourceList.filter(function(item) {
