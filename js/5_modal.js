@@ -106,7 +106,6 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
 
     document.getElementById('dtTenQT').innerText = ten || ''; 
     
-    // Đóng khung từng mã
     let titleEl = document.getElementById('dtTenQT');
     let infoEl = document.getElementById('dtTopInfoArea'); 
     if (!infoEl) {
@@ -122,10 +121,31 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     let topInfoHtml = '';
     arrMaTop.forEach(m => {
         let cleanM = m.trim();
+
+        let displayPhanLoai = phanLoai || 'KPL';
+        let displayQuyetDinh = quyetDinh || 'Chưa phê duyệt';
+
+        if (cleanM !== "Chưa có mã") {
+            let normM = window.normalizeCodeFast(cleanM);
+            let matchedInfo = null;
+
+            if (Array.isArray(database.PL1)) {
+                matchedInfo = database.PL1.find(x => x && (window.isCodeMatch(x.ma, normM) || window.isCodeMatch(x.maLienKet, normM)));
+            }
+            if (!matchedInfo && Array.isArray(database.PL2)) {
+                matchedInfo = database.PL2.find(x => x && (window.isCodeMatch(x.ma, normM) || window.isCodeMatch(x.maLienKet, normM)));
+            }
+
+            if (matchedInfo) {
+                if (matchedInfo.phanLoai && String(matchedInfo.phanLoai).trim() !== "") displayPhanLoai = matchedInfo.phanLoai;
+                if (matchedInfo.quyetDinh && String(matchedInfo.quyetDinh).trim() !== "") displayQuyetDinh = matchedInfo.quyetDinh;
+            }
+        }
+
         topInfoHtml += `<div style="margin-bottom: 5px; padding: 6px 10px; background: #fdfdfe; border-radius: 4px; border: 1px solid #e9ecef; display: inline-block; margin-right: 5px;">
             Mã/Mã LK: <b style="color:var(--danger); font-size:15px;">${cleanM}</b> &nbsp;|&nbsp; 
-            Phân loại: <b style="color:var(--primary);">${phanLoai || 'KPL'}</b> &nbsp;|&nbsp; 
-            Quyết định: <b>${quyetDinh || 'Chưa phê duyệt'}</b>
+            Phân loại: <b style="color:var(--primary);">${displayPhanLoai}</b> &nbsp;|&nbsp; 
+            Quyết định: <b>${displayQuyetDinh}</b>
         </div>`;
     });
     infoEl.innerHTML = topInfoHtml;
@@ -139,9 +159,9 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
         database.depts.forEach(function(d) {
             if(!d || !Array.isArray(d.danhMucQTKT)) return;
             const qt = d.danhMucQTKT.find(function(x) { 
-                if (!x) return false;
-                if (ma) return window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma);
-                return ten && window.robustNormalize(x.ten) === window.robustNormalize(ten);
+                let nameMatch = false;
+                if (ten && x.ten) { nameMatch = window.robustNormalize(x.ten) === window.robustNormalize(ten); }
+                return x && (window.isCodeMatch(x.ma, ma) || window.isCodeMatch(x.maLienKet, ma) || nameMatch); 
             });
             if(qt) {
                 coBaoCao = true; 
@@ -238,7 +258,7 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
             pl1Matches = database.PL1.filter(function(x) { 
                 if (!x) return false;
                 let xMa = window.normalizeCodeFast(x.ma);
-                return arrMaToSearch.some(m => xMa === m);
+                return arrMaToSearch.some(m => window.isCodeMatch(x.ma, m) || window.isCodeMatch(x.maLienKet, m));
             });
         }
         
@@ -246,9 +266,8 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
             pl2Matches = database.PL2.filter(function(x) { 
                 if (!x) return false;
                 let xMaLienKet = window.normalizeCodeFast(x.maLienKet);
-                // Tránh trường hợp x.maLienKet cũng là một chuỗi ghép
                 let xArr = xMaLienKet.split(';').filter(Boolean);
-                return arrMaToSearch.some(m => xArr.includes(m));
+                return arrMaToSearch.some(m => xArr.some(xm => window.isCodeMatch(xm, m)));
             });
         }
     }
@@ -279,4 +298,21 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     }
     
     window.moModal('detailModal');
+}
+
+// 🟢 HÀM MỚI: MỞ BẢNG CHI TIẾT MÃ ICD-10
+window.moChiTietICD = function(encodedMa) {
+    let ma = decodeURIComponent(encodedMa || "");
+    let item = (database.ICD10 || []).find(x => x && x.maIcd === ma);
+    if(!item) return alert("Không tìm thấy dữ liệu mã bệnh!");
+    
+    document.getElementById('icdMa').innerText = item.maIcd || '';
+    document.getElementById('icdTenVn').innerText = item.tenIcdVn || '';
+    document.getElementById('icdTenEn').innerText = item.tenIcdEn || '';
+    document.getElementById('icdChuong').innerText = item.chuong || 'Không phân loại';
+    document.getElementById('icdNhom').innerText = item.nhom || 'Không phân loại';
+    
+    document.getElementById('icdPhacDoArea').innerHTML = `<p style="color:#666;">Chưa có phác đồ nào được nộp cho mã bệnh này.</p>`;
+    
+    window.moModal('icdModal');
 }
