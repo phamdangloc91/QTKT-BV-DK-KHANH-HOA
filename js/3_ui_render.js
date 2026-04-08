@@ -196,18 +196,18 @@ window.layDuLieu = async function() {
         
         if (window.buildOrderMap) window.buildOrderMap();
         if (window.enrichPL2) window.enrichPL2();
-        
         window.enrichGiaDV(); 
-        window.prepareKeywords(); 
         
-        // 🟢 CẬP NHẬT GIAO DIỆN CHỌN CỘT
+        // 🚀 GỌI HÀM XÂY DỰNG BỘ TỪ ĐIỂN TỐC ĐỘ CAO (Để chống treo máy)
+        if (window.buildDataIndices) window.buildDataIndices();
+        
+        window.prepareKeywords(); 
         if (window.capNhatDanhSachCot) window.capNhatDanhSachCot();
         window.apDungLoc(); 
     } catch (error) { console.log("Lỗi khi lấy dữ liệu:", error); }
     window.showLoading(false);
 }
 
-// 🟢 THUẬT TOÁN ĐIỀU KHIỂN CỘT (Gói gọn giới hạn 9 cột)
 window.toggleCot = function(checkbox) {
     let checkedBoxes = document.querySelectorAll('.col-checkbox:checked');
     if (checkedBoxes.length > MAX_COLUMNS) {
@@ -216,13 +216,12 @@ window.toggleCot = function(checkbox) {
         return;
     }
     
-    // Cập nhật lại mảng hiện tại
     window.currentSelectedColumns = Array.from(checkedBoxes).map(cb => cb.value);
     
     let textSpan = document.getElementById('selectedColText');
     if(textSpan) textSpan.innerText = `${window.currentSelectedColumns.length} cột đang bật`;
     
-    window.renderTable(); // Vẽ lại bảng ngay lập tức
+    window.renderTable(); 
 }
 
 window.capNhatDanhSachCot = function() {
@@ -267,7 +266,6 @@ window.capNhatDanhSachCot = function() {
     let textSpan = document.getElementById('selectedColText');
     if(textSpan) textSpan.innerText = `${window.currentSelectedColumns.length} cột đang bật`;
 }
-
 
 window.toggleMultiSelect = function(state) {
     isMultiSelectMode = state; selectedTechniques = [];
@@ -356,7 +354,6 @@ window.renderTable = function(data = null) {
         let endIdx = startIdx + window.rowsPerPage;
         let pageData = list.slice(startIdx, endIdx); 
 
-        // Các hàm hỗ trợ cho việc Build Cột Động
         let formatTien = function(val) { return val ? Number(val).toLocaleString('vi-VN') + ' đ' : '-'; };
 
         if (currentTabType === 'DTNH') {
@@ -376,9 +373,9 @@ window.renderTable = function(data = null) {
 
                 let kyThuatHtml = ''; let suggestionHtml = ''; let rawKT = item.kyThuat || '';
                 if (String(rawKT).trim() !== '') {
-                    let normName = window.robustNormalize(rawKT); let matchedQT = null;
-                    if(Array.isArray(database.PL1)) { let found = database.PL1.find(function(x) { return x && window.robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
-                    if(!matchedQT && Array.isArray(database.PL2)) { let found = database.PL2.find(function(x) { return x && window.robustNormalize(x.ten) === normName; }); if(found) matchedQT = found; }
+                    // 🚀 SỬ DỤNG TỪ ĐIỂN MAP ĐỂ TÌM KIẾM CỰC NHANH TRONG TAB ĐÀO TẠO NGẮN HẠN
+                    let normName = window.robustNormalize(rawKT); 
+                    let matchedQT = window.pl1MapByName.get(normName) || window.pl2MapByName.get(normName) || null;
                     
                     if (matchedQT) {
                         let safeTen = matchedQT.ten ? String(matchedQT.ten) : ""; 
@@ -467,13 +464,12 @@ window.renderTable = function(data = null) {
             });
         } 
         else {
-            // 🟢 TRƯỜNG HỢP LÀ PL1, PL2 HOẶC TAB KHOA
+            // 🟢 HIỂN THỊ CỘT TÙY CHỌN DÀNH CHO BẢNG CHÍNH (PL1, PL2, BẢNG KHOA)
             let isDynamic = (currentTab === 'PL1' || currentTab === 'PL2');
             let cols = isDynamic ? window.currentSelectedColumns : window.defaultColumns;
 
             if (isMultiSelectMode) { htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`; }
             
-            // Xây dựng Header Động
             if (cols.includes('col_stt')) htmlHead += `<th>STT</th>`;
             if (cols.includes('col_ma')) htmlHead += `<th>Mã/Mã LK</th>`;
             if (cols.includes('col_chuong')) htmlHead += `<th>Tên chương</th>`;
@@ -494,10 +490,17 @@ window.renderTable = function(data = null) {
             thead.innerHTML = htmlHead;
 
             let currentKhoaGroup = ""; 
-            let myDeptCart = [];
+            let myDeptCartSet = new Set(); 
             if (currentUser && currentUser.role === 'khoa') {
                 let myDept = null; if(Array.isArray(database.depts)) { myDept = database.depts.find(function(d){ return d && d.tenKhoa === currentUser.tenKhoa; }); }
-                if (myDept && Array.isArray(myDept.danhMucQTKT)) myDeptCart = myDept.danhMucQTKT;
+                if (myDept && Array.isArray(myDept.danhMucQTKT)) {
+                    myDept.danhMucQTKT.forEach(qt => {
+                        if(!qt) return;
+                        if(qt.ma) myDeptCartSet.add(window.normalizeCodeFast(qt.ma));
+                        if(qt.maLienKet) myDeptCartSet.add(window.normalizeCodeFast(qt.maLienKet));
+                        if(qt.ten) myDeptCartSet.add(window.robustNormalize(qt.ten));
+                    });
+                }
             }
 
             let mapNames = {};
@@ -518,7 +521,7 @@ window.renderTable = function(data = null) {
                 let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
                 let safeQD = item.quyetDinh ? String(item.quyetDinh) : ""; 
                 
-                // Thuật toán gán class màu (Sử dụng hàm toàn cục checkColorStatus)
+                // 🚀 TÔ MÀU BẰNG TỪ ĐIỂN TỐC ĐỘ CAO
                 let colorRes = window.checkColorStatus(maHienThi, safeTen);
                 let rowClass = "";
                 if (colorRes === 'blue') rowClass = "row-full";
@@ -536,10 +539,8 @@ window.renderTable = function(data = null) {
                 let maLienKetHtml = '';
                 if (maHienThi) {
                     if (currentTab === 'PL1' || isDeptTab || isSuperTab) {
-                        // PL1 hoặc Bảng Khoa: In đậm mã của mình
                         maLienKetHtml = `<b>${maHienThi}</b>`;
                     } else {
-                        // Phụ lục 2: Hiển thị cắt nhỏ mã để nhảy về PL1
                         let arrMaLienKet = maHienThi.split(/;|\/|\|/).filter(Boolean);
                         maLienKetHtml = arrMaLienKet.map(m => {
                             let cleanM = m.trim();
@@ -548,20 +549,26 @@ window.renderTable = function(data = null) {
                     }
                 }
                 
-                // TRÍCH XUẤT CÁC CỘT DỮ LIỆU TÀI CHÍNH NẾU ĐƯỢC CHỌN HIỂN THỊ
+                // 🚀 LẤY DỮ LIỆU TÀI CHÍNH TỪ TỪ ĐIỂN (O(1)) CỰC NHANH
                 let td_matd = '-', td_madv = '-', td_giabhyt = '-', td_giavp = '-', td_giayc = '-', td_giann = '-';
                 if (isDynamic) {
-                    let matchedGiaDV = []; let matchedMaDVBV = [];
+                    let matchedGiaDVSet = new Set(); 
+                    let matchedMaDVBVSet = new Set();
                     let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
-                    if (arrSearch.length > 0) {
-                        if (Array.isArray(database.GiaDV)) {
-                            let normCheckTen = window.robustNormalize(safeTen);
-                            matchedGiaDV = database.GiaDV.filter(g => window.isValidForCrossLink(g.maTuongDuong) && (arrSearch.some(m => window.isCodeMatch(g.maTuongDuong, m)) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen)));
-                        }
-                        if (Array.isArray(database.MaDVBV)) {
-                            matchedMaDVBV = database.MaDVBV.filter(b => window.isValidForCrossLink(b.maTuongDuong) && arrSearch.some(m => window.isCodeMatch(b.maTuongDuong, m)));
-                        }
+                    let normCheckTen = window.robustNormalize(safeTen);
+
+                    // Tra cứu trực tiếp từ Hash Map thay vì dùng Array.filter()
+                    arrSearch.forEach(m => {
+                        if (window.giaDvMapByCode.has(m)) window.giaDvMapByCode.get(m).forEach(g => matchedGiaDVSet.add(g));
+                        if (window.maDvbvMapByCode.has(m)) window.maDvbvMapByCode.get(m).forEach(b => matchedMaDVBVSet.add(b));
+                    });
+
+                    if (normCheckTen && window.giaDvMapByName.has(normCheckTen)) {
+                        window.giaDvMapByName.get(normCheckTen).forEach(g => matchedGiaDVSet.add(g));
                     }
+
+                    let matchedGiaDV = Array.from(matchedGiaDVSet);
+                    let matchedMaDVBV = Array.from(matchedMaDVBVSet);
 
                     if (matchedGiaDV.length > 0) {
                         td_matd = matchedGiaDV.map(g => `<b style="color:#dc3545;">${g.maTuongDuong||''}</b>`).join('<hr style="margin:4px 0; border-top:1px dashed #ccc;">');
@@ -575,7 +582,6 @@ window.renderTable = function(data = null) {
                     }
                 }
 
-                // Xây dựng Hàng Động
                 if (cols.includes('col_stt')) html += `<td>${realIndex + 1}</td>`;
                 if (cols.includes('col_ma')) html += `<td>${maLienKetHtml}</td>`;
                 if (cols.includes('col_chuong')) html += `<td>${item.chuong || ''}</td>`;
@@ -584,10 +590,10 @@ window.renderTable = function(data = null) {
                 if (cols.includes('col_quyetdinh')) html += `<td>${safeQD}</td>`;
                 if (cols.includes('col_matd')) html += `<td style="text-align:center;">${td_matd}</td>`;
                 if (cols.includes('col_madv')) html += `<td style="text-align:center;">${td_madv}</td>`;
-                if (cols.includes('col_giabhyt')) html += `<td style="text-align:right;">${td_giabhyt}</td>`;
-                if (cols.includes('col_giavp')) html += `<td style="text-align:right;">${td_giavp}</td>`;
-                if (cols.includes('col_giayc')) html += `<td style="text-align:right;">${td_giayc}</td>`;
-                if (cols.includes('col_giann')) html += `<td style="text-align:right;">${td_giann}</td>`;
+                if (cols.includes('col_giabhyt')) html += `<td style="text-align:right; white-space:nowrap;">${td_giabhyt}</td>`;
+                if (cols.includes('col_giavp')) html += `<td style="text-align:right; white-space:nowrap;">${td_giavp}</td>`;
+                if (cols.includes('col_giayc')) html += `<td style="text-align:right; white-space:nowrap;">${td_giayc}</td>`;
+                if (cols.includes('col_giann')) html += `<td style="text-align:right; white-space:nowrap;">${td_giann}</td>`;
 
                 let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
 
@@ -629,16 +635,16 @@ window.renderTable = function(data = null) {
                 }
                 
                 if ((canAddPL || canRemovePL) && cols.includes('col_action')) { 
-                    let itemInCart = null;
-                    if(Array.isArray(myDeptCart)) { 
-                        itemInCart = myDeptCart.find(function(x) { 
-                            if (!x) return false;
-                            if (maHienThi) return (window.isCodeMatch(x.ma, maHienThi) || window.isCodeMatch(x.maLienKet, maHienThi));
-                            return window.robustNormalize(x.ten) === window.robustNormalize(item.ten);
-                        }); 
+                    // Kiểm tra Giỏ hàng siêu tốc bằng Hash Set O(1)
+                    let inCart = false;
+                    if (maHienThi) {
+                        let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
+                        inCart = arrSearch.some(m => myDeptCartSet.has(m));
                     }
-                    if (itemInCart) {
-                        let cartStatusRaw = itemInCart.trangThai || 'CHUA_NOP'; let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
+                    if (!inCart && safeTen) inCart = myDeptCartSet.has(window.robustNormalize(safeTen));
+
+                    if (inCart) {
+                        let cartStatusRaw = item.trangThai || 'CHUA_NOP'; let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
                         if (canRemovePL && currentUser.role === 'khoa' && cartStatus === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
                         else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">🗑️ Xóa</button></td>`; }
                     } else if (canAddPL) {
@@ -726,7 +732,6 @@ window.switchTab = function(tab, type) {
     let fLoai = document.getElementById('filterLoai'); if(fLoai) fLoai.value = ""; 
     let chkChua = document.getElementById('chkChuaCoMa'); if(chkChua) chkChua.checked = false;
     
-    // Reset Color Filters
     let colorChks = document.querySelectorAll('.chk-color-filter');
     colorChks.forEach(function(cb) { cb.checked = false; });
     
@@ -740,7 +745,7 @@ window.switchTab = function(tab, type) {
     
     let fNam = document.getElementById('filterNamDT'); if(fNam) fNam.value = "";
     
-    if (window.capNhatDanhSachCot) window.capNhatDanhSachCot(); // Reset Cột
+    if (window.capNhatDanhSachCot) window.capNhatDanhSachCot(); 
     window.thucHienLocGoc(); 
 }
 
@@ -750,7 +755,7 @@ window.apDungLoc = function() {
     window.currentPage = 1;
     window.searchTimeout = setTimeout(() => {
         window.thucHienLocGoc();
-    }, 300); 
+    }, 150); 
 }
 
 window.thucHienLocGoc = function() { 
@@ -774,7 +779,6 @@ window.thucHienLocGoc = function() {
         let chkChuaCoMa = document.getElementById('chkChuaCoMa');
         let isLocChuaCoMa = chkChuaCoMa && chkChuaCoMa.checked;
 
-        // 🟢 LẤY MÀNG BỘ LỌC MÀU
         let checkedColors = Array.from(document.querySelectorAll('.chk-color-filter:checked')).map(cb => cb.value);
         
         if (currentTabType === 'DTNH') {
@@ -812,32 +816,6 @@ window.thucHienLocGoc = function() {
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
             document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
             
-            const maDvbvSet = new Set();
-            if(Array.isArray(database.MaDVBV)) {
-                database.MaDVBV.forEach(function(dv) { 
-                    if (dv && dv.maTuongDuong) maDvbvSet.add(window.normalizeCodeFast(dv.maTuongDuong)); 
-                });
-            }
-
-            const giaDvByCode = new Map();
-            const giaDvByName = new Map();
-            
-            if(Array.isArray(database.GiaDV)) {
-                database.GiaDV.forEach(function(g) {
-                    if(!g) return;
-                    if (g.maTuongDuong) {
-                        let code = window.normalizeCodeFast(g.maTuongDuong);
-                        if (!giaDvByCode.has(code)) giaDvByCode.set(code, []);
-                        giaDvByCode.get(code).push(g);
-                    }
-                    if (g.tenKyThuat) {
-                        let name = window.robustNormalize(g.tenKyThuat);
-                        if (!giaDvByName.has(name)) giaDvByName.set(name, []);
-                        giaDvByName.get(name).push(g);
-                    }
-                });
-            }
-
             let sourceList = [];
             if(Array.isArray(database.PL1)) {
                 database.PL1.forEach(function(qt) {
@@ -846,16 +824,18 @@ window.thucHienLocGoc = function() {
                     if (!qdVal || qdVal.includes('chưa phê duyệt') || qdVal.includes('chua phe duyet')) return; 
                     
                     let normCode = window.normalizeCodeFast(qt.ma);
-                    if (maDvbvSet.has(normCode)) return;
+                    
+                    // 🚀 TRA CỨU NHANH TỪ TỪ ĐIỂN MAP
+                    if (window.colorIndex.BV_Code.has(normCode)) return;
 
                     let matchedGiaMap = new Map(); 
-                    if (giaDvByCode.has(normCode)) { 
-                        giaDvByCode.get(normCode).forEach(function(g) { matchedGiaMap.set(g, g); }); 
+                    if (window.giaDvMapByCode.has(normCode)) { 
+                        window.giaDvMapByCode.get(normCode).forEach(g => matchedGiaMap.set(g, g)); 
                     }
                     if (qt.ten) {
                         let normName = window.robustNormalize(qt.ten);
-                        if (giaDvByName.has(normName)) { 
-                            giaDvByName.get(normName).forEach(function(g) { matchedGiaMap.set(g, g); }); 
+                        if (window.giaDvMapByName.has(normName)) { 
+                            window.giaDvMapByName.get(normName).forEach(g => matchedGiaMap.set(g, g)); 
                         }
                     }
 
@@ -944,12 +924,11 @@ window.thucHienLocGoc = function() {
                 if (checkMa.toString().trim() !== "") return false; 
             }
 
-            // 🟢 THỰC THI BỘ LỌC MÀU NỀN
             if (checkedColors.length > 0 && currentTabType === 'QTKT') {
                 let maHienThi = item.ma || item.maLienKet || '';
                 let safeTen = item.ten ? String(item.ten) : ""; 
                 let colorRes = window.checkColorStatus(maHienThi, safeTen);
-                if (!checkedColors.includes(colorRes)) return false; // Trượt màu là văng luôn
+                if (!checkedColors.includes(colorRes)) return false; 
             }
 
             const matchSearch = (window.safeStr(item.ma).includes(search) || window.safeStr(item.maLienKet).includes(search) || window.safeStr(item.ten).includes(search) || window.safeStr(item.tenKhoaChuQuan).includes(search)); 

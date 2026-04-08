@@ -9,7 +9,6 @@ var selectedTechniques = [];
 var plKeywords = [];
 var selectedGiaDV = []; 
 
-// 🟢 THÊM MỚI: QUẢN LÝ CỘT HIỂN THỊ TÙY CHỌN
 var defaultColumns = ['col_stt', 'col_ma', 'col_chuong', 'col_ten', 'col_phanloai', 'col_quyetdinh', 'col_file', 'col_action'];
 var currentSelectedColumns = [...defaultColumns];
 var MAX_COLUMNS = 9;
@@ -35,10 +34,15 @@ window.safeStr = function(val) {
     return String(val).toLowerCase().trim(); 
 };
 
+// 🚀 TỐI ƯU TỐC ĐỘ: GHI NHỚ KẾT QUẢ CHUẨN HÓA CHỮ (MEMOIZATION)
+window._memoizedNorms = new Map();
 window.robustNormalize = function(t) { 
     if (t === null || t === undefined) return '';
-    let s = String(t).toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
-    return s.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, "a")
+    let str = String(t);
+    if(window._memoizedNorms.has(str)) return window._memoizedNorms.get(str);
+    
+    let s = str.toLowerCase().replace(/\n/g," ").replace(/\r/g,"").replace(/\(.*\)/g,"").trim(); 
+    let res = s.replace(/[àáạảãâầấậẩẫăằắặẳẵ]/g, "a")
             .replace(/[èéẹẻẽêềếệểễ]/g, "e")
             .replace(/[ìíịỉĩ]/g, "i")
             .replace(/[òóọỏõôồốộổỗơờớợởỡ]/g, "o")
@@ -46,6 +50,9 @@ window.robustNormalize = function(t) {
             .replace(/[ỳýỵỷỹ]/g, "y")
             .replace(/đ/g, "d")
             .replace(/\s+/g, " ");
+            
+    window._memoizedNorms.set(str, res);
+    return res;
 };
 
 window.robustNormalizeHeader = function(t) {
@@ -86,12 +93,19 @@ window.normalizeSingleCode = function(singleCode) {
     return singleCode;
 };
 
+// 🚀 TỐI ƯU TỐC ĐỘ: GHI NHỚ KẾT QUẢ CHUẨN HÓA MÃ (MEMOIZATION)
+window._memoizedCodes = new Map();
 window.normalizeCodeFast = function(code) {
     if (!code) return ''; 
     let strCode = window.formatStrictCode(code);
+    if(window._memoizedCodes.has(strCode)) return window._memoizedCodes.get(strCode);
+
     let arr = strCode.split(/;|\/|\|/).filter(Boolean);
     let normArr = arr.map(c => window.normalizeSingleCode(c));
-    return normArr.join(';');
+    let res = normArr.join(';');
+    
+    window._memoizedCodes.set(strCode, res);
+    return res;
 };
 
 window.isCodeMatch = function(maTuongDuong, targetMa) { 
@@ -126,30 +140,77 @@ window.isStrictCodeMatch = function(ma1, ma2) {
     return false;
 };
 
-// 🟢 THUẬT TOÁN TRUNG TÂM KIỂM TRA MÀU SẮC (Dùng chung cho cả Lọc và Hiển thị)
+// 🚀 BỘ TỪ ĐIỂN DATA CỰC NHANH (Hash Maps) ĐỂ CHỐNG TREO MÁY
+window.colorIndex = { BHYT_Code: new Set(), BHYT_Name: new Set(), BV_Code: new Set() };
+window.giaDvMapByCode = new Map();
+window.giaDvMapByName = new Map();
+window.maDvbvMapByCode = new Map();
+window.pl1MapByName = new Map();
+window.pl2MapByName = new Map();
+
+window.buildDataIndices = function() {
+    window.colorIndex.BHYT_Code.clear(); window.colorIndex.BHYT_Name.clear(); window.colorIndex.BV_Code.clear();
+    window.giaDvMapByCode.clear(); window.giaDvMapByName.clear(); window.maDvbvMapByCode.clear();
+    window.pl1MapByName.clear(); window.pl2MapByName.clear();
+
+    if (Array.isArray(database.GiaDV)) {
+        database.GiaDV.forEach(g => {
+            if(!g) return;
+            if (window.isValidForCrossLink(g.maTuongDuong)) {
+                let normCodes = window.normalizeCodeFast(g.maTuongDuong).split(';');
+                normCodes.forEach(c => { 
+                    if(c) {
+                        window.colorIndex.BHYT_Code.add(c); 
+                        if (!window.giaDvMapByCode.has(c)) window.giaDvMapByCode.set(c, []);
+                        window.giaDvMapByCode.get(c).push(g);
+                    }
+                });
+            }
+            if (g.tenKyThuat) {
+                let normName = window.robustNormalize(g.tenKyThuat);
+                window.colorIndex.BHYT_Name.add(normName);
+                if (!window.giaDvMapByName.has(normName)) window.giaDvMapByName.set(normName, []);
+                window.giaDvMapByName.get(normName).push(g);
+            }
+        });
+    }
+    if (Array.isArray(database.MaDVBV)) {
+        database.MaDVBV.forEach(b => {
+            if(!b) return;
+            if (window.isValidForCrossLink(b.maTuongDuong)) {
+                let normCodes = window.normalizeCodeFast(b.maTuongDuong).split(';');
+                normCodes.forEach(c => { 
+                    if(c) {
+                        window.colorIndex.BV_Code.add(c); 
+                        if (!window.maDvbvMapByCode.has(c)) window.maDvbvMapByCode.set(c, []);
+                        window.maDvbvMapByCode.get(c).push(b);
+                    }
+                });
+            }
+        });
+    }
+    if (Array.isArray(database.PL1)) {
+        database.PL1.forEach(p => { if (p && p.ten) window.pl1MapByName.set(window.robustNormalize(p.ten), p); });
+    }
+    if (Array.isArray(database.PL2)) {
+        database.PL2.forEach(p => { if (p && p.ten) window.pl2MapByName.set(window.robustNormalize(p.ten), p); });
+    }
+};
+
+// 🚀 THUẬT TOÁN KIỂM TRA MÀU SIÊU TỐC TỪ TỪ ĐIỂN
 window.checkColorStatus = function(maHienThi, tenItem) {
     let isHasBHYT = false; let isHasBV = false;
     let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
-    
+    let normCheckTen = window.robustNormalize(tenItem || "");
+
     if (arrSearch.length > 0) {
-        if (Array.isArray(database.GiaDV)) {
-            let normCheckTen = window.robustNormalize(tenItem || "");
-            isHasBHYT = database.GiaDV.some(g => {
-                if (!window.isValidForCrossLink(g.maTuongDuong)) return false;
-                return arrSearch.some(m => window.isCodeMatch(g.maTuongDuong, m)) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen);
-            });
-        }
-        if (Array.isArray(database.MaDVBV)) {
-            isHasBV = database.MaDVBV.some(b => {
-                if (!window.isValidForCrossLink(b.maTuongDuong)) return false;
-                return arrSearch.some(m => window.isCodeMatch(b.maTuongDuong, m));
-            });
-        }
+        isHasBHYT = arrSearch.some(m => window.colorIndex.BHYT_Code.has(m)) || (normCheckTen && window.colorIndex.BHYT_Name.has(normCheckTen));
+        isHasBV = arrSearch.some(m => window.colorIndex.BV_Code.has(m));
     }
-    
-    if (isHasBHYT && isHasBV) return 'blue';    // Đã có cả hai
-    if (isHasBHYT) return 'yellow';             // Chỉ có BHYT
-    return 'white';                             // Trắng (Không có gì)
+
+    if (isHasBHYT && isHasBV) return 'blue';    
+    if (isHasBHYT) return 'yellow';             
+    return 'white';                             
 };
 
 window.timKhoaChinhXac = function(rawName) {
@@ -222,7 +283,6 @@ window.toggleQDDrodown = function(e) {
     if(opts) opts.style.display = opts.style.display === 'block' ? 'none' : 'block';
 }
 
-// 🟢 THÊM MỚI: Bật tắt Dropdown của Cột
 window.toggleColDropdown = function(e) {
     e.stopPropagation(); let opts = document.getElementById('optionsCol');
     if(opts) opts.style.display = opts.style.display === 'block' ? 'none' : 'block';
