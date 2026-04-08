@@ -35,6 +35,13 @@
                 <a href="#" onclick="window.switchTab('MaDVBV', 'QTKT')" style="color:var(--info); font-weight:bold;">🏥 Mã Dịch vụ BV</a>
             </div>
         </div>
+
+        <div class="dropdown">
+            <button class="dropbtn" style="color: #4CAF50;">PHÁC ĐỒ ĐIỀU TRỊ ▼</button>
+            <div class="dropdown-content">
+                <a href="#" onclick="window.switchTab('ICD10', 'PHAC_DO')">📚 Danh mục Mã ICD-10</a>
+            </div>
+        </div>
         
         <div class="dropdown">
             <button class="dropbtn" style="color: #ffeb3b;">DANH SÁCH KHOA ▼</button>
@@ -123,7 +130,7 @@
         <div class="filter-group" id="groupNamDT" style="display: none;">
             <label style="color:var(--danger);">* NĂM ĐÀO TẠO</label>
             <select id="filterNamDT" onchange="window.apDungLoc()" style="border: 2px solid var(--danger);">
-                <option value="">-- Chọn Năm --</option>
+                <option value="">-- Chọn Năm Upload/Xem --</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
@@ -166,7 +173,7 @@
 
 <footer class="site-footer">
     <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
-    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1803.2026</span>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1903.2026</span>
 </footer>
 
 <div id="loginModal" class="modal">
@@ -264,6 +271,26 @@
         <div style="margin-top: 15px; background: #fff3cd; padding: 15px; border-radius: 8px; border: 1px solid #ffeeba;"><b style="color: #856404;">2. Thông tin Dịch vụ BHYT tương đương (TT 23/2024):</b><div id="dvBHYTArea" style="margin-top: 10px; font-size: 14px;"></div></div>
         <div style="margin-top: 15px;"><b>3. Các khoa đăng ký áp dụng Quy trình này:</b><table class="user-table" style="margin-top: 5px;"><thead><tr><th>Tên Khoa</th><th>Trạng thái hiện tại</th></tr></thead><tbody id="dvKhoaBody"></tbody></table></div>
         <div style="margin-top: 20px; background: #e9ecef; padding: 15px; border-radius: 8px;"><b>4. Tài liệu Phê duyệt Chính thức (Của Quy trình liên kết):</b><div id="dvFilesArea" style="margin-top: 10px; font-size: 14px; line-height: 1.6;"></div></div>
+    </div>
+</div>
+
+<div id="icdModal" class="modal">
+    <div class="modal-content large">
+        <span class="close-btn" onclick="window.dongModal('icdModal')">&times;</span>
+        <h3 style="border-bottom:none; margin-bottom: 0;">CHI TIẾT MÃ BỆNH ICD-10</h3>
+        <h4 id="icdMa" style="color: var(--danger); margin-top: 5px; font-size: 20px;"></h4>
+        <div style="margin-bottom: 15px; padding: 15px; background: #fdfdfe; border-radius: 4px; border: 1px solid #e9ecef;">
+            <p><b>Tên bệnh (VN):</b> <span id="icdTenVn" style="color:var(--primary); font-weight:bold;"></span></p>
+            <p><b>Tên bệnh (EN):</b> <span id="icdTenEn" style="font-style:italic;"></span></p>
+            <hr style="border:0; border-top:1px dashed #ccc; margin: 10px 0;">
+            <p><b>Chương:</b> <span id="icdChuong"></span></p>
+            <p><b>Nhóm chính:</b> <span id="icdNhom"></span></p>
+        </div>
+        <div style="background: #e9ecef; padding: 15px; border-radius: 8px;">
+            <b>📚 Phác đồ điều trị của các Khoa:</b>
+            <div id="icdPhacDoArea" style="margin-top: 15px;"></div>
+            <button class="btn" style="background:var(--success); margin-top:10px; font-size: 13px;" onclick="alert('Hệ thống đang mở luồng kết nối nộp Phác đồ. Vui lòng chờ bản cập nhật tiếp theo!')">📤 Nộp Phác đồ mới</button>
+        </div>
     </div>
 </div>
 

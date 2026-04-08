@@ -193,14 +193,15 @@ window.layDuLieu = async function() {
             if(d) { d.danhMucQTKT = Array.isArray(d.danhMucQTKT) ? d.danhMucQTKT.filter(Boolean) : []; d.daoTaoNganHan = Array.isArray(d.daoTaoNganHan) ? d.daoTaoNganHan.filter(Boolean) : []; }
             return d;
         });
+
+        // 🟢 BỔ SUNG: NẠP DỮ LIỆU ICD-10 NẾU CÓ
+        if(mainData && Array.isArray(mainData.ICD10)) database.ICD10 = mainData.ICD10.filter(Boolean);
         
         if (window.buildOrderMap) window.buildOrderMap();
         if (window.enrichPL2) window.enrichPL2();
+        
         window.enrichGiaDV(); 
-        
-        // 🚀 GỌI HÀM XÂY DỰNG BỘ TỪ ĐIỂN TỐC ĐỘ CAO (Để chống treo máy)
         if (window.buildDataIndices) window.buildDataIndices();
-        
         window.prepareKeywords(); 
         if (window.capNhatDanhSachCot) window.capNhatDanhSachCot();
         window.apDungLoc(); 
@@ -215,12 +216,9 @@ window.toggleCot = function(checkbox) {
         checkbox.checked = false;
         return;
     }
-    
     window.currentSelectedColumns = Array.from(checkedBoxes).map(cb => cb.value);
-    
     let textSpan = document.getElementById('selectedColText');
     if(textSpan) textSpan.innerText = `${window.currentSelectedColumns.length} cột đang bật`;
-    
     window.renderTable(); 
 }
 
@@ -334,7 +332,7 @@ window.renderTable = function(data = null) {
         let showFileCol = false;
         
         if (currentUser && currentUser.role === 'khoa') { 
-            if (!isDeptTab && !isSuperTab) canAddPL = true; 
+            if (!isDeptTab && !isSuperTab && currentTab !== 'ICD10') canAddPL = true; 
             if (isDeptTab && currentUser.tenKhoa === currentTab) canRemovePL = true; 
         }
         if (currentUser && currentUser.role === 'admin' && isDeptTab) canRemovePL = true; 
@@ -373,7 +371,6 @@ window.renderTable = function(data = null) {
 
                 let kyThuatHtml = ''; let suggestionHtml = ''; let rawKT = item.kyThuat || '';
                 if (String(rawKT).trim() !== '') {
-                    // 🚀 SỬ DỤNG TỪ ĐIỂN MAP ĐỂ TÌM KIẾM CỰC NHANH TRONG TAB ĐÀO TẠO NGẮN HẠN
                     let normName = window.robustNormalize(rawKT); 
                     let matchedQT = window.pl1MapByName.get(normName) || window.pl2MapByName.get(normName) || null;
                     
@@ -407,6 +404,24 @@ window.renderTable = function(data = null) {
                 } else { 
                     tbodyHtml += `<tr><td><div class="editable-cell" contenteditable="${canEdit}">${kyThuatHtml}</div>${suggestionHtml}</td></tr>`; 
                 }
+            });
+        }
+        // 🟢 BỔ SUNG: VẼ BẢNG ICD10
+        else if (currentTab === 'ICD10') {
+            htmlHead += `<th>STT</th><th style="width:15%">Mã ICD-10 (Click xem chi tiết)</th><th style="width:50%">Tên bệnh (Tiếng Việt)</th><th style="text-align:center;">Phác đồ Khoa</th></tr>`;
+            thead.innerHTML = htmlHead;
+            pageData.forEach(function(item, index) {
+                if(!item) return; let realIndex = startIdx + index;
+                let clickEvent = `window.moChiTietICD('${window.encodeForJS(item.maIcd)}')`;
+                let maClickable = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); font-weight:bold; text-decoration:none; font-size:15px;">${item.maIcd || ''}</a>`;
+                let tenClickable = `<a href="#" onclick="${clickEvent}" style="color:#333; font-weight:bold; text-decoration:none;">${item.tenIcdVn || ''}</a>`;
+                
+                tbodyHtml += `<tr>
+                    <td style="text-align:center;">${realIndex + 1}</td>
+                    <td>${maClickable}</td>
+                    <td>${tenClickable}</td>
+                    <td style="text-align:center;"><span style="color:#888; font-size:12px;">Chưa có</span></td>
+                </tr>`;
             });
         }
         else if (currentTab === 'KHTH_CHUA_AP_GIA') {
@@ -464,7 +479,6 @@ window.renderTable = function(data = null) {
             });
         } 
         else {
-            // 🟢 HIỂN THỊ CỘT TÙY CHỌN DÀNH CHO BẢNG CHÍNH (PL1, PL2, BẢNG KHOA)
             let isDynamic = (currentTab === 'PL1' || currentTab === 'PL2');
             let cols = isDynamic ? window.currentSelectedColumns : window.defaultColumns;
 
@@ -521,7 +535,6 @@ window.renderTable = function(data = null) {
                 let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
                 let safeQD = item.quyetDinh ? String(item.quyetDinh) : ""; 
                 
-                // 🚀 TÔ MÀU BẰNG TỪ ĐIỂN TỐC ĐỘ CAO
                 let colorRes = window.checkColorStatus(maHienThi, safeTen);
                 let rowClass = "";
                 if (colorRes === 'blue') rowClass = "row-full";
@@ -549,7 +562,6 @@ window.renderTable = function(data = null) {
                     }
                 }
                 
-                // 🚀 LẤY DỮ LIỆU TÀI CHÍNH TỪ TỪ ĐIỂN (O(1)) CỰC NHANH
                 let td_matd = '-', td_madv = '-', td_giabhyt = '-', td_giavp = '-', td_giayc = '-', td_giann = '-';
                 if (isDynamic) {
                     let matchedGiaDVSet = new Set(); 
@@ -557,7 +569,6 @@ window.renderTable = function(data = null) {
                     let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
                     let normCheckTen = window.robustNormalize(safeTen);
 
-                    // Tra cứu trực tiếp từ Hash Map thay vì dùng Array.filter()
                     arrSearch.forEach(m => {
                         if (window.giaDvMapByCode.has(m)) window.giaDvMapByCode.get(m).forEach(g => matchedGiaDVSet.add(g));
                         if (window.maDvbvMapByCode.has(m)) window.maDvbvMapByCode.get(m).forEach(b => matchedMaDVBVSet.add(b));
@@ -635,7 +646,6 @@ window.renderTable = function(data = null) {
                 }
                 
                 if ((canAddPL || canRemovePL) && cols.includes('col_action')) { 
-                    // Kiểm tra Giỏ hàng siêu tốc bằng Hash Set O(1)
                     let inCart = false;
                     if (maHienThi) {
                         let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
@@ -696,12 +706,12 @@ window.capNhatTieuDe = function() {
     
     let legendColor = document.getElementById('colorLegend');
     if(legendColor) {
-        if(currentTabType === 'QTKT' && currentTab !== 'GiaDV' && currentTab !== 'MaDVBV') legendColor.style.display = 'flex';
+        if(currentTabType === 'QTKT' && currentTab !== 'GiaDV' && currentTab !== 'MaDVBV' && currentTab !== 'ICD10') legendColor.style.display = 'flex';
         else legendColor.style.display = 'none';
     }
 
-    if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
-    if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') ? 'none' : 'flex';
+    if(grpPhanLoai) grpPhanLoai.style.display = (currentTabType === 'DTNH' || currentTab === 'GiaDV' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA' || currentTab === 'ICD10') ? 'none' : 'flex';
+    if(grpQuyetDinh) grpQuyetDinh.style.display = (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA' || currentTab === 'ICD10') ? 'none' : 'flex';
     if(grpNamDT) grpNamDT.style.display = currentTabType === 'DTNH' ? 'flex' : 'none';
     if(grpChuaCoMa) grpChuaCoMa.style.display = (currentTab === 'PL2') ? 'block' : 'none';
     if(grpCol) grpCol.style.display = (currentTab === 'PL1' || currentTab === 'PL2') ? 'block' : 'none';
@@ -710,6 +720,11 @@ window.capNhatTieuDe = function() {
         document.getElementById('tabTitle').innerText = `KẾ HOẠCH ĐÀO TẠO NGẮN HẠN - ${currentTab.toUpperCase()}`;
         document.getElementById('tabDesc').innerText = `Quản lý kế hoạch cử nhân sự đi học tập nâng cao chuyên môn ${textRole}`;
         document.getElementById('lblSearch').innerText = 'TÌM KIẾM NỘI DUNG HOẶC KỸ THUẬT';
+    }
+    else if (currentTab === 'ICD10') { 
+        document.getElementById('tabTitle').innerText = "HỆ THỐNG MÃ BỆNH ICD-10"; 
+        document.getElementById('tabDesc').innerText = `Danh mục mã hóa lâm sàng và Phác đồ điều trị ${textRole}`; 
+        document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ ICD HOẶC TÊN BỆNH'; 
     }
     else if (currentTab === 'KHTH_CHUA_AP_GIA') { document.getElementById('tabTitle').innerText = "QTKT BỆNH VIỆN CHƯA ÁP GIÁ"; document.getElementById('tabDesc').innerText = `Danh sách các Kỹ thuật đã có Quyết định nhưng chưa được gán Mã Dịch vụ BV ${textRole}`; document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV'; }
     else if (currentTab === 'PL1') { document.getElementById('tabTitle').innerText = "DANH MỤC PHỤ LỤC 1"; document.getElementById('tabDesc').innerText = `Hệ thống tra cứu quy trình gốc ${textRole}`; document.getElementById('lblSearch').innerText = 'TÌM KIẾM CHUNG';} 
@@ -813,6 +828,21 @@ window.thucHienLocGoc = function() {
             if(btnSave) btnSave.style.display = 'none'; 
         }
 
+        if (currentTab === 'ICD10') {
+            document.getElementById('lblSearch').innerText = 'TÌM MÃ ICD HOẶC TÊN BỆNH';
+            let sourceList = database.ICD10 || [];
+            
+            const filtered = sourceList.filter(function(item) {
+                if(!item) return false;
+                let m1 = item.maIcd ? String(item.maIcd).toLowerCase() : "";
+                let m2 = item.tenIcdVn ? String(item.tenIcdVn).toLowerCase() : "";
+                let m3 = item.tenIcdEn ? String(item.tenIcdEn).toLowerCase() : "";
+                return (m1.includes(search) || m2.includes(search) || m3.includes(search));
+            });
+            window.renderTable(filtered); 
+            return;
+        }
+
         if (currentTab === 'KHTH_CHUA_AP_GIA') {
             document.getElementById('lblSearch').innerText = 'TÌM KIẾM MÃ KT, TÊN KT, MÃ TĐ, TÊN DV BHYT';
             
@@ -825,7 +855,6 @@ window.thucHienLocGoc = function() {
                     
                     let normCode = window.normalizeCodeFast(qt.ma);
                     
-                    // 🚀 TRA CỨU NHANH TỪ TỪ ĐIỂN MAP
                     if (window.colorIndex.BV_Code.has(normCode)) return;
 
                     let matchedGiaMap = new Map(); 
@@ -956,7 +985,7 @@ window.thucHienLocGoc = function() {
 }
 
 window.capNhatDanhSachQuyetDinh = function() { 
-    if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA') return;
+    if (currentTabType === 'DTNH' || currentTab === 'MaDVBV' || currentTab === 'KHTH_CHUA_AP_GIA' || currentTab === 'ICD10') return;
     const optionsContainer = document.getElementById('optionsQD'); 
     if(!optionsContainer) return;
     
