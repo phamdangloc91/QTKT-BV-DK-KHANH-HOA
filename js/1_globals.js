@@ -9,6 +9,11 @@ var selectedTechniques = [];
 var plKeywords = [];
 var selectedGiaDV = []; 
 
+// 🟢 THÊM MỚI: QUẢN LÝ CỘT HIỂN THỊ TÙY CHỌN
+var defaultColumns = ['col_stt', 'col_ma', 'col_chuong', 'col_ten', 'col_phanloai', 'col_quyetdinh', 'col_file', 'col_action'];
+var currentSelectedColumns = [...defaultColumns];
+var MAX_COLUMNS = 9;
+
 var DANH_SACH_KHOA = [
     "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
     "Khoa Nội Cán bộ", "Khoa Nhi", "Khoa Ngoại Tổng quát", "Khoa Ngoại Thần kinh", "Khoa Ngoại Cột sống",
@@ -20,7 +25,6 @@ var DANH_SACH_KHOA = [
     "Trung tâm Chấn thương Chỉnh hình và Bỏng", "Trung tâm Dịch vụ Y tế"
 ]; 
 
-// MÃ HÓA CẢ DẤU NHÁY VÀ DẤU XUỐNG DÒNG (ALT+ENTER) ĐỂ BẢO VỆ HTML
 window.encodeForJS = function(str) {
     if (!str) return '';
     return encodeURIComponent(String(str)).replace(/'/g, "%27").replace(/"/g, "%22");
@@ -68,7 +72,6 @@ window.formatStrictCode = function(code) {
     return String(code).replace(/,/g, '.').replace(/\s+/g, '').toLowerCase();
 };
 
-// 🟢 TÁCH BIỆT: CHỈ CHUẨN HÓA 1 MÃ ĐƠN LẺ SAU KHI ĐÃ CẮT BỞI DẤU CHẤM PHẨY
 window.normalizeSingleCode = function(singleCode) {
     if (!singleCode) return '';
     let parts = singleCode.split('.');
@@ -83,15 +86,11 @@ window.normalizeSingleCode = function(singleCode) {
     return singleCode;
 };
 
-// 🟢 CHUẨN HÓA LIÊN KẾT NỀN (GIẢI QUYẾT ĐA MÃ)
 window.normalizeCodeFast = function(code) {
     if (!code) return ''; 
     let strCode = window.formatStrictCode(code);
-    // Tách các mã bằng dấu ; hoặc / hoặc | ra thành mảng trước
     let arr = strCode.split(/;|\/|\|/).filter(Boolean);
-    // Chuẩn hóa từng mã nhỏ một cách độc lập
     let normArr = arr.map(c => window.normalizeSingleCode(c));
-    // Ghép lại thành chuỗi hoàn chỉnh
     return normArr.join(';');
 };
 
@@ -127,6 +126,32 @@ window.isStrictCodeMatch = function(ma1, ma2) {
     return false;
 };
 
+// 🟢 THUẬT TOÁN TRUNG TÂM KIỂM TRA MÀU SẮC (Dùng chung cho cả Lọc và Hiển thị)
+window.checkColorStatus = function(maHienThi, tenItem) {
+    let isHasBHYT = false; let isHasBV = false;
+    let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
+    
+    if (arrSearch.length > 0) {
+        if (Array.isArray(database.GiaDV)) {
+            let normCheckTen = window.robustNormalize(tenItem || "");
+            isHasBHYT = database.GiaDV.some(g => {
+                if (!window.isValidForCrossLink(g.maTuongDuong)) return false;
+                return arrSearch.some(m => window.isCodeMatch(g.maTuongDuong, m)) || (normCheckTen && window.robustNormalize(g.tenKyThuat) === normCheckTen);
+            });
+        }
+        if (Array.isArray(database.MaDVBV)) {
+            isHasBV = database.MaDVBV.some(b => {
+                if (!window.isValidForCrossLink(b.maTuongDuong)) return false;
+                return arrSearch.some(m => window.isCodeMatch(b.maTuongDuong, m));
+            });
+        }
+    }
+    
+    if (isHasBHYT && isHasBV) return 'blue';    // Đã có cả hai
+    if (isHasBHYT) return 'yellow';             // Chỉ có BHYT
+    return 'white';                             // Trắng (Không có gì)
+};
+
 window.timKhoaChinhXac = function(rawName) {
     if (!rawName) return null; let normRaw = window.robustNormalize(rawName);
     let directMatch = DANH_SACH_KHOA.find(function(k) { return window.robustNormalize(k) === normRaw || normRaw.includes(window.robustNormalize(k)) || window.robustNormalize(k).includes(normRaw); });
@@ -154,7 +179,6 @@ window.buildOrderMap = function() {
     if (Array.isArray(database.PL1)) {
         database.PL1.forEach(function(item, index) {
             if (!item) return;
-            // Ánh xạ bằng mã đã xử lý tách mảng
             let maRaw = item.ma || item.maLienKet || "";
             if (maRaw) {
                 let mArr = window.normalizeCodeFast(maRaw).split(';').filter(Boolean);
@@ -198,9 +222,18 @@ window.toggleQDDrodown = function(e) {
     if(opts) opts.style.display = opts.style.display === 'block' ? 'none' : 'block';
 }
 
+// 🟢 THÊM MỚI: Bật tắt Dropdown của Cột
+window.toggleColDropdown = function(e) {
+    e.stopPropagation(); let opts = document.getElementById('optionsCol');
+    if(opts) opts.style.display = opts.style.display === 'block' ? 'none' : 'block';
+}
+
 window.addEventListener('click', function(e) {
-    let multiSelect = document.getElementById('multiSelectQD'); let opts = document.getElementById('optionsQD');
-    if (multiSelect && !multiSelect.contains(e.target) && opts) opts.style.display = 'none';
+    let msQD = document.getElementById('multiSelectQD'); let optQD = document.getElementById('optionsQD');
+    if (msQD && !msQD.contains(e.target) && optQD) optQD.style.display = 'none';
+
+    let msCol = document.getElementById('multiSelectCol'); let optCol = document.getElementById('optionsCol');
+    if (msCol && !msCol.contains(e.target) && optCol) optCol.style.display = 'none';
 });
 
 window.addEventListener('DOMContentLoaded', function() {
