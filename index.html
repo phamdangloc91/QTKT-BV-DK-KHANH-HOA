@@ -101,6 +101,17 @@
             </div>
         </div>
 
+        <div class="filter-group" id="groupColumnDisplay" style="display: none;">
+            <label style="color:#0056b3;">CHỌN CỘT HIỂN THỊ</label>
+            <div class="multi-select" id="multiSelectCol">
+                <div class="select-box" onclick="window.toggleColDropdown(event)" style="border-color:#80bdff; background:#f8f9fa;">
+                    <span id="selectedColText" style="white-space: nowrap; overflow: hidden; text-overflow: ellipsis; max-width: 180px; color:#0056b3; font-weight:bold;">Tùy chỉnh cột</span>
+                    <span style="font-size: 10px; color: #0056b3;">▼</span>
+                </div>
+                <div class="select-options" id="optionsCol"></div>
+            </div>
+        </div>
+
         <div class="filter-group" id="groupChuaCoMa" style="display: none;">
             <label style="color:var(--danger);">LỌC NHANH</label>
             <div style="margin-top: 5px; display: flex; align-items: center; gap: 5px;">
@@ -112,7 +123,7 @@
         <div class="filter-group" id="groupNamDT" style="display: none;">
             <label style="color:var(--danger);">* NĂM ĐÀO TẠO</label>
             <select id="filterNamDT" onchange="window.apDungLoc()" style="border: 2px solid var(--danger);">
-                <option value="">-- Chọn Năm Upload/Xem --</option>
+                <option value="">-- Chọn Năm --</option>
                 <option value="2026">2026</option>
                 <option value="2027">2027</option>
                 <option value="2028">2028</option>
@@ -130,10 +141,19 @@
     </div>
 
     <div id="colorLegend" style="display: none; padding: 12px 15px; background: white; border-radius: 8px; margin-bottom: 20px; border: 1px solid #eaeaea; font-size: 13px; align-items: center; gap: 20px; box-shadow: 0 2px 5px rgba(0,0,0,0.05);">
-        <strong style="color:#555;">Chú giải màu nền:</strong>
-        <span style="display:inline-flex; align-items:center; gap:5px;"><span style="width:16px; height:16px; background-color:#fff3cd; border:1px solid #ffeeba; display:inline-block; border-radius:3px;"></span> Có giá BHYT (chưa có Giá BV)</span>
-        <span style="display:inline-flex; align-items:center; gap:5px;"><span style="width:16px; height:16px; background-color:#d1ecf1; border:1px solid #bee5eb; display:inline-block; border-radius:3px;"></span> Đã có BHYT & Mã DV Bệnh viện</span>
-        <span style="display:inline-flex; align-items:center; gap:5px;"><span style="width:16px; height:16px; background-color:#fff; border:1px solid #ccc; display:inline-block; border-radius:3px;"></span> Chưa được thiết lập giá</span>
+        <strong style="color:#555;">Bộ lọc Màu nền:</strong>
+        <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="checkbox" class="chk-color-filter" value="yellow" onchange="window.apDungLoc()" style="width:16px; height:16px;">
+            <span style="width:16px; height:16px; background-color:#fff3cd; border:1px solid #ffeeba; display:inline-block; border-radius:3px;"></span> Có giá BHYT (chưa có Giá BV)
+        </label>
+        <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="checkbox" class="chk-color-filter" value="blue" onchange="window.apDungLoc()" style="width:16px; height:16px;">
+            <span style="width:16px; height:16px; background-color:#d1ecf1; border:1px solid #bee5eb; display:inline-block; border-radius:3px;"></span> Đã có BHYT & Mã DV Bệnh viện
+        </label>
+        <label style="display:inline-flex; align-items:center; gap:5px; cursor:pointer;">
+            <input type="checkbox" class="chk-color-filter" value="white" onchange="window.apDungLoc()" style="width:16px; height:16px;">
+            <span style="width:16px; height:16px; background-color:#fff; border:1px solid #ccc; display:inline-block; border-radius:3px;"></span> Chưa được thiết lập giá
+        </label>
     </div>
 
     <div class="table-container">
@@ -146,7 +166,7 @@
 
 <footer class="site-footer">
     <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
-    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1703.2026</span>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1803.2026</span>
 </footer>
 
 <div id="loginModal" class="modal">
