@@ -173,7 +173,7 @@
 
 <footer class="site-footer">
     <b>Bản quyền thuộc về PHÒNG KẾ HOẠCH TỔNG HỢP - BỆNH VIỆN ĐA KHOA KHÁNH HÒA</b>
-    Hệ thống Quản lý Quy trình Kỹ thuật & Giá Dịch vụ <span class="version-tag">Phiên bản 1.0.1903.2026</span>
+    Hệ thống Quản lý Quy trình Kỹ thuật & Phác đồ điều trị <span class="version-tag">Phiên bản 2.0 ICD10</span>
 </footer>
 
 <div id="loginModal" class="modal">
@@ -277,16 +277,48 @@
 <div id="icdModal" class="modal">
     <div class="modal-content large">
         <span class="close-btn" onclick="window.dongModal('icdModal')">&times;</span>
-        <h3 style="border-bottom:none; margin-bottom: 0;">CHI TIẾT MÃ BỆNH ICD-10</h3>
-        <h4 id="icdMa" style="color: var(--danger); margin-top: 5px; font-size: 20px;"></h4>
-        <div style="margin-bottom: 15px; padding: 15px; background: #fdfdfe; border-radius: 4px; border: 1px solid #e9ecef;">
-            <p><b>Tên bệnh (VN):</b> <span id="icdTenVn" style="color:var(--primary); font-weight:bold;"></span></p>
-            <p><b>Tên bệnh (EN):</b> <span id="icdTenEn" style="font-style:italic;"></span></p>
-            <hr style="border:0; border-top:1px dashed #ccc; margin: 10px 0;">
-            <p><b>Chương:</b> <span id="icdChuong"></span></p>
-            <p><b>Nhóm chính:</b> <span id="icdNhom"></span></p>
+        <h3 style="border-bottom:none; margin-bottom: 0; color:#0056b3;">CHI TIẾT MÃ BỆNH ICD-10</h3>
+        
+        <div style="display:flex; gap:15px; align-items:baseline; margin-top: 10px;">
+            <h2 id="icdMa" style="color: var(--danger); margin: 0; font-size: 28px;"></h2>
+            <h4 id="icdMaKhongDau" style="color: #888; margin: 0; font-weight: normal;"></h4>
         </div>
-        <div style="background: #e9ecef; padding: 15px; border-radius: 8px;">
+
+        <div style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 8px; border: 1px solid #e9ecef;">
+            <p style="font-size: 18px; margin-top:0;"><b>Tên bệnh (VN):</b> <span id="icdTenVn" style="color:var(--primary); font-weight:bold;"></span></p>
+            <p style="font-size: 16px; margin-bottom:0;"><b>Disease Name:</b> <span id="icdTenEn" style="font-style:italic; color:#555;"></span></p>
+        </div>
+
+        <table class="user-table" style="width:100%; margin-top: 15px;">
+            <tbody>
+                <tr>
+                    <td style="background:#f2f2f2; width:20%;"><b>Chương</b></td>
+                    <td><b id="icdMaChuong"></b> - <span id="icdTenChuong"></span> <br><i id="icdChapterName" style="color:#666;"></i></td>
+                </tr>
+                <tr>
+                    <td style="background:#f2f2f2;"><b>Nhóm chính</b></td>
+                    <td><b id="icdMaNhomChinh"></b> - <span id="icdTenNhomChinh"></span> <br><i id="icdMainGroupNameI" style="color:#666;"></i></td>
+                </tr>
+                <tr id="rowNhomPhu1">
+                    <td style="background:#fff3cd;"><b>Nhóm phụ 1</b></td>
+                    <td style="background:#fffaf0;"><b id="icdMaNhomPhu1"></b> - <span id="icdTenNhomPhu1"></span> <br><i id="icdSubGroupNameI" style="color:#666;"></i></td>
+                </tr>
+                <tr id="rowNhomPhu2">
+                    <td style="background:#d1ecf1;"><b>Nhóm phụ 2</b></td>
+                    <td style="background:#e8f8f5;"><b id="icdMaNhomPhu2"></b> - <span id="icdTenNhomPhu2"></span> <br><i id="icdSubGroupNameII" style="color:#666;"></i></td>
+                </tr>
+                <tr>
+                    <td style="background:#f2f2f2;"><b>Loại</b></td>
+                    <td><b id="icdMaLoai"></b> - <span id="icdTenLoai"></span> <br><i id="icdTypeName" style="color:#666;"></i></td>
+                </tr>
+                <tr>
+                    <td style="background:#f2f2f2;"><b>Ghi chú</b></td>
+                    <td id="icdGhiChu"></td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div style="background: #e9ecef; padding: 15px; border-radius: 8px; margin-top:20px;">
             <b>📚 Phác đồ điều trị của các Khoa:</b>
             <div id="icdPhacDoArea" style="margin-top: 15px;"></div>
             <button class="btn" style="background:var(--success); margin-top:10px; font-size: 13px;" onclick="alert('Hệ thống đang mở luồng kết nối nộp Phác đồ. Vui lòng chờ bản cập nhật tiếp theo!')">📤 Nộp Phác đồ mới</button>
