@@ -300,16 +300,23 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     window.moModal('detailModal');
 }
 
-// 🟢 HÀM MỚI: MỞ BẢNG CHI TIẾT MÃ ICD-10
+// 🟢 CẬP NHẬT: GIAO DIỆN BẢNG THÔNG TIN MÃ BỆNH ICD-10
 window.moChiTietICD = function(encodedMa) {
     let ma = decodeURIComponent(encodedMa || "");
     let item = (database.ICD10 || []).find(x => x && x.maIcd === ma);
     if(!item) return alert("Không tìm thấy dữ liệu mã bệnh!");
     
     document.getElementById('icdMa').innerText = item.maIcd || '';
-    document.getElementById('icdTenVn').innerText = item.tenIcdVn || '';
-    document.getElementById('icdTenEn').innerText = item.tenIcdEn || '';
-    document.getElementById('icdChuong').innerText = item.chuong || 'Không phân loại';
+    
+    // Gộp chung Tên bệnh và Tên chẩn đoán vào 1 dòng linh hoạt
+    document.getElementById('icdTenVn').innerText = item.tenIcdVn || 'Chưa có thông tin Tên bệnh/Chẩn đoán';
+    document.getElementById('icdTenEn').innerText = item.tenIcdEn || 'Không có';
+    
+    // Hiển thị Chương & Nhóm nếu có
+    let chuongText = item.chuong || 'Không phân loại';
+    if (item.maChuong && item.chuong) chuongText = item.maChuong + " - " + item.chuong;
+    document.getElementById('icdChuong').innerText = chuongText;
+    
     document.getElementById('icdNhom').innerText = item.nhom || 'Không phân loại';
     
     document.getElementById('icdPhacDoArea').innerHTML = `<p style="color:#666;">Chưa có phác đồ nào được nộp cho mã bệnh này.</p>`;

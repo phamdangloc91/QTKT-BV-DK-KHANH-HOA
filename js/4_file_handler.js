@@ -384,8 +384,13 @@ window.importFromExcel = async function() {
                     let headers = [];
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = rawData[i].map(function(c){ return window.robustNormalize(c); }).join(" ");
-                        // 🟢 BỔ SUNG TỪ KHÓA TÌM HEADER CỦA BỘ Y TẾ: "MÃ BỆNH", "DISEASE NAME"
-                        if (rowStr.includes("ma dich vu") || rowStr.includes("ma_dichvu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || rowStr.includes("muc gia") || rowStr.includes("ma lien ket") || rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name")) {
+                        
+                        // 🟢 CẬP NHẬT TRÍ THÔNG MINH NHẬN DIỆN CỘT TỰ ĐỘNG
+                        if (rowStr.includes("ma dich vu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || 
+                            rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name") || 
+                            rowStr.includes("ten benh") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
+                            (rowStr.includes("ma") && rowStr.includes("ten"))) 
+                        {
                             headerRowIndex = i; 
                             headers = rawData[i].map(window.robustNormalizeHeader); 
                             break;
@@ -393,7 +398,7 @@ window.importFromExcel = async function() {
                     }
 
                     if (headerRowIndex === -1) { 
-                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel đúng định dạng!"); 
+                        alert("Không tìm thấy dòng Tiêu đề chuẩn. Hãy đảm bảo file Excel/CSV đúng định dạng có cột Mã và Tên!"); 
                         window.showLoading(false); 
                         return; 
                     }
@@ -431,14 +436,14 @@ window.importFromExcel = async function() {
                                 if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                                 if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } 
-                            // 🟢 MAP CỘT DỮ LIỆU ICD-10
+                            // 🟢 CẬP NHẬT MAPPING CỘT DỮ LIỆU ICD-10 BAO QUÁT MỌI TRƯỜNG HỢP
                             else if (currentTab === 'ICD10') {
-                                if (kn === "ma benh" || kn === "ma") item.maIcd = formatCode(v);
-                                if (kn === "ten benh" || kn.includes("tieng viet")) item.tenIcdVn = v;
-                                if (kn === "disease name" || kn.includes("tieng anh")) item.tenIcdEn = v;
-                                if (kn === "ten chuong") item.chuong = v;
-                                if (kn === "ten nhom chinh") item.nhom = v;
-                                if (kn === "ten loai") item.loai = v;
+                                if (kn === "ma benh" || kn === "ma" || kn.includes("ma icd") || kn.includes("ma chan doan") || kn === "mã") item.maIcd = formatCode(v);
+                                if (kn === "ten benh" || kn.includes("tieng viet") || kn.includes("ten chan doan") || kn === "ten" || kn.includes("tên")) item.tenIcdVn = v;
+                                if (kn === "disease name" || kn.includes("tieng anh") || kn === "description") item.tenIcdEn = v;
+                                if (kn.includes("ten chuong") || kn === "chuong") item.chuong = v;
+                                if (kn.includes("ten nhom") || kn === "nhom") item.nhom = v;
+                                if (kn.includes("ten loai") || kn === "loai") item.loai = v;
                             }
                             else {
                                 if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = formatCode(v); 
@@ -618,7 +623,6 @@ window.exportToExcel = function() {
                 row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
                 cleanData.push(row);
             } 
-            // Xuất file cho ICD10
             else if (currentTab === 'ICD10') {
                 let row = { "STT": cleanData.length + 1 };
                 row["MÃ BỆNH"] = item.maIcd || "";

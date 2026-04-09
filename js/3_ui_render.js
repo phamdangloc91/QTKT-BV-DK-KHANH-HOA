@@ -194,7 +194,6 @@ window.layDuLieu = async function() {
             return d;
         });
 
-        // 🟢 BỔ SUNG: NẠP DỮ LIỆU ICD-10 NẾU CÓ
         if(mainData && Array.isArray(mainData.ICD10)) database.ICD10 = mainData.ICD10.filter(Boolean);
         
         if (window.buildOrderMap) window.buildOrderMap();
@@ -406,20 +405,34 @@ window.renderTable = function(data = null) {
                 }
             });
         }
+        // 🟢 CẬP NHẬT: VẼ BẢNG ICD10 GỘP CỘT TIẾNG ANH & TIẾNG VIỆT
         else if (currentTab === 'ICD10') {
-            htmlHead += `<th>STT</th><th style="width:15%">Mã ICD-10 (Click xem chi tiết)</th><th style="width:50%">Tên bệnh (Tiếng Việt)</th><th style="text-align:center;">Phác đồ Khoa</th></tr>`;
+            htmlHead += `<th>STT</th><th style="width:15%">Mã ICD-10 (Click)</th><th style="width:60%">Tên bệnh / Chẩn đoán</th><th style="text-align:center;">Phác đồ Khoa</th></tr>`;
             thead.innerHTML = htmlHead;
             pageData.forEach(function(item, index) {
                 if(!item) return; let realIndex = startIdx + index;
                 let clickEvent = `window.moChiTietICD('${window.encodeForJS(item.maIcd)}')`;
-                let maClickable = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); font-weight:bold; text-decoration:none; font-size:15px;">${item.maIcd || ''}</a>`;
-                let tenClickable = `<a href="#" onclick="${clickEvent}" style="color:#333; font-weight:bold; text-decoration:none;">${item.tenIcdVn || ''}</a>`;
                 
+                let maClickable = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); font-weight:bold; text-decoration:none; font-size:15px;">${item.maIcd || ''}</a>`;
+                
+                let tenVn = item.tenIcdVn || 'Chưa cập nhật tên chẩn đoán';
+                let tenEnHtml = item.tenIcdEn ? `<br><span style="color:#666; font-style:italic; font-size:12px;">${item.tenIcdEn}</span>` : '';
+                let tenClickable = `<a href="#" onclick="${clickEvent}" style="color:#333; font-weight:bold; text-decoration:none;">${tenVn}</a>${tenEnHtml}`;
+                
+                let btnPhacDo = '';
+                if (currentUser && currentUser.role === 'khoa') {
+                    btnPhacDo = `<button class="btn" style="background:var(--success); font-size:12px; padding:5px 10px;" onclick="alert('Hệ thống đang mở luồng kết nối nộp Phác đồ. Vui lòng chờ bản cập nhật tiếp theo!')">📤 Nộp Phác đồ</button>`;
+                } else if (currentUser && currentUser.role === 'admin') {
+                    btnPhacDo = `<span style="color:#888; font-size:12px; font-style:italic;">Khoa nộp file</span>`;
+                } else {
+                    btnPhacDo = `<span style="color:#888; font-size:12px;">Đăng nhập để xem</span>`;
+                }
+
                 tbodyHtml += `<tr>
                     <td style="text-align:center;">${realIndex + 1}</td>
                     <td>${maClickable}</td>
                     <td>${tenClickable}</td>
-                    <td style="text-align:center;"><span style="color:#888; font-size:12px;">Chưa có</span></td>
+                    <td style="text-align:center;">${btnPhacDo}</td>
                 </tr>`;
             });
         }
@@ -828,7 +841,7 @@ window.thucHienLocGoc = function() {
         }
 
         if (currentTab === 'ICD10') {
-            document.getElementById('lblSearch').innerText = 'TÌM MẾ ICD HOẶC TÊN BỆNH';
+            document.getElementById('lblSearch').innerText = 'TÌM MÃ ICD HOẶC TÊN BỆNH';
             let sourceList = database.ICD10 || [];
             
             const filtered = sourceList.filter(function(item) {
