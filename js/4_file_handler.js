@@ -266,7 +266,6 @@ window.importFromExcel = async function() {
                 const rawData = XLSX.utils.sheet_to_json(sheet, { header: 1, raw: false, defval: "" }); 
                 
                 if (currentTabType === 'DTNH') {
-                    // Logic DTNH cũ
                     const selectedYear = document.getElementById('filterNamDT').value;
                     let headerRowIndex = -1;
                     
@@ -274,7 +273,7 @@ window.importFromExcel = async function() {
                         let rowData = rawData[i]; 
                         if (!rowData || rowData.length === 0) continue;
                         let rowStr = rowData.map(function(c){ return window.safeStr(c); }).join(" ");
-                        if (rowStr.includes("nội dung đào tạo") && (rowStr.includes("kĩ thuật") || rowStr.includes("kỹ thuật"))) {
+                        if (rowStr.includes("noi dung dao tao") && (rowStr.includes("ki thuat") || rowStr.includes("ky thuat"))) {
                             headerRowIndex = i; 
                             break;
                         }
@@ -295,20 +294,20 @@ window.importFromExcel = async function() {
                     headRow1.forEach(function(k, idx) {
                         if (!k) return;
                         if (k === "khoa") colKhoa = idx;
-                        if (k.includes("nội dung đào tạo")) colNoiDung = idx;
-                        if (k.includes("kĩ thuật cụ thể") || k.includes("kỹ thuật cụ thể")) colKyThuat = idx;
-                        if (k.includes("thời gian")) colThoiGian = idx;
-                        if (k.includes("đơn vị chủ trì")) colDonVi = idx;
-                        if (k.includes("kinh phí")) colKinhPhi = idx;
+                        if (k.includes("noi dung dao tao")) colNoiDung = idx;
+                        if (k.includes("ki thuat cu the") || k.includes("ky thuat cu the")) colKyThuat = idx;
+                        if (k.includes("thoi gian")) colThoiGian = idx;
+                        if (k.includes("don vi chu tri")) colDonVi = idx;
+                        if (k.includes("kinh phi")) colKinhPhi = idx;
                     });
 
                     headRow2.forEach(function(k, idx) {
                         if (!k) return;
-                        if (k.includes("sinh học") || k.includes("cử nhân")) colCNSH = idx;
-                        if (k.includes("hộ sinh") || k.includes("nhs")) colNHS = idx;
-                        if (k === "ktv" || k.includes("kỹ thuật viên")) colKTV = idx;
-                        if (k === "đd" || k.includes("điều dưỡng")) colDD = idx;
-                        if (k === "bs" || k.includes("bác sĩ")) colBS = idx;
+                        if (k.includes("sinh hoc") || k.includes("cu nhan")) colCNSH = idx;
+                        if (k.includes("ho sinh") || k.includes("nhs")) colNHS = idx;
+                        if (k === "ktv" || k.includes("ky thuat vien")) colKTV = idx;
+                        if (k === "dd" || k.includes("dieu duong")) colDD = idx;
+                        if (k === "bs" || k.includes("bac si")) colBS = idx;
                     });
 
                     let parsedDataByKhoa = {};
@@ -386,11 +385,11 @@ window.importFromExcel = async function() {
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = rawData[i].map(function(c){ return window.robustNormalize(c); }).join(" ");
                         
-                        // 🟢 CẬP NHẬT TRÍ THÔNG MINH NHẬN DIỆN CỘT TỰ ĐỘNG
+                        // 🟢 CẬP NHẬT TỪ KHÓA BẮT CHUẨN KHÔNG DẤU 100%
                         if (rowStr.includes("ma dich vu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || 
                             rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name") || 
                             rowStr.includes("ten benh") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
-                            rowStr.includes("stt chuong") || (rowStr.includes("ma") && rowStr.includes("ten"))) 
+                            (rowStr.includes("ma") && rowStr.includes("ten"))) 
                         {
                             headerRowIndex = i; 
                             headers = rawData[i].map(window.robustNormalizeHeader); 
@@ -437,29 +436,29 @@ window.importFromExcel = async function() {
                                 if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                                 if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } 
-                            // 🟢 MAP CHÍNH XÁC 21 CỘT DỮ LIỆU ICD-10
+                            // 🟢 MAP CHÍNH XÁC 21 CỘT BẰNG TỪ KHÓA KHÔNG DẤU
                             else if (currentTab === 'ICD10') {
-                                if (kn === "stt chuong" || kn.includes("stt chương")) item.sttChuong = v;
-                                else if (kn === "ma chuong" || kn.includes("mã chương")) item.maChuong = v;
+                                if (kn === "stt chuong" || kn.includes("stt chuong")) item.sttChuong = v;
+                                else if (kn === "ma chuong" || kn.includes("ma chuong")) item.maChuong = v;
                                 else if (kn === "chapter name") item.chapterName = v;
-                                else if (kn === "ten chuong" || kn.includes("tên chương")) item.tenChuong = v;
-                                else if (kn === "ma nhom chinh" || kn.includes("mã nhóm chính")) item.maNhomChinh = v;
+                                else if (kn === "ten chuong" || kn.includes("ten chuong")) item.tenChuong = v;
+                                else if (kn === "ma nhom chinh" || kn.includes("ma nhom chinh") || kn.includes("ma nhom")) item.maNhomChinh = v;
                                 else if (kn === "main group name i") item.mainGroupNameI = v;
-                                else if (kn === "ten nhom chinh" || kn.includes("tên nhóm chính")) item.tenNhomChinh = v;
-                                else if (kn === "ma nhom phu 1" || kn.includes("mã nhóm phụ 1")) item.maNhomPhu1 = v;
+                                else if (kn === "ten nhom chinh" || kn.includes("ten nhom chinh") || kn.includes("ten nhom")) item.tenNhomChinh = v;
+                                else if (kn === "ma nhom phu 1" || kn.includes("ma nhom phu 1")) item.maNhomPhu1 = v;
                                 else if (kn === "sub group name i") item.subGroupNameI = v;
-                                else if (kn === "ten nhom phu 1" || kn.includes("tên nhóm phụ 1")) item.tenNhomPhu1 = v;
-                                else if (kn === "ma nhom phu 2" || kn.includes("mã nhóm phụ 2")) item.maNhomPhu2 = v;
+                                else if (kn === "ten nhom phu 1" || kn.includes("ten nhom phu 1")) item.tenNhomPhu1 = v;
+                                else if (kn === "ma nhom phu 2" || kn.includes("ma nhom phu 2")) item.maNhomPhu2 = v;
                                 else if (kn === "sub group name ii") item.subGroupNameII = v;
-                                else if (kn === "ten nhom phu 2" || kn.includes("tên nhóm phụ 2")) item.tenNhomPhu2 = v;
-                                else if (kn === "ma loai" || kn.includes("mã loại")) item.maLoai = v;
+                                else if (kn === "ten nhom phu 2" || kn.includes("ten nhom phu 2")) item.tenNhomPhu2 = v;
+                                else if (kn === "ma loai" || kn.includes("ma loai")) item.maLoai = v;
                                 else if (kn === "type name") item.typeName = v;
-                                else if (kn === "ten loai" || kn.includes("tên loại")) item.tenLoai = v;
-                                else if (kn === "ma benh" || kn.includes("mã bệnh") || kn === "mã") item.maBenh = formatCode(v);
-                                else if (kn === "ma benh khong dau" || kn.includes("không dấu")) item.maBenhKhongDau = formatCode(v);
-                                else if (kn === "disease name") item.diseaseName = v;
-                                else if (kn === "ten benh" || kn.includes("tên bệnh") || kn.includes("chẩn đoán") || kn.includes("tiếng việt") || kn === "ten") item.tenBenh = v;
-                                else if (kn === "ghi chu" || kn.includes("ghi chú")) item.ghiChu = v;
+                                else if (kn === "ten loai" || kn.includes("ten loai")) item.tenLoai = v;
+                                else if (kn === "ma benh" || kn.includes("ma benh") || kn.includes("ma icd") || kn === "ma") item.maBenh = formatCode(v);
+                                else if (kn === "ma benh khong dau" || kn.includes("khong dau")) item.maBenhKhongDau = formatCode(v);
+                                else if (kn === "disease name" || kn.includes("tieng anh") || kn === "description") item.diseaseName = v;
+                                else if (kn === "ten benh" || kn.includes("ten benh") || kn.includes("chan doan") || kn.includes("tieng viet") || kn === "ten") item.tenBenh = v;
+                                else if (kn === "ghi chu" || kn.includes("ghi chu")) item.ghiChu = v;
                             }
                             else {
                                 if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = formatCode(v); 
@@ -641,9 +640,27 @@ window.exportToExcel = function() {
             } 
             else if (currentTab === 'ICD10') {
                 let row = { "STT": cleanData.length + 1 };
+                row["STT CHƯƠNG"] = item.sttChuong || "";
+                row["MÃ CHƯƠNG"] = item.maChuong || "";
+                row["CHAPTER NAME"] = item.chapterName || "";
+                row["TÊN CHƯƠNG"] = item.tenChuong || "";
+                row["MÃ NHÓM CHÍNH"] = item.maNhomChinh || "";
+                row["MAIN GROUP NAME I"] = item.mainGroupNameI || "";
+                row["TÊN NHÓM CHÍNH"] = item.tenNhomChinh || "";
+                row["MÃ NHÓM PHỤ 1"] = item.maNhomPhu1 || "";
+                row["SUB GROUP NAME I"] = item.subGroupNameI || "";
+                row["TÊN NHÓM PHỤ 1"] = item.tenNhomPhu1 || "";
+                row["MÃ NHÓM PHỤ 2"] = item.maNhomPhu2 || "";
+                row["SUB GROUP NAME II"] = item.subGroupNameII || "";
+                row["TÊN NHÓM PHỤ 2"] = item.tenNhomPhu2 || "";
+                row["MÃ LOẠI"] = item.maLoai || "";
+                row["TYPE NAME"] = item.typeName || "";
+                row["TÊN LOẠI"] = item.tenLoai || "";
                 row["MÃ BỆNH"] = item.maBenh || "";
-                row["TÊN BỆNH (VN)"] = item.tenBenh || "";
+                row["MÃ BỆNH KHÔNG DẤU"] = item.maBenhKhongDau || "";
                 row["DISEASE NAME"] = item.diseaseName || "";
+                row["TÊN BỆNH"] = item.tenBenh || "";
+                row["GHI CHÚ"] = item.ghiChu || "";
                 cleanData.push(row);
             }
             else {
