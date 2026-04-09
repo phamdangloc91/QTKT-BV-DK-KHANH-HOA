@@ -45,7 +45,6 @@ const UserSchema = new mongoose.Schema({
 });
 const UserModel = mongoose.model('User', UserSchema);
 
-// 🟢 NÂNG CẤP SCHEMA: Thêm daoTaoNganHan
 const DeptDataSchema = new mongoose.Schema({
     tenKhoa: { type: String, required: true, unique: true }, 
     danhMucQTKT: { type: Array, default: [] },
@@ -80,11 +79,38 @@ const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024
 app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
+// 🟢 TÁI CẤU TRÚC: Nạp dữ liệu từ 2 kho Độc lập (Main và ICD10)
 app.get('/api/data', async (req, res) => {
-    try { const result = await DataModel.findOne({ id: "hospital_main_db" }); res.json(result ? result.currentData : { PL1: [], PL2: [], GiaDV: [], MaDVBV: [] }); } 
-    catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
+    try { 
+        const result = await DataModel.findOne({ id: "hospital_main_db" }); 
+        const resultICD = await DataModel.findOne({ id: "hospital_icd10_db" }); 
+        
+        let finalData = result ? result.currentData : { PL1: [], PL2: [], GiaDV: [], MaDVBV: [] };
+        
+        if (!finalData.PL1) finalData.PL1 = [];
+        if (!finalData.PL2) finalData.PL2 = [];
+        if (!finalData.GiaDV) finalData.GiaDV = [];
+        if (!finalData.MaDVBV) finalData.MaDVBV = [];
+        
+        finalData.ICD10 = (resultICD && resultICD.currentData && resultICD.currentData.ICD10) ? resultICD.currentData.ICD10 : [];
+
+        // Nếu DB rỗng, thử nạp dự phòng từ local file
+        if (finalData.ICD10.length === 0) {
+            const icdPath = path.join(__dirname, 'icd10.json');
+            if (fs.existsSync(icdPath)) {
+                finalData.ICD10 = JSON.parse(fs.readFileSync(icdPath, 'utf8'));
+            }
+        }
+
+        res.json(finalData); 
+    } 
+    catch (error) { 
+        console.error("Lỗi get data:", error);
+        res.status(500).json({ message: "Lỗi tải dữ liệu" }); 
+    }
 });
 
+// 🟢 GIẢI PHÁP VƯỢT RÀO 16MB: Cấp phát phòng lưu trữ riêng cho bộ ICD-10
 app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) => {
     try {
         const tabName = req.body.tabName;
@@ -92,7 +118,12 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
         const tabData = JSON.parse(req.body.tabData);
 
         const updateQuery = {}; updateQuery[`currentData.${tabName}`] = tabData;
-        await DataModel.findOneAndUpdate({ id: "hospital_main_db" }, { $set: updateQuery }, { upsert: true, returnDocument: 'after' });
+
+        if (tabName === 'ICD10') {
+            await DataModel.findOneAndUpdate({ id: "hospital_icd10_db" }, { $set: updateQuery }, { upsert: true });
+        } else {
+            await DataModel.findOneAndUpdate({ id: "hospital_main_db" }, { $set: updateQuery }, { upsert: true });
+        }
 
         if (req.file && driveService && DRIVE_FOLDER_ID) {
             try {
@@ -103,10 +134,12 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
             } catch (e) { console.log("Lỗi up backup lên Drive."); }
         }
         res.json({ message: `Lưu dữ liệu cho bảng [${tabName}] thành công!` });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi lưu dữ liệu" }); }
+    } catch (error) { 
+        console.error("Lỗi save:", error);
+        res.status(500).json({ message: "Lỗi hệ thống khi lưu. File vượt giới hạn dung lượng!" }); 
+    }
 });
 
-// 🟢 API XỬ LÝ NHẬP EXCEL KẾ HOẠCH ĐÀO TẠO
 app.post('/api/upload-dtnh', async (req, res) => {
     try {
         const payload = req.body.payload; 
@@ -122,9 +155,8 @@ app.post('/api/upload-dtnh', async (req, res) => {
                 await dept.save();
             }
         }
-        res.json({ message: `Đã cập nhật Kế hoạch Đào tạo ngắn hạn (Năm ${year}) thành công cho các khoa!` });
+        res.json({ message: `Đã cập nhật Kế hoạch Đào tạo (Năm ${year}) thành công!` });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: "Lỗi lưu dữ liệu đào tạo." });
     }
 });
@@ -245,20 +277,15 @@ app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => 
         if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
         
         const dept = await DeptDataModel.findOne({ tenKhoa });
-        if(!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
-
         const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
-        if (qtIndex === -1) return res.status(404).json({ message: "Chưa Thêm kỹ thuật này vào giỏ hàng, nên không thể upload file!" });
+        if (qtIndex === -1) return res.status(404).json({ message: "Chưa Thêm kỹ thuật này vào giỏ hàng!" });
 
         const link = await uploadToDrive(req.file, `[NHÁP]_${tenKhoa}_${maQuyTrinh}`);
         dept.danhMucQTKT[qtIndex].trangThai = 'CHO_DUYET'; 
         dept.danhMucQTKT[qtIndex].fileKhoa = link;
         dept.markModified('danhMucQTKT'); await dept.save();
         res.json({ message: "Nộp quy trình thành công! Đang chờ P.KHTH duyệt." });
-    } catch (error) { 
-        console.error(error); 
-        res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
-    }
+    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
 });
 
 app.post('/api/upload/batch-qdbb', upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }]), async (req, res) => {
@@ -284,9 +311,7 @@ app.post('/api/upload/batch-qdbb', upload.fields([{ name: 'fQuyetDinh', maxCount
         }
         for (let k in deptsToSave) await deptsToSave[k].save();
         res.json({ message: "Đã đính kèm Quyết định & Biên bản thành công!" });
-    } catch (error) { 
-        res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
-    }
+    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
 });
 
 app.post('/api/upload/final-pdf', upload.single('fPdf'), async (req, res) => {
@@ -303,9 +328,7 @@ app.post('/api/upload/final-pdf', upload.single('fPdf'), async (req, res) => {
         dept.danhMucQTKT[qtIndex].filePdfChinhThuc = linkPDF;
         dept.markModified('danhMucQTKT'); await dept.save();
         res.json({ message: "Đã tải file PDF chính thức thành công! Quy trình hoàn tất." });
-    } catch (error) { 
-        res.status(500).json({ message: "Lỗi upload Google Drive: " + (error.message || "Unknown Error") }); 
-    }
+    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
 });
 
 app.post('/api/dept-data/status', async (req, res) => {
@@ -327,55 +350,22 @@ app.post('/api/dept-data/status', async (req, res) => {
     } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
-// 🟢 API: XÓA VĨNH VIỄN FILE BẢN NHÁP CỦA KHOA KHỎI DRIVE VÀ DATABASE
 app.post('/api/upload/delete-khoa', async (req, res) => {
     try {
         const { tenKhoa, maQuyTrinh } = req.body;
         const dept = await DeptDataModel.findOne({ tenKhoa });
-        
         if (!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
 
         const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
-        
         if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy quy trình này!" });
 
         const qt = dept.danhMucQTKT[qtIndex];
-        
-        // 1. Nếu có file trên Drive, tiến hành xóa
-        if (qt.fileKhoa) {
-            await deleteFromDrive(qt.fileKhoa); 
-        }
+        if (qt.fileKhoa) await deleteFromDrive(qt.fileKhoa); 
 
-        // 2. Xóa dữ liệu file trong Database và đưa trạng thái về CHUA_NOP
-        qt.fileKhoa = null;
-        qt.tenFileKhoa = null;
-        qt.trangThai = 'CHUA_NOP';
-        
-        dept.markModified('danhMucQTKT'); 
-        await dept.save();
-
+        qt.fileKhoa = null; qt.tenFileKhoa = null; qt.trangThai = 'CHUA_NOP';
+        dept.markModified('danhMucQTKT'); await dept.save();
         res.json({ message: "Đã xóa file vĩnh viễn và thiết lập lại trạng thái thành công!" });
-    } catch (error) { 
-        console.error(error); 
-        res.status(500).json({ message: "Lỗi hệ thống khi xóa file: " + (error.message || "Unknown Error") }); 
-    }
-});
-
-// 🟢 BỔ SUNG: API NẠP DỮ LIỆU ICD-10 TỪ FILE LOCAL LÊN GIAO DIỆN
-app.get('/api/icd10', (req, res) => {
-    try {
-        // Mở file icd10.json nếu có (Nếu bạn chưa có file này trên máy chủ, mảng rỗng sẽ được trả về)
-        const icdPath = path.join(__dirname, 'icd10.json');
-        if (fs.existsSync(icdPath)) {
-            const data = fs.readFileSync(icdPath, 'utf8');
-            res.json(JSON.parse(data));
-        } else {
-            res.json([]); 
-        }
-    } catch (e) {
-        console.error("Lỗi đọc file ICD-10:", e);
-        res.status(500).json({message: "Lỗi hệ thống khi tải danh mục ICD"});
-    }
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi xóa file" }); }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
