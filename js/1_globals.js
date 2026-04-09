@@ -1,6 +1,5 @@
 var currentTab = 'PL1';
 var currentTabType = 'QTKT'; 
-// 🟢 ĐÃ BỔ SUNG ICD10 VÀO DATABASE
 var database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [], ICD10: [] };
 var currentFilteredData = [];
 var currentUser = null;
@@ -11,8 +10,9 @@ var plKeywords = [];
 var selectedGiaDV = []; 
 
 var defaultColumns = ['col_stt', 'col_ma', 'col_chuong', 'col_ten', 'col_phanloai', 'col_quyetdinh', 'col_file', 'col_action'];
+var defaultIcdColumns = ['col_stt', 'col_maBenh', 'col_maBenhKhongDau', 'col_tenBenh', 'col_diseaseName'];
 var currentSelectedColumns = [...defaultColumns];
-var MAX_COLUMNS = 9;
+var MAX_COLUMNS = 15; // Mở rộng để phục vụ 21 cột của ICD-10
 
 var DANH_SACH_KHOA = [
     "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
