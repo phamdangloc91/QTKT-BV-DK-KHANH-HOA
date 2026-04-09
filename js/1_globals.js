@@ -10,9 +10,9 @@ var plKeywords = [];
 var selectedGiaDV = []; 
 
 var defaultColumns = ['col_stt', 'col_ma', 'col_chuong', 'col_ten', 'col_phanloai', 'col_quyetdinh', 'col_file', 'col_action'];
-var defaultIcdColumns = ['col_stt', 'col_maBenh', 'col_maBenhKhongDau', 'col_tenBenh', 'col_diseaseName'];
+var defaultIcdColumns = ['col_stt', 'col_maBenh', 'col_tenBenh', 'col_action'];
 var currentSelectedColumns = [...defaultColumns];
-var MAX_COLUMNS = 15; // Mở rộng để phục vụ 21 cột của ICD-10
+var MAX_COLUMNS = 20;
 
 var DANH_SACH_KHOA = [
     "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
@@ -35,7 +35,6 @@ window.safeStr = function(val) {
     return String(val).toLowerCase().trim(); 
 };
 
-// 🚀 TỐI ƯU TỐC ĐỘ: GHI NHỚ KẾT QUẢ CHUẨN HÓA CHỮ (MEMOIZATION)
 window._memoizedNorms = new Map();
 window.robustNormalize = function(t) { 
     if (t === null || t === undefined) return '';
@@ -94,7 +93,6 @@ window.normalizeSingleCode = function(singleCode) {
     return singleCode;
 };
 
-// 🚀 TỐI ƯU TỐC ĐỘ: GHI NHỚ KẾT QUẢ CHUẨN HÓA MÃ (MEMOIZATION)
 window._memoizedCodes = new Map();
 window.normalizeCodeFast = function(code) {
     if (!code) return ''; 
@@ -141,7 +139,6 @@ window.isStrictCodeMatch = function(ma1, ma2) {
     return false;
 };
 
-// 🚀 BỘ TỪ ĐIỂN DATA CỰC NHANH (Hash Maps) ĐỂ CHỐNG TREO MÁY
 window.colorIndex = { BHYT_Code: new Set(), BHYT_Name: new Set(), BV_Code: new Set() };
 window.giaDvMapByCode = new Map();
 window.giaDvMapByName = new Map();
@@ -198,7 +195,6 @@ window.buildDataIndices = function() {
     }
 };
 
-// 🚀 THUẬT TOÁN KIỂM TRA MÀU SIÊU TỐC TỪ TỪ ĐIỂN
 window.checkColorStatus = function(maHienThi, tenItem) {
     let isHasBHYT = false; let isHasBV = false;
     let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);

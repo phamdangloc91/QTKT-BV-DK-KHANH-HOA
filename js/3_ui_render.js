@@ -210,7 +210,7 @@ window.layDuLieu = async function() {
 
 window.toggleCot = function(checkbox) {
     let checkedBoxes = document.querySelectorAll('.col-checkbox:checked');
-    let maxAllowed = currentTab === 'ICD10' ? 15 : MAX_COLUMNS;
+    let maxAllowed = currentTab === 'ICD10' ? 20 : MAX_COLUMNS;
     if (checkedBoxes.length > maxAllowed) {
         alert(`⚠️ Bạn chỉ được phép chọn tối đa ${maxAllowed} cột hiển thị để bảng không bị tràn khung hình!`);
         checkbox.checked = false;
@@ -238,13 +238,19 @@ window.capNhatDanhSachCot = function() {
             { id: 'col_maNhomChinh', ten: 'Mã Nhóm Chính' },
             { id: 'col_mainGroupNameI', ten: 'Main Group Name I' },
             { id: 'col_tenNhomChinh', ten: 'Tên Nhóm Chính' },
+            { id: 'col_maNhomPhu1', ten: 'Mã Nhóm Phụ 1' },
+            { id: 'col_subGroupNameI', ten: 'Sub Group Name I' },
+            { id: 'col_tenNhomPhu1', ten: 'Tên Nhóm Phụ 1' },
+            { id: 'col_maNhomPhu2', ten: 'Mã Nhóm Phụ 2' },
+            { id: 'col_subGroupNameII', ten: 'Sub Group Name II' },
+            { id: 'col_tenNhomPhu2', ten: 'Tên Nhóm Phụ 2' },
             { id: 'col_maLoai', ten: 'Mã Loại' },
             { id: 'col_typeName', ten: 'Type Name' },
             { id: 'col_tenLoai', ten: 'Tên Loại' },
             { id: 'col_maBenh', ten: 'Mã Bệnh' },
             { id: 'col_maBenhKhongDau', ten: 'Mã Bệnh (Không dấu)' },
             { id: 'col_diseaseName', ten: 'Disease Name' },
-            { id: 'col_tenBenh', ten: 'Tên Bệnh / Chẩn đoán' },
+            { id: 'col_tenBenh', ten: 'Tên Bệnh' },
             { id: 'col_ghiChu', ten: 'Ghi chú' }
         ];
     } else {
@@ -439,13 +445,19 @@ window.renderTable = function(data = null) {
             if (cols.includes('col_maNhomChinh')) htmlHead += `<th>Mã Nhóm Chính</th>`;
             if (cols.includes('col_mainGroupNameI')) htmlHead += `<th>Main Group Name I</th>`;
             if (cols.includes('col_tenNhomChinh')) htmlHead += `<th>Tên Nhóm Chính</th>`;
+            if (cols.includes('col_maNhomPhu1')) htmlHead += `<th>Mã Nhóm Phụ 1</th>`;
+            if (cols.includes('col_subGroupNameI')) htmlHead += `<th>Sub Group Name I</th>`;
+            if (cols.includes('col_tenNhomPhu1')) htmlHead += `<th>Tên Nhóm Phụ 1</th>`;
+            if (cols.includes('col_maNhomPhu2')) htmlHead += `<th>Mã Nhóm Phụ 2</th>`;
+            if (cols.includes('col_subGroupNameII')) htmlHead += `<th>Sub Group Name II</th>`;
+            if (cols.includes('col_tenNhomPhu2')) htmlHead += `<th>Tên Nhóm Phụ 2</th>`;
             if (cols.includes('col_maLoai')) htmlHead += `<th>Mã Loại</th>`;
             if (cols.includes('col_typeName')) htmlHead += `<th>Type Name</th>`;
             if (cols.includes('col_tenLoai')) htmlHead += `<th>Tên Loại</th>`;
             if (cols.includes('col_maBenh')) htmlHead += `<th>Mã Bệnh</th>`;
             if (cols.includes('col_maBenhKhongDau')) htmlHead += `<th>Mã Bệnh (K/Dấu)</th>`;
             if (cols.includes('col_diseaseName')) htmlHead += `<th>Disease Name</th>`;
-            if (cols.includes('col_tenBenh')) htmlHead += `<th>Tên Bệnh / Chẩn đoán</th>`;
+            if (cols.includes('col_tenBenh')) htmlHead += `<th>Tên Bệnh</th>`;
             if (cols.includes('col_ghiChu')) htmlHead += `<th>Ghi chú</th>`;
             
             htmlHead += `<th style="text-align:center;">Phác đồ Khoa</th></tr>`;
@@ -454,8 +466,7 @@ window.renderTable = function(data = null) {
             pageData.forEach(function(item, index) {
                 if(!item) return; let realIndex = startIdx + index;
                 
-                // Mã hóa chuẩn nhất để không bị lỗi khi click (truyền ID trong mảng)
-                let itemIdentifier = item.maBenh || item.tenBenh || '';
+                let itemIdentifier = item.maBenh || item.tenBenh || item.diseaseName || '';
                 let clickEvent = `window.moChiTietICD('${window.encodeForJS(itemIdentifier)}')`;
                 
                 let c_maBenh = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); font-weight:bold; text-decoration:none; font-size:15px;">${item.maBenh || ''}</a>`;
@@ -481,6 +492,12 @@ window.renderTable = function(data = null) {
                 if (cols.includes('col_maNhomChinh')) rowHtml += `<td>${item.maNhomChinh || ''}</td>`;
                 if (cols.includes('col_mainGroupNameI')) rowHtml += `<td>${item.mainGroupNameI || ''}</td>`;
                 if (cols.includes('col_tenNhomChinh')) rowHtml += `<td>${item.tenNhomChinh || ''}</td>`;
+                if (cols.includes('col_maNhomPhu1')) rowHtml += `<td>${item.maNhomPhu1 || ''}</td>`;
+                if (cols.includes('col_subGroupNameI')) rowHtml += `<td>${item.subGroupNameI || ''}</td>`;
+                if (cols.includes('col_tenNhomPhu1')) rowHtml += `<td>${item.tenNhomPhu1 || ''}</td>`;
+                if (cols.includes('col_maNhomPhu2')) rowHtml += `<td>${item.maNhomPhu2 || ''}</td>`;
+                if (cols.includes('col_subGroupNameII')) rowHtml += `<td>${item.subGroupNameII || ''}</td>`;
+                if (cols.includes('col_tenNhomPhu2')) rowHtml += `<td>${item.tenNhomPhu2 || ''}</td>`;
                 if (cols.includes('col_maLoai')) rowHtml += `<td>${item.maLoai || ''}</td>`;
                 if (cols.includes('col_typeName')) rowHtml += `<td>${item.typeName || ''}</td>`;
                 if (cols.includes('col_tenLoai')) rowHtml += `<td>${item.tenLoai || ''}</td>`;
@@ -813,7 +830,6 @@ window.switchTab = function(tab, type) {
     
     window.currentPage = 1; 
 
-    // Đổi Cột Mặc định khi chuyển Tab
     if (currentTab === 'ICD10') {
         window.currentSelectedColumns = [...window.defaultIcdColumns];
     } else {

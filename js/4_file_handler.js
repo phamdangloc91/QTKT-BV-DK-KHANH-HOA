@@ -385,10 +385,10 @@ window.importFromExcel = async function() {
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = rawData[i].map(function(c){ return window.robustNormalize(c); }).join(" ");
                         
-                        // 🟢 CẬP NHẬT TỪ KHÓA BẮT CHUẨN KHÔNG DẤU 100%
+                        // 🟢 CẬP NHẬT: Nhận diện chính xác file ICD-10
                         if (rowStr.includes("ma dich vu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || 
-                            rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name") || 
-                            rowStr.includes("ten benh") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
+                            rowStr.includes("ten ky thuat") || rowStr.includes("ma benh khong dau") || (rowStr.includes("ma benh") && rowStr.includes("ten benh")) || 
+                            rowStr.includes("disease name") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
                             (rowStr.includes("ma") && rowStr.includes("ten"))) 
                         {
                             headerRowIndex = i; 
@@ -436,29 +436,29 @@ window.importFromExcel = async function() {
                                 if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                                 if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } 
-                            // 🟢 MAP CHÍNH XÁC 21 CỘT BẰNG TỪ KHÓA KHÔNG DẤU
+                            // 🟢 CẬP NHẬT: So sánh chính xác từng chữ không dấu để map 21 cột
                             else if (currentTab === 'ICD10') {
-                                if (kn === "stt chuong" || kn.includes("stt chuong")) item.sttChuong = v;
-                                else if (kn === "ma chuong" || kn.includes("ma chuong")) item.maChuong = v;
+                                if (kn === "stt chuong") item.sttChuong = v;
+                                else if (kn === "ma chuong") item.maChuong = v;
                                 else if (kn === "chapter name") item.chapterName = v;
-                                else if (kn === "ten chuong" || kn.includes("ten chuong")) item.tenChuong = v;
-                                else if (kn === "ma nhom chinh" || kn.includes("ma nhom chinh") || kn.includes("ma nhom")) item.maNhomChinh = v;
+                                else if (kn === "ten chuong") item.tenChuong = v;
+                                else if (kn === "ma nhom chinh") item.maNhomChinh = v;
                                 else if (kn === "main group name i") item.mainGroupNameI = v;
-                                else if (kn === "ten nhom chinh" || kn.includes("ten nhom chinh") || kn.includes("ten nhom")) item.tenNhomChinh = v;
-                                else if (kn === "ma nhom phu 1" || kn.includes("ma nhom phu 1")) item.maNhomPhu1 = v;
+                                else if (kn === "ten nhom chinh") item.tenNhomChinh = v;
+                                else if (kn === "ma nhom phu 1") item.maNhomPhu1 = v;
                                 else if (kn === "sub group name i") item.subGroupNameI = v;
-                                else if (kn === "ten nhom phu 1" || kn.includes("ten nhom phu 1")) item.tenNhomPhu1 = v;
-                                else if (kn === "ma nhom phu 2" || kn.includes("ma nhom phu 2")) item.maNhomPhu2 = v;
+                                else if (kn === "ten nhom phu 1") item.tenNhomPhu1 = v;
+                                else if (kn === "ma nhom phu 2") item.maNhomPhu2 = v;
                                 else if (kn === "sub group name ii") item.subGroupNameII = v;
-                                else if (kn === "ten nhom phu 2" || kn.includes("ten nhom phu 2")) item.tenNhomPhu2 = v;
-                                else if (kn === "ma loai" || kn.includes("ma loai")) item.maLoai = v;
+                                else if (kn === "ten nhom phu 2") item.tenNhomPhu2 = v;
+                                else if (kn === "ma loai") item.maLoai = v;
                                 else if (kn === "type name") item.typeName = v;
-                                else if (kn === "ten loai" || kn.includes("ten loai")) item.tenLoai = v;
-                                else if (kn === "ma benh" || kn.includes("ma benh") || kn.includes("ma icd") || kn === "ma") item.maBenh = formatCode(v);
-                                else if (kn === "ma benh khong dau" || kn.includes("khong dau")) item.maBenhKhongDau = formatCode(v);
-                                else if (kn === "disease name" || kn.includes("tieng anh") || kn === "description") item.diseaseName = v;
-                                else if (kn === "ten benh" || kn.includes("ten benh") || kn.includes("chan doan") || kn.includes("tieng viet") || kn === "ten") item.tenBenh = v;
-                                else if (kn === "ghi chu" || kn.includes("ghi chu")) item.ghiChu = v;
+                                else if (kn === "ten loai") item.tenLoai = v;
+                                else if (kn === "ma benh") item.maBenh = formatCode(v);
+                                else if (kn === "ma benh khong dau") item.maBenhKhongDau = formatCode(v);
+                                else if (kn === "disease name" || kn === "ten benh tieng anh") item.diseaseName = v;
+                                else if (kn === "ten benh" || kn === "ten chan doan") item.tenBenh = v;
+                                else if (kn === "ghi chu") item.ghiChu = v;
                             }
                             else {
                                 if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = formatCode(v); 

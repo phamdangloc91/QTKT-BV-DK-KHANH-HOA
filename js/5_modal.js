@@ -300,25 +300,64 @@ window.moChiTiet = function(encodedMa, encodedTen, encodedPhanLoai, encodedQuyet
     window.moModal('detailModal');
 }
 
-// 🟢 CẬP NHẬT: GIAO DIỆN BẢNG THÔNG TIN MÃ BỆNH ICD-10
-window.moChiTietICD = function(encodedMa) {
-    let ma = decodeURIComponent(encodedMa || "");
-    let item = (database.ICD10 || []).find(x => x && x.maIcd === ma);
-    if(!item) return alert("Không tìm thấy dữ liệu mã bệnh!");
+// 🟢 CẬP NHẬT: GIAO DIỆN BẢNG THÔNG TIN MÃ BỆNH ICD-10 ĐẦY ĐỦ 21 CỘT
+window.moChiTietICD = function(encodedIdentifier) {
+    let identifier = decodeURIComponent(encodedIdentifier || "");
     
-    document.getElementById('icdMa').innerText = item.maIcd || '';
+    // Tìm kiếm theo Mã Bệnh, Mã Không Dấu hoặc Tên Bệnh
+    let item = (database.ICD10 || []).find(x => 
+        x && (x.maBenh === identifier || x.maBenhKhongDau === identifier || x.tenBenh === identifier || x.diseaseName === identifier)
+    );
     
-    // Gộp chung Tên bệnh và Tên chẩn đoán vào 1 dòng linh hoạt
-    document.getElementById('icdTenVn').innerText = item.tenIcdVn || 'Chưa có thông tin Tên bệnh/Chẩn đoán';
-    document.getElementById('icdTenEn').innerText = item.tenIcdEn || 'Không có';
+    if(!item) return alert("Không tìm thấy dữ liệu chi tiết cho mã bệnh này!");
     
-    // Hiển thị Chương & Nhóm nếu có
-    let chuongText = item.chuong || 'Không phân loại';
-    if (item.maChuong && item.chuong) chuongText = item.maChuong + " - " + item.chuong;
-    document.getElementById('icdChuong').innerText = chuongText;
+    document.getElementById('icdMa').innerText = item.maBenh || '';
+    document.getElementById('icdMaKhongDau').innerText = item.maBenhKhongDau ? `(${item.maBenhKhongDau})` : '';
     
-    document.getElementById('icdNhom').innerText = item.nhom || 'Không phân loại';
+    document.getElementById('icdTenVn').innerText = item.tenBenh || 'Chưa có thông tin Tên bệnh/Chẩn đoán';
+    document.getElementById('icdTenEn').innerText = item.diseaseName || 'Không có';
     
+    // Chương
+    document.getElementById('icdMaChuong').innerText = item.maChuong || '';
+    document.getElementById('icdTenChuong').innerText = item.tenChuong || 'Không phân loại';
+    document.getElementById('icdChapterName').innerText = item.chapterName || '';
+    
+    // Nhóm chính
+    document.getElementById('icdMaNhomChinh').innerText = item.maNhomChinh || '';
+    document.getElementById('icdTenNhomChinh').innerText = item.tenNhomChinh || 'Không phân loại';
+    document.getElementById('icdMainGroupNameI').innerText = item.mainGroupNameI || '';
+    
+    // Nhóm phụ 1 (Tự động ẩn nếu trống)
+    let rowNhomPhu1 = document.getElementById('rowNhomPhu1');
+    if (item.maNhomPhu1 || item.tenNhomPhu1) {
+        rowNhomPhu1.style.display = 'table-row';
+        document.getElementById('icdMaNhomPhu1').innerText = item.maNhomPhu1 || '';
+        document.getElementById('icdTenNhomPhu1').innerText = item.tenNhomPhu1 || '';
+        document.getElementById('icdSubGroupNameI').innerText = item.subGroupNameI || '';
+    } else {
+        rowNhomPhu1.style.display = 'none';
+    }
+    
+    // Nhóm phụ 2 (Tự động ẩn nếu trống)
+    let rowNhomPhu2 = document.getElementById('rowNhomPhu2');
+    if (item.maNhomPhu2 || item.tenNhomPhu2) {
+        rowNhomPhu2.style.display = 'table-row';
+        document.getElementById('icdMaNhomPhu2').innerText = item.maNhomPhu2 || '';
+        document.getElementById('icdTenNhomPhu2').innerText = item.tenNhomPhu2 || '';
+        document.getElementById('icdSubGroupNameII').innerText = item.subGroupNameII || '';
+    } else {
+        rowNhomPhu2.style.display = 'none';
+    }
+    
+    // Loại
+    document.getElementById('icdMaLoai').innerText = item.maLoai || '';
+    document.getElementById('icdTenLoai').innerText = item.tenLoai || '';
+    document.getElementById('icdTypeName').innerText = item.typeName || '';
+    
+    // Ghi chú
+    document.getElementById('icdGhiChu').innerText = item.ghiChu || 'Không có';
+    
+    // Area Phác đồ
     document.getElementById('icdPhacDoArea').innerHTML = `<p style="color:#666;">Chưa có phác đồ nào được nộp cho mã bệnh này.</p>`;
     
     window.moModal('icdModal');
