@@ -245,6 +245,12 @@ window.importFromExcel = async function() {
     const fileInput = document.getElementById('fileExcel'); 
     const file = fileInput.files[0]; 
     if (!file) return; 
+    
+    // Gợi ý cho người dùng nếu dùng CSV
+    if (file.name.toLowerCase().endsWith('.csv') && currentTab === 'ICD10') {
+        let isOK = confirm("Lưu ý: File CSV có thể bị lỗi font Tiếng Việt nếu không lưu chuẩn UTF-8. Nên dùng file Excel (.xlsx) để dữ liệu hiển thị tốt nhất. Bạn vẫn muốn tiếp tục?");
+        if (!isOK) { fileInput.value = ''; return; }
+    }
 
     if (currentTabType === 'DTNH') {
         const selectedYear = document.getElementById('filterNamDT').value;
@@ -385,7 +391,7 @@ window.importFromExcel = async function() {
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = window.robustNormalize(rawData[i].join(" "));
                         
-                        // 🟢 CẬP NHẬT TỪ KHÓA BẮT CHUẨN KHÔNG DẤU
+                        // 🟢 CẬP NHẬT TỪ KHÓA NHẬN DIỆN CỘT
                         if (rowStr.includes("ma dich vu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || 
                             rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name") || 
                             rowStr.includes("ten benh") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
@@ -436,26 +442,36 @@ window.importFromExcel = async function() {
                                 if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                                 if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } 
-                            // 🟢 MAP CHÍNH XÁC 21 CỘT BẰNG TỪ KHÓA KHÔNG DẤU
+                            // 🟢 MAP CHÍNH XÁC 21 CỘT (Khóa thứ tự quét chống nuốt cột)
                             else if (currentTab === 'ICD10') {
                                 if (kn === "stt chuong" || kn.includes("stt chuong")) item.sttChuong = v;
                                 else if (kn === "ma chuong" || kn.includes("ma chuong")) item.maChuong = v;
                                 else if (kn === "chapter name") item.chapterName = v;
                                 else if (kn === "ten chuong" || kn.includes("ten chuong")) item.tenChuong = v;
-                                else if (kn === "ma nhom chinh" || kn.includes("ma nhom chinh") || kn.includes("ma nhom")) item.maNhomChinh = v;
-                                else if (kn === "main group name i") item.mainGroupNameI = v;
-                                else if (kn === "ten nhom chinh" || kn.includes("ten nhom chinh") || kn.includes("ten nhom")) item.tenNhomChinh = v;
+                                
+                                // Quét Nhóm Phụ trước để không bị Nhóm chính đè
                                 else if (kn === "ma nhom phu 1" || kn.includes("ma nhom phu 1")) item.maNhomPhu1 = v;
                                 else if (kn === "sub group name i") item.subGroupNameI = v;
                                 else if (kn === "ten nhom phu 1" || kn.includes("ten nhom phu 1")) item.tenNhomPhu1 = v;
+                                
                                 else if (kn === "ma nhom phu 2" || kn.includes("ma nhom phu 2")) item.maNhomPhu2 = v;
                                 else if (kn === "sub group name ii") item.subGroupNameII = v;
                                 else if (kn === "ten nhom phu 2" || kn.includes("ten nhom phu 2")) item.tenNhomPhu2 = v;
+
+                                // Quét Nhóm Chính
+                                else if (kn === "ma nhom chinh" || kn.includes("ma nhom chinh") || kn.includes("ma nhom")) item.maNhomChinh = v;
+                                else if (kn === "main group name i") item.mainGroupNameI = v;
+                                else if (kn === "ten nhom chinh" || kn.includes("ten nhom chinh") || kn.includes("ten nhom")) item.tenNhomChinh = v;
+                                
+                                // Quét Loại
                                 else if (kn === "ma loai" || kn.includes("ma loai")) item.maLoai = v;
                                 else if (kn === "type name") item.typeName = v;
                                 else if (kn === "ten loai" || kn.includes("ten loai")) item.tenLoai = v;
-                                else if (kn === "ma benh" || kn.includes("ma benh") || kn.includes("ma icd") || kn === "ma") item.maBenh = formatCode(v);
+                                
+                                // Quét Mã Không Dấu trước khi quét Mã Bệnh
                                 else if (kn === "ma benh khong dau" || kn.includes("khong dau")) item.maBenhKhongDau = formatCode(v);
+                                else if (kn === "ma benh" || kn.includes("ma benh") || kn.includes("ma icd") || kn === "ma") item.maBenh = formatCode(v);
+                                
                                 else if (kn === "disease name" || kn.includes("tieng anh") || kn === "description") item.diseaseName = v;
                                 else if (kn === "ten benh" || kn.includes("ten benh") || kn.includes("chan doan") || kn.includes("tieng viet") || kn === "ten") item.tenBenh = v;
                                 else if (kn === "ghi chu" || kn.includes("ghi chu")) item.ghiChu = v;
@@ -612,7 +628,6 @@ window.exportToExcel = function() {
         const cleanData = [];
         let checkedBoxesGiaDV = [...selectedGiaDV]; 
 
-        // 🟢 CƠ CHẾ XUẤT EXCEL CHÍNH XÁC THEO TÙY CHỌN CỘT TRÊN MÀN HÌNH
         let isDynamic = (currentTab === 'PL1' || currentTab === 'PL2' || currentTab === 'ICD10' || isDeptTab || isSuperTab);
         let cols = isDynamic ? window.currentSelectedColumns : [];
 
