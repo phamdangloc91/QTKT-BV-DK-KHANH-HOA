@@ -208,11 +208,39 @@ window.layDuLieu = async function() {
     window.showLoading(false);
 }
 
-window.toggleCot = function(checkbox) {
+// 🟢 DRAG & DROP CỘT
+window.draggedColIndex = null;
+
+window.handleDragStart = function(e) {
+    window.draggedColIndex = parseInt(this.dataset.index);
+    e.dataTransfer.effectAllowed = 'move';
+    this.style.opacity = '0.4';
+}
+window.handleDragOver = function(e) { e.preventDefault(); return false; }
+window.handleDragEnter = function(e) { this.style.background = '#e9ecef'; }
+window.handleDragLeave = function(e) { this.style.background = 'transparent'; }
+
+window.handleDrop = function(e) {
+    e.stopPropagation(); e.preventDefault();
+    this.style.background = 'transparent';
+    let targetIdx = parseInt(this.dataset.index);
+    if (window.draggedColIndex === null || window.draggedColIndex === targetIdx) return false;
+    
+    let dsCot = currentTab === 'ICD10' ? window.danhSachCotFull_ICD10 : window.danhSachCotFull_QTKT;
+    let item = dsCot.splice(window.draggedColIndex, 1)[0];
+    dsCot.splice(targetIdx, 0, item);
+    
+    window.capNhatDanhSachCot();
+    window.toggleCot(null, true); 
+    return false;
+}
+window.handleDragEnd = function(e) { this.style.opacity = '1'; }
+
+window.toggleCot = function(checkbox, isFromDrop = false) {
     let checkedBoxes = document.querySelectorAll('.col-checkbox:checked');
     let maxAllowed = currentTab === 'ICD10' ? 20 : MAX_COLUMNS;
-    if (checkedBoxes.length > maxAllowed) {
-        alert(`⚠️ Bạn chỉ được phép chọn tối đa ${maxAllowed} cột hiển thị để bảng không bị tràn khung hình!`);
+    if (!isFromDrop && checkbox && checkedBoxes.length > maxAllowed) {
+        alert(`⚠️ Bạn chỉ được phép chọn tối đa ${maxAllowed} cột hiển thị!`);
         checkbox.checked = false;
         return;
     }
@@ -227,66 +255,50 @@ window.capNhatDanhSachCot = function() {
     if (!optsContainer) return;
     optsContainer.innerHTML = '';
     
-    let danhSachCotFull = [];
-    if (currentTab === 'ICD10') {
-        danhSachCotFull = [
-            { id: 'col_stt', ten: 'STT' },
-            { id: 'col_sttChuong', ten: 'STT Chương' },
-            { id: 'col_maChuong', ten: 'Mã Chương' },
-            { id: 'col_chapterName', ten: 'Chapter Name' },
-            { id: 'col_tenChuong', ten: 'Tên Chương' },
-            { id: 'col_maNhomChinh', ten: 'Mã Nhóm Chính' },
-            { id: 'col_mainGroupNameI', ten: 'Main Group Name I' },
-            { id: 'col_tenNhomChinh', ten: 'Tên Nhóm Chính' },
-            { id: 'col_maNhomPhu1', ten: 'Mã Nhóm Phụ 1' },
-            { id: 'col_subGroupNameI', ten: 'Sub Group Name I' },
-            { id: 'col_tenNhomPhu1', ten: 'Tên Nhóm Phụ 1' },
-            { id: 'col_maNhomPhu2', ten: 'Mã Nhóm Phụ 2' },
-            { id: 'col_subGroupNameII', ten: 'Sub Group Name II' },
-            { id: 'col_tenNhomPhu2', ten: 'Tên Nhóm Phụ 2' },
-            { id: 'col_maLoai', ten: 'Mã Loại' },
-            { id: 'col_typeName', ten: 'Type Name' },
-            { id: 'col_tenLoai', ten: 'Tên Loại' },
-            { id: 'col_maBenh', ten: 'Mã Bệnh' },
-            { id: 'col_maBenhKhongDau', ten: 'Mã Bệnh (Không dấu)' },
-            { id: 'col_diseaseName', ten: 'Disease Name' },
-            { id: 'col_tenBenh', ten: 'Tên Bệnh' },
-            { id: 'col_ghiChu', ten: 'Ghi chú' }
-        ];
-    } else {
-        danhSachCotFull = [
-            { id: 'col_stt', ten: 'STT' },
-            { id: 'col_ma', ten: 'Mã kỹ thuật' },
-            { id: 'col_chuong', ten: 'Tên chương' },
-            { id: 'col_ten', ten: 'Tên kỹ thuật' },
-            { id: 'col_phanloai', ten: 'Phân loại' },
-            { id: 'col_quyetdinh', ten: 'Quyết định' },
-            { id: 'col_matd', ten: 'Mã Tương đương (TT23)' },
-            { id: 'col_madv', ten: 'Mã Dịch vụ (Bệnh viện)' },
-            { id: 'col_giabhyt', ten: 'Giá BHYT' },
-            { id: 'col_giavp', ten: 'Giá Viện phí' },
-            { id: 'col_giayc', ten: 'Giá Yêu cầu' },
-            { id: 'col_giann', ten: 'Giá Nước ngoài' },
-            { id: 'col_file', ten: 'Trạng thái & File' },
-            { id: 'col_action', ten: 'Thao tác Thêm/Xóa' }
-        ];
-    }
+    let dsCot = currentTab === 'ICD10' ? window.danhSachCotFull_ICD10 : window.danhSachCotFull_QTKT;
 
-    danhSachCotFull.forEach(function(c) {
-        let lbl = document.createElement('label');
-        lbl.style.display = 'flex';
-        lbl.style.alignItems = 'center';
+    dsCot.forEach(function(c, index) {
+        let div = document.createElement('div');
+        div.className = 'draggable-col-item';
+        div.style.padding = "6px 10px";
+        div.style.cursor = "grab";
+        div.style.borderBottom = "1px solid #eee";
+        div.style.display = "flex";
+        div.style.alignItems = "center";
+        div.draggable = true;
+        div.dataset.index = index;
+
+        div.addEventListener('dragstart', window.handleDragStart);
+        div.addEventListener('dragenter', window.handleDragEnter);
+        div.addEventListener('dragover', window.handleDragOver);
+        div.addEventListener('dragleave', window.handleDragLeave);
+        div.addEventListener('drop', window.handleDrop);
+        div.addEventListener('dragend', window.handleDragEnd);
+
+        let icon = document.createElement('span');
+        icon.innerHTML = "☰";
+        icon.style.marginRight = "10px";
+        icon.style.color = "#aaa";
+
         let chk = document.createElement('input');
         chk.type = 'checkbox';
         chk.value = c.id;
         chk.className = 'col-checkbox';
+        chk.style.marginRight = "8px";
+        chk.style.cursor = "pointer";
         if (window.currentSelectedColumns.includes(c.id)) chk.checked = true;
-        
         chk.onchange = function() { window.toggleCot(this); };
         
+        let lbl = document.createElement('label');
+        lbl.style.cursor = "pointer";
+        lbl.style.margin = "0";
+        lbl.style.flex = "1";
         lbl.appendChild(chk);
-        lbl.appendChild(document.createTextNode(" " + c.ten));
-        optsContainer.appendChild(lbl);
+        lbl.appendChild(document.createTextNode(c.ten));
+
+        div.appendChild(icon);
+        div.appendChild(lbl);
+        optsContainer.appendChild(div);
     });
     
     let textSpan = document.getElementById('selectedColText');
@@ -434,83 +446,6 @@ window.renderTable = function(data = null) {
                 }
             });
         }
-        else if (currentTab === 'ICD10') {
-            let cols = window.currentSelectedColumns || [];
-            
-            if (cols.includes('col_stt')) htmlHead += `<th>STT</th>`;
-            if (cols.includes('col_sttChuong')) htmlHead += `<th>STT Chương</th>`;
-            if (cols.includes('col_maChuong')) htmlHead += `<th>Mã Chương</th>`;
-            if (cols.includes('col_chapterName')) htmlHead += `<th>Chapter Name</th>`;
-            if (cols.includes('col_tenChuong')) htmlHead += `<th>Tên Chương</th>`;
-            if (cols.includes('col_maNhomChinh')) htmlHead += `<th>Mã Nhóm Chính</th>`;
-            if (cols.includes('col_mainGroupNameI')) htmlHead += `<th>Main Group Name I</th>`;
-            if (cols.includes('col_tenNhomChinh')) htmlHead += `<th>Tên Nhóm Chính</th>`;
-            if (cols.includes('col_maNhomPhu1')) htmlHead += `<th>Mã Nhóm Phụ 1</th>`;
-            if (cols.includes('col_subGroupNameI')) htmlHead += `<th>Sub Group Name I</th>`;
-            if (cols.includes('col_tenNhomPhu1')) htmlHead += `<th>Tên Nhóm Phụ 1</th>`;
-            if (cols.includes('col_maNhomPhu2')) htmlHead += `<th>Mã Nhóm Phụ 2</th>`;
-            if (cols.includes('col_subGroupNameII')) htmlHead += `<th>Sub Group Name II</th>`;
-            if (cols.includes('col_tenNhomPhu2')) htmlHead += `<th>Tên Nhóm Phụ 2</th>`;
-            if (cols.includes('col_maLoai')) htmlHead += `<th>Mã Loại</th>`;
-            if (cols.includes('col_typeName')) htmlHead += `<th>Type Name</th>`;
-            if (cols.includes('col_tenLoai')) htmlHead += `<th>Tên Loại</th>`;
-            if (cols.includes('col_maBenh')) htmlHead += `<th>Mã Bệnh</th>`;
-            if (cols.includes('col_maBenhKhongDau')) htmlHead += `<th>Mã Bệnh (K/Dấu)</th>`;
-            if (cols.includes('col_diseaseName')) htmlHead += `<th>Disease Name</th>`;
-            if (cols.includes('col_tenBenh')) htmlHead += `<th>Tên Bệnh</th>`;
-            if (cols.includes('col_ghiChu')) htmlHead += `<th>Ghi chú</th>`;
-            
-            htmlHead += `<th style="text-align:center;">Phác đồ Khoa</th></tr>`;
-            thead.innerHTML = htmlHead;
-
-            pageData.forEach(function(item, index) {
-                if(!item) return; let realIndex = startIdx + index;
-                
-                let itemIdentifier = item.maBenh || item.tenBenh || item.diseaseName || '';
-                let clickEvent = `window.moChiTietICD('${window.encodeForJS(itemIdentifier)}')`;
-                
-                let c_maBenh = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); font-weight:bold; text-decoration:none; font-size:15px;">${item.maBenh || ''}</a>`;
-                let c_maBenhKD = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); text-decoration:none;">${item.maBenhKhongDau || ''}</a>`;
-                let c_diseaseName = `<a href="#" onclick="${clickEvent}" style="color:#666; font-style:italic; text-decoration:none;">${item.diseaseName || ''}</a>`;
-                let c_tenBenh = `<a href="#" onclick="${clickEvent}" style="color:#333; font-weight:bold; text-decoration:none;">${item.tenBenh || ''}</a>`;
-                
-                let btnPhacDo = '';
-                if (currentUser && currentUser.role === 'khoa') {
-                    btnPhacDo = `<button class="btn" style="background:var(--success); font-size:12px; padding:5px 10px;" onclick="alert('Hệ thống đang mở luồng kết nối nộp Phác đồ. Vui lòng chờ bản cập nhật tiếp theo!')">📤 Nộp Phác đồ</button>`;
-                } else if (currentUser && currentUser.role === 'admin') {
-                    btnPhacDo = `<span style="color:#888; font-size:12px; font-style:italic;">Khoa nộp file</span>`;
-                } else {
-                    btnPhacDo = `<span style="color:#888; font-size:12px;">Đăng nhập để xem</span>`;
-                }
-
-                let rowHtml = `<tr>`;
-                if (cols.includes('col_stt')) rowHtml += `<td style="text-align:center;">${realIndex + 1}</td>`;
-                if (cols.includes('col_sttChuong')) rowHtml += `<td>${item.sttChuong || ''}</td>`;
-                if (cols.includes('col_maChuong')) rowHtml += `<td>${item.maChuong || ''}</td>`;
-                if (cols.includes('col_chapterName')) rowHtml += `<td>${item.chapterName || ''}</td>`;
-                if (cols.includes('col_tenChuong')) rowHtml += `<td>${item.tenChuong || ''}</td>`;
-                if (cols.includes('col_maNhomChinh')) rowHtml += `<td>${item.maNhomChinh || ''}</td>`;
-                if (cols.includes('col_mainGroupNameI')) rowHtml += `<td>${item.mainGroupNameI || ''}</td>`;
-                if (cols.includes('col_tenNhomChinh')) rowHtml += `<td>${item.tenNhomChinh || ''}</td>`;
-                if (cols.includes('col_maNhomPhu1')) rowHtml += `<td>${item.maNhomPhu1 || ''}</td>`;
-                if (cols.includes('col_subGroupNameI')) rowHtml += `<td>${item.subGroupNameI || ''}</td>`;
-                if (cols.includes('col_tenNhomPhu1')) rowHtml += `<td>${item.tenNhomPhu1 || ''}</td>`;
-                if (cols.includes('col_maNhomPhu2')) rowHtml += `<td>${item.maNhomPhu2 || ''}</td>`;
-                if (cols.includes('col_subGroupNameII')) rowHtml += `<td>${item.subGroupNameII || ''}</td>`;
-                if (cols.includes('col_tenNhomPhu2')) rowHtml += `<td>${item.tenNhomPhu2 || ''}</td>`;
-                if (cols.includes('col_maLoai')) rowHtml += `<td>${item.maLoai || ''}</td>`;
-                if (cols.includes('col_typeName')) rowHtml += `<td>${item.typeName || ''}</td>`;
-                if (cols.includes('col_tenLoai')) rowHtml += `<td>${item.tenLoai || ''}</td>`;
-                if (cols.includes('col_maBenh')) rowHtml += `<td>${c_maBenh}</td>`;
-                if (cols.includes('col_maBenhKhongDau')) rowHtml += `<td>${c_maBenhKD}</td>`;
-                if (cols.includes('col_diseaseName')) rowHtml += `<td>${c_diseaseName}</td>`;
-                if (cols.includes('col_tenBenh')) rowHtml += `<td>${c_tenBenh}</td>`;
-                if (cols.includes('col_ghiChu')) rowHtml += `<td>${item.ghiChu || ''}</td>`;
-                
-                rowHtml += `<td style="text-align:center;">${btnPhacDo}</td></tr>`;
-                tbodyHtml += rowHtml;
-            });
-        }
         else if (currentTab === 'KHTH_CHUA_AP_GIA') {
             htmlHead += `<th>STT</th><th style="width:10%">Mã kỹ thuật</th><th style="width:15%">Tên chương</th><th>Tên kỹ thuật (Click xem chi tiết)</th><th style="width:10%; text-align:center;">Mã tương đương</th><th style="width:25%">Tên Dịch vụ BHYT</th></tr>`;
             thead.innerHTML = htmlHead;
@@ -566,28 +501,50 @@ window.renderTable = function(data = null) {
             });
         } 
         else {
-            let isDynamic = (currentTab === 'PL1' || currentTab === 'PL2');
-            let cols = isDynamic ? window.currentSelectedColumns : window.defaultColumns;
-
+            // 🟢 VẼ BẢNG CỘT ĐỘNG (ICD-10 VÀ QTKT)
+            let cols = window.currentSelectedColumns || [];
             if (isMultiSelectMode) { htmlHead += `<th style="width:40px; text-align:center;">Chọn</th>`; }
-            
-            if (cols.includes('col_stt')) htmlHead += `<th>STT</th>`;
-            if (cols.includes('col_ma')) htmlHead += `<th>Mã/Mã LK</th>`;
-            if (cols.includes('col_chuong')) htmlHead += `<th>Tên chương</th>`;
-            if (cols.includes('col_ten')) htmlHead += `<th>Tên kỹ thuật (Click xem chi tiết)</th>`;
-            if (cols.includes('col_phanloai')) htmlHead += `<th>Phân loại</th>`;
-            if (cols.includes('col_quyetdinh')) htmlHead += `<th>Quyết định</th>`;
-            if (cols.includes('col_matd')) htmlHead += `<th style="text-align:center; color:#dc3545;">Mã TĐ (TT23)</th>`;
-            if (cols.includes('col_madv')) htmlHead += `<th style="text-align:center; color:#17a2b8;">Mã DV Bệnh viện</th>`;
-            if (cols.includes('col_giabhyt')) htmlHead += `<th style="text-align:right; color:red;">Giá BHYT</th>`;
-            if (cols.includes('col_giavp')) htmlHead += `<th style="text-align:right; color:blue;">Giá Viện phí</th>`;
-            if (cols.includes('col_giayc')) htmlHead += `<th style="text-align:right; color:purple;">Giá Yêu cầu</th>`;
-            if (cols.includes('col_giann')) htmlHead += `<th style="text-align:right; color:green;">Giá NN</th>`;
-            
-            if (showFileCol && cols.includes('col_file')) { htmlHead += `<th style="width:220px;">Trạng thái & Thao tác</th>`; }
-            if ((canAddPL || canRemovePL) && cols.includes('col_action')) { htmlHead += `<th style="text-align:center;">Khoa Thêm / Xóa</th>`; }
+
+            let headDict = {
+                'col_stt': `<th style="text-align:center;">STT</th>`,
+                'col_ma': `<th>Mã/Mã LK</th>`,
+                'col_chuong': `<th>Tên chương</th>`,
+                'col_ten': `<th>Tên kỹ thuật (Click xem chi tiết)</th>`,
+                'col_phanloai': `<th>Phân loại</th>`,
+                'col_quyetdinh': `<th>Quyết định</th>`,
+                'col_matd': `<th style="text-align:center; color:#dc3545;">Mã TĐ (TT23)</th>`,
+                'col_madv': `<th style="text-align:center; color:#17a2b8;">Mã DV Bệnh viện</th>`,
+                'col_giabhyt': `<th style="text-align:right; color:red;">Giá BHYT</th>`,
+                'col_giavp': `<th style="text-align:right; color:blue;">Giá Viện phí</th>`,
+                'col_giayc': `<th style="text-align:right; color:purple;">Giá Yêu cầu</th>`,
+                'col_giann': `<th style="text-align:right; color:green;">Giá NN</th>`,
+                'col_file': `<th style="width:220px;">Trạng thái & File</th>`,
+                'col_action': currentTab === 'ICD10' ? `<th style="text-align:center;">Phác đồ Khoa</th>` : `<th style="text-align:center;">Khoa Thêm / Xóa</th>`,
+                'col_sttChuong': `<th>STT Chương</th>`,
+                'col_maChuong': `<th>Mã Chương</th>`,
+                'col_chapterName': `<th>Chapter Name</th>`,
+                'col_tenChuong': `<th>Tên Chương</th>`,
+                'col_maNhomChinh': `<th>Mã Nhóm Chính</th>`,
+                'col_mainGroupNameI': `<th>Main Group Name I</th>`,
+                'col_tenNhomChinh': `<th>Tên Nhóm Chính</th>`,
+                'col_maNhomPhu1': `<th>Mã Nhóm Phụ 1</th>`,
+                'col_subGroupNameI': `<th>Sub Group Name I</th>`,
+                'col_tenNhomPhu1': `<th>Tên Nhóm Phụ 1</th>`,
+                'col_maNhomPhu2': `<th>Mã Nhóm Phụ 2</th>`,
+                'col_subGroupNameII': `<th>Sub Group Name II</th>`,
+                'col_tenNhomPhu2': `<th>Tên Nhóm Phụ 2</th>`,
+                'col_maLoai': `<th>Mã Loại</th>`,
+                'col_typeName': `<th>Type Name</th>`,
+                'col_tenLoai': `<th>Tên Loại</th>`,
+                'col_maBenh': `<th>Mã Bệnh</th>`,
+                'col_maBenhKhongDau': `<th>Mã Bệnh (K/Dấu)</th>`,
+                'col_diseaseName': `<th>Disease Name</th>`,
+                'col_tenBenh': `<th>Tên Bệnh / Chẩn đoán</th>`,
+                'col_ghiChu': `<th>Ghi chú</th>`
+            };
+
+            cols.forEach(col => { if(headDict[col] && (col !== 'col_action' || canAddPL || canRemovePL || currentTab === 'ICD10')) htmlHead += headDict[col]; });
             htmlHead += `</tr>`;
-            
             thead.innerHTML = htmlHead;
 
             let currentKhoaGroup = ""; 
@@ -613,44 +570,91 @@ window.renderTable = function(data = null) {
 
                 let realTenKhoa = item.tenKhoaChuQuan || currentTab; 
                 if (isSuperTab && realTenKhoa !== currentKhoaGroup) {
-                    currentKhoaGroup = realTenKhoa; let colSpan = 15;
-                    tbodyHtml += `<tr><td colspan="${colSpan}" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td></tr>`;
+                    currentKhoaGroup = realTenKhoa; 
+                    tbodyHtml += `<tr><td colspan="${cols.length + 1}" style="background-color: #cce5ff; color: #004085; font-weight: bold; padding: 10px 15px; font-size: 14px;">🏥 ${currentKhoaGroup.toUpperCase()}</td></tr>`;
                 }
 
-                let maHienThi = item.ma || item.maLienKet || ''; 
-                let safeTen = item.ten ? String(item.ten) : ""; 
-                let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
-                let safeQD = item.quyetDinh ? String(item.quyetDinh) : ""; 
+                let rowHtml = `<tr>`;
                 
-                let colorRes = window.checkColorStatus(maHienThi, safeTen);
-                let rowClass = "";
-                if (colorRes === 'blue') rowClass = "row-full";
-                else if (colorRes === 'yellow') rowClass = "row-bhyt";
-
-                let html = `<tr class="${rowClass}">`;
-                
-                if (isMultiSelectMode) {
-                    let isChecked = selectedTechniques.find(function(x) { return x && x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi; }) ? "checked" : "";
-                    html += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="window.toggleSelectRow(this, '${realTenKhoa}', '${window.encodeForJS(maHienThi)}')" ${isChecked}></td>`;
-                }
-
-                let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
-
-                let maLienKetHtml = '';
-                if (maHienThi) {
-                    if (currentTab === 'PL1' || isDeptTab || isSuperTab) {
-                        maLienKetHtml = `<b>${maHienThi}</b>`;
+                if (currentTab === 'ICD10') {
+                    let itemIdentifier = item.maBenh || item.tenBenh || item.diseaseName || '';
+                    let clickEvent = `window.moChiTietICD('${window.encodeForJS(itemIdentifier)}')`;
+                    
+                    let c_maBenh = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); font-weight:bold; text-decoration:none; font-size:15px;">${item.maBenh || ''}</a>`;
+                    let c_maBenhKD = `<a href="#" onclick="${clickEvent}" style="color:var(--danger); text-decoration:none;">${item.maBenhKhongDau || ''}</a>`;
+                    let c_diseaseName = `<a href="#" onclick="${clickEvent}" style="color:#666; font-style:italic; text-decoration:none;">${item.diseaseName || ''}</a>`;
+                    let c_tenBenh = `<a href="#" onclick="${clickEvent}" style="color:#333; font-weight:bold; text-decoration:none;">${item.tenBenh || ''}</a>`;
+                    
+                    let btnPhacDo = '';
+                    if (currentUser && currentUser.role === 'khoa') {
+                        btnPhacDo = `<button class="btn" style="background:var(--success); font-size:12px; padding:5px 10px;" onclick="alert('Hệ thống đang mở luồng kết nối nộp Phác đồ. Vui lòng chờ bản cập nhật tiếp theo!')">📤 Nộp Phác đồ</button>`;
+                    } else if (currentUser && currentUser.role === 'admin') {
+                        btnPhacDo = `<span style="color:#888; font-size:12px; font-style:italic;">Khoa nộp file</span>`;
                     } else {
-                        let arrMaLienKet = maHienThi.split(/;|\/|\|/).filter(Boolean);
-                        maLienKetHtml = arrMaLienKet.map(m => {
-                            let cleanM = m.trim();
-                            return `<span style="color:blue;cursor:pointer;font-weight:bold;text-decoration:underline;display:inline-block;margin:2px 4px;" onclick="window.jumpToPL1('${window.encodeForJS(cleanM)}')">${cleanM}</span>`;
-                        }).join('');
+                        btnPhacDo = `<span style="color:#888; font-size:12px;">Đăng nhập để xem</span>`;
                     }
-                }
-                
-                let td_matd = '-', td_madv = '-', td_giabhyt = '-', td_giavp = '-', td_giayc = '-', td_giann = '-';
-                if (isDynamic) {
+
+                    let rowDict = {
+                        'col_stt': `<td style="text-align:center;">${realIndex + 1}</td>`,
+                        'col_sttChuong': `<td>${item.sttChuong || ''}</td>`,
+                        'col_maChuong': `<td>${item.maChuong || ''}</td>`,
+                        'col_chapterName': `<td>${item.chapterName || ''}</td>`,
+                        'col_tenChuong': `<td>${item.tenChuong || ''}</td>`,
+                        'col_maNhomChinh': `<td>${item.maNhomChinh || ''}</td>`,
+                        'col_mainGroupNameI': `<td>${item.mainGroupNameI || ''}</td>`,
+                        'col_tenNhomChinh': `<td>${item.tenNhomChinh || ''}</td>`,
+                        'col_maNhomPhu1': `<td>${item.maNhomPhu1 || ''}</td>`,
+                        'col_subGroupNameI': `<td>${item.subGroupNameI || ''}</td>`,
+                        'col_tenNhomPhu1': `<td>${item.tenNhomPhu1 || ''}</td>`,
+                        'col_maNhomPhu2': `<td>${item.maNhomPhu2 || ''}</td>`,
+                        'col_subGroupNameII': `<td>${item.subGroupNameII || ''}</td>`,
+                        'col_tenNhomPhu2': `<td>${item.tenNhomPhu2 || ''}</td>`,
+                        'col_maLoai': `<td>${item.maLoai || ''}</td>`,
+                        'col_typeName': `<td>${item.typeName || ''}</td>`,
+                        'col_tenLoai': `<td>${item.tenLoai || ''}</td>`,
+                        'col_maBenh': `<td>${c_maBenh}</td>`,
+                        'col_maBenhKhongDau': `<td>${c_maBenhKD}</td>`,
+                        'col_diseaseName': `<td>${c_diseaseName}</td>`,
+                        'col_tenBenh': `<td>${c_tenBenh}</td>`,
+                        'col_ghiChu': `<td>${item.ghiChu || ''}</td>`,
+                        'col_action': `<td style="text-align:center;">${btnPhacDo}</td>`
+                    };
+                    cols.forEach(col => { if(rowDict[col]) rowHtml += rowDict[col]; });
+
+                } else {
+                    let maHienThi = item.ma || item.maLienKet || ''; 
+                    let safeTen = item.ten ? String(item.ten) : ""; 
+                    let safePL = item.phanLoai ? String(item.phanLoai) : ""; 
+                    let safeQD = item.quyetDinh ? String(item.quyetDinh) : ""; 
+                    
+                    let colorRes = window.checkColorStatus(maHienThi, safeTen);
+                    let rowClass = "";
+                    if (colorRes === 'blue') rowClass = "row-full";
+                    else if (colorRes === 'yellow') rowClass = "row-bhyt";
+
+                    rowHtml = `<tr class="${rowClass}">`;
+                    
+                    if (isMultiSelectMode) {
+                        let isChecked = selectedTechniques.find(function(x) { return x && x.tenKhoa === realTenKhoa && x.maQuyTrinh === maHienThi; }) ? "checked" : "";
+                        rowHtml += `<td style="text-align:center;"><input type="checkbox" style="width:18px; height:18px; cursor:pointer;" onchange="window.toggleSelectRow(this, '${realTenKhoa}', '${window.encodeForJS(maHienThi)}')" ${isChecked}></td>`;
+                    }
+
+                    let tenClickable = `<a href="#" onclick="window.moChiTiet('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}', '${window.encodeForJS(safePL)}', '${window.encodeForJS(safeQD)}')" style="color:#0056b3; font-weight:bold; text-decoration:none;">${safeTen}</a>`;
+
+                    let maLienKetHtml = '';
+                    if (maHienThi) {
+                        if (currentTab === 'PL1' || isDeptTab || isSuperTab) {
+                            maLienKetHtml = `<b>${maHienThi}</b>`;
+                        } else {
+                            let arrMaLienKet = maHienThi.split(/;|\/|\|/).filter(Boolean);
+                            maLienKetHtml = arrMaLienKet.map(m => {
+                                let cleanM = m.trim();
+                                return `<span style="color:blue;cursor:pointer;font-weight:bold;text-decoration:underline;display:inline-block;margin:2px 4px;" onclick="window.jumpToPL1('${window.encodeForJS(cleanM)}')">${cleanM}</span>`;
+                            }).join('');
+                        }
+                    }
+                    
+                    let td_matd = '-', td_madv = '-', td_giabhyt = '-', td_giavp = '-', td_giayc = '-', td_giann = '-';
                     let matchedGiaDVSet = new Set(); 
                     let matchedMaDVBVSet = new Set();
                     let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
@@ -678,24 +682,8 @@ window.renderTable = function(data = null) {
                         td_giayc = matchedMaDVBV.map(b => `<span style="color:purple;font-weight:bold;">${formatTien(b.giaYeuCau)}</span>`).join('<hr style="margin:4px 0; border-top:1px dashed #ccc;">');
                         td_giann = matchedMaDVBV.map(b => `<span style="color:green;font-weight:bold;">${formatTien(b.giaNuocNgoai)}</span>`).join('<hr style="margin:4px 0; border-top:1px dashed #ccc;">');
                     }
-                }
-
-                if (cols.includes('col_stt')) html += `<td>${realIndex + 1}</td>`;
-                if (cols.includes('col_ma')) html += `<td>${maLienKetHtml}</td>`;
-                if (cols.includes('col_chuong')) html += `<td>${item.chuong || ''}</td>`;
-                if (cols.includes('col_ten')) html += `<td>${tenClickable}</td>`;
-                if (cols.includes('col_phanloai')) html += `<td><span class="badge badge-type">${safePL}</span></td>`;
-                if (cols.includes('col_quyetdinh')) html += `<td>${safeQD}</td>`;
-                if (cols.includes('col_matd')) html += `<td style="text-align:center;">${td_matd}</td>`;
-                if (cols.includes('col_madv')) html += `<td style="text-align:center;">${td_madv}</td>`;
-                if (cols.includes('col_giabhyt')) html += `<td style="text-align:right; white-space:nowrap;">${td_giabhyt}</td>`;
-                if (cols.includes('col_giavp')) html += `<td style="text-align:right; white-space:nowrap;">${td_giavp}</td>`;
-                if (cols.includes('col_giayc')) html += `<td style="text-align:right; white-space:nowrap;">${td_giayc}</td>`;
-                if (cols.includes('col_giann')) html += `<td style="text-align:right; white-space:nowrap;">${td_giann}</td>`;
-
-                let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-
-                if (showFileCol && cols.includes('col_file')) {
+                    
+                    let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
                     let fileHtml = '';
                     if(tt === 'DA_PHE_DUYET') {
                         fileHtml += `<span class="badge badge-success" style="font-size:12px; padding:6px 10px;">Final (Đã phê duyệt)</span><br><span style="font-size:12px; color:#555;">(Xem file trong chi tiết)</span>`;
@@ -729,10 +717,8 @@ window.renderTable = function(data = null) {
                             }
                         }
                     }
-                    html += `<td>${fileHtml}</td>`;
-                }
-                
-                if ((canAddPL || canRemovePL) && cols.includes('col_action')) { 
+
+                    let actionHtml = '';
                     let inCart = false;
                     if (maHienThi) {
                         let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
@@ -742,14 +728,33 @@ window.renderTable = function(data = null) {
 
                     if (inCart) {
                         let cartStatusRaw = item.trangThai || 'CHUA_NOP'; let cartStatus = (cartStatusRaw === 'DA_DUYET' || cartStatusRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : cartStatusRaw;
-                        if (canRemovePL && currentUser.role === 'khoa' && cartStatus === 'DA_PHE_DUYET') { html += `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
-                        else { html += `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">🗑️ Xóa</button></td>`; }
+                        if (canRemovePL && currentUser.role === 'khoa' && cartStatus === 'DA_PHE_DUYET') { actionHtml = `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
+                        else { actionHtml = `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaQuyTrinh('${window.encodeForJS(maHienThi)}', '${realTenKhoa}', '${window.encodeForJS(safeTen)}')">🗑️ Xóa</button></td>`; }
                     } else if (canAddPL) {
-                        html += `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}')">+ Thêm</button></td>`;
+                        actionHtml = `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocQuyTrinh('${window.encodeForJS(maHienThi)}', '${window.encodeForJS(safeTen)}')">+ Thêm</button></td>`;
                     }
+
+                    let rowDict = {
+                        'col_stt': `<td>${realIndex + 1}</td>`,
+                        'col_ma': `<td>${maLienKetHtml}</td>`,
+                        'col_chuong': `<td>${item.chuong || ''}</td>`,
+                        'col_ten': `<td>${tenClickable}</td>`,
+                        'col_phanloai': `<td><span class="badge badge-type">${safePL}</span></td>`,
+                        'col_quyetdinh': `<td>${safeQD}</td>`,
+                        'col_matd': `<td style="text-align:center;">${td_matd}</td>`,
+                        'col_madv': `<td style="text-align:center;">${td_madv}</td>`,
+                        'col_giabhyt': `<td style="text-align:right; white-space:nowrap;">${td_giabhyt}</td>`,
+                        'col_giavp': `<td style="text-align:right; white-space:nowrap;">${td_giavp}</td>`,
+                        'col_giayc': `<td style="text-align:right; white-space:nowrap;">${td_giayc}</td>`,
+                        'col_giann': `<td style="text-align:right; white-space:nowrap;">${td_giann}</td>`,
+                        'col_file': `<td>${fileHtml}</td>`,
+                        'col_action': actionHtml
+                    };
+                    
+                    cols.forEach(col => { if(rowDict[col] && (col !== 'col_action' || canAddPL || canRemovePL)) rowHtml += rowDict[col]; });
                 }
                 
-                html += "</tr>"; tbodyHtml += html;
+                rowHtml += "</tr>"; tbodyHtml += rowHtml;
             });
         }
         

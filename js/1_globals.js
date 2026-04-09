@@ -9,8 +9,52 @@ var selectedTechniques = [];
 var plKeywords = [];
 var selectedGiaDV = []; 
 
+// 🟢 KHUNG CỘT ĐỘNG (Phục vụ kéo thả)
+window.danhSachCotFull_QTKT = [
+    { id: 'col_stt', ten: 'STT' },
+    { id: 'col_ma', ten: 'Mã kỹ thuật' },
+    { id: 'col_chuong', ten: 'Tên chương' },
+    { id: 'col_ten', ten: 'Tên kỹ thuật' },
+    { id: 'col_phanloai', ten: 'Phân loại' },
+    { id: 'col_quyetdinh', ten: 'Quyết định' },
+    { id: 'col_matd', ten: 'Mã Tương đương (TT23)' },
+    { id: 'col_madv', ten: 'Mã Dịch vụ (Bệnh viện)' },
+    { id: 'col_giabhyt', ten: 'Giá BHYT' },
+    { id: 'col_giavp', ten: 'Giá Viện phí' },
+    { id: 'col_giayc', ten: 'Giá Yêu cầu' },
+    { id: 'col_giann', ten: 'Giá Nước ngoài' },
+    { id: 'col_file', ten: 'Trạng thái & File' },
+    { id: 'col_action', ten: 'Thao tác Thêm/Xóa' }
+];
+
+window.danhSachCotFull_ICD10 = [
+    { id: 'col_stt', ten: 'STT' },
+    { id: 'col_sttChuong', ten: 'STT Chương' },
+    { id: 'col_maChuong', ten: 'Mã Chương' },
+    { id: 'col_chapterName', ten: 'Chapter Name' },
+    { id: 'col_tenChuong', ten: 'Tên Chương' },
+    { id: 'col_maNhomChinh', ten: 'Mã Nhóm Chính' },
+    { id: 'col_mainGroupNameI', ten: 'Main Group Name I' },
+    { id: 'col_tenNhomChinh', ten: 'Tên Nhóm Chính' },
+    { id: 'col_maNhomPhu1', ten: 'Mã Nhóm Phụ 1' },
+    { id: 'col_subGroupNameI', ten: 'Sub Group Name I' },
+    { id: 'col_tenNhomPhu1', ten: 'Tên Nhóm Phụ 1' },
+    { id: 'col_maNhomPhu2', ten: 'Mã Nhóm Phụ 2' },
+    { id: 'col_subGroupNameII', ten: 'Sub Group Name II' },
+    { id: 'col_tenNhomPhu2', ten: 'Tên Nhóm Phụ 2' },
+    { id: 'col_maLoai', ten: 'Mã Loại' },
+    { id: 'col_typeName', ten: 'Type Name' },
+    { id: 'col_tenLoai', ten: 'Tên Loại' },
+    { id: 'col_maBenh', ten: 'Mã Bệnh' },
+    { id: 'col_maBenhKhongDau', ten: 'Mã Bệnh (K/Dấu)' },
+    { id: 'col_diseaseName', ten: 'Disease Name' },
+    { id: 'col_tenBenh', ten: 'Tên Bệnh / Chẩn đoán' },
+    { id: 'col_ghiChu', ten: 'Ghi chú' },
+    { id: 'col_action', ten: 'Phác đồ Khoa' }
+];
+
 var defaultColumns = ['col_stt', 'col_ma', 'col_chuong', 'col_ten', 'col_phanloai', 'col_quyetdinh', 'col_file', 'col_action'];
-var defaultIcdColumns = ['col_stt', 'col_maBenh', 'col_tenBenh', 'col_action'];
+var defaultIcdColumns = ['col_stt', 'col_maBenh', 'col_maBenhKhongDau', 'col_tenBenh', 'col_diseaseName', 'col_action'];
 var currentSelectedColumns = [...defaultColumns];
 var MAX_COLUMNS = 20;
 

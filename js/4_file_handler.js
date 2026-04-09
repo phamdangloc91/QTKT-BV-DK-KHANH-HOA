@@ -272,7 +272,7 @@ window.importFromExcel = async function() {
                     for (let i = 0; i < Math.min(1000, rawData.length); i++) {
                         let rowData = rawData[i]; 
                         if (!rowData || rowData.length === 0) continue;
-                        let rowStr = rowData.map(function(c){ return window.safeStr(c); }).join(" ");
+                        let rowStr = window.robustNormalize(rowData.join(" "));
                         if (rowStr.includes("noi dung dao tao") && (rowStr.includes("ki thuat") || rowStr.includes("ky thuat"))) {
                             headerRowIndex = i; 
                             break;
@@ -383,12 +383,12 @@ window.importFromExcel = async function() {
                     let headerRowIndex = -1; 
                     let headers = [];
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
-                        let rowStr = rawData[i].map(function(c){ return window.robustNormalize(c); }).join(" ");
+                        let rowStr = window.robustNormalize(rawData[i].join(" "));
                         
-                        // 🟢 CẬP NHẬT: Nhận diện chính xác file ICD-10
+                        // 🟢 CẬP NHẬT TỪ KHÓA BẮT CHUẨN KHÔNG DẤU
                         if (rowStr.includes("ma dich vu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || 
-                            rowStr.includes("ten ky thuat") || rowStr.includes("ma benh khong dau") || (rowStr.includes("ma benh") && rowStr.includes("ten benh")) || 
-                            rowStr.includes("disease name") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
+                            rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name") || 
+                            rowStr.includes("ten benh") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
                             (rowStr.includes("ma") && rowStr.includes("ten"))) 
                         {
                             headerRowIndex = i; 
@@ -436,29 +436,29 @@ window.importFromExcel = async function() {
                                 if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                                 if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } 
-                            // 🟢 CẬP NHẬT: So sánh chính xác từng chữ không dấu để map 21 cột
+                            // 🟢 MAP CHÍNH XÁC 21 CỘT BẰNG TỪ KHÓA KHÔNG DẤU
                             else if (currentTab === 'ICD10') {
-                                if (kn === "stt chuong") item.sttChuong = v;
-                                else if (kn === "ma chuong") item.maChuong = v;
+                                if (kn === "stt chuong" || kn.includes("stt chuong")) item.sttChuong = v;
+                                else if (kn === "ma chuong" || kn.includes("ma chuong")) item.maChuong = v;
                                 else if (kn === "chapter name") item.chapterName = v;
-                                else if (kn === "ten chuong") item.tenChuong = v;
-                                else if (kn === "ma nhom chinh") item.maNhomChinh = v;
+                                else if (kn === "ten chuong" || kn.includes("ten chuong")) item.tenChuong = v;
+                                else if (kn === "ma nhom chinh" || kn.includes("ma nhom chinh") || kn.includes("ma nhom")) item.maNhomChinh = v;
                                 else if (kn === "main group name i") item.mainGroupNameI = v;
-                                else if (kn === "ten nhom chinh") item.tenNhomChinh = v;
-                                else if (kn === "ma nhom phu 1") item.maNhomPhu1 = v;
+                                else if (kn === "ten nhom chinh" || kn.includes("ten nhom chinh") || kn.includes("ten nhom")) item.tenNhomChinh = v;
+                                else if (kn === "ma nhom phu 1" || kn.includes("ma nhom phu 1")) item.maNhomPhu1 = v;
                                 else if (kn === "sub group name i") item.subGroupNameI = v;
-                                else if (kn === "ten nhom phu 1") item.tenNhomPhu1 = v;
-                                else if (kn === "ma nhom phu 2") item.maNhomPhu2 = v;
+                                else if (kn === "ten nhom phu 1" || kn.includes("ten nhom phu 1")) item.tenNhomPhu1 = v;
+                                else if (kn === "ma nhom phu 2" || kn.includes("ma nhom phu 2")) item.maNhomPhu2 = v;
                                 else if (kn === "sub group name ii") item.subGroupNameII = v;
-                                else if (kn === "ten nhom phu 2") item.tenNhomPhu2 = v;
-                                else if (kn === "ma loai") item.maLoai = v;
+                                else if (kn === "ten nhom phu 2" || kn.includes("ten nhom phu 2")) item.tenNhomPhu2 = v;
+                                else if (kn === "ma loai" || kn.includes("ma loai")) item.maLoai = v;
                                 else if (kn === "type name") item.typeName = v;
-                                else if (kn === "ten loai") item.tenLoai = v;
-                                else if (kn === "ma benh") item.maBenh = formatCode(v);
-                                else if (kn === "ma benh khong dau") item.maBenhKhongDau = formatCode(v);
-                                else if (kn === "disease name" || kn === "ten benh tieng anh") item.diseaseName = v;
-                                else if (kn === "ten benh" || kn === "ten chan doan") item.tenBenh = v;
-                                else if (kn === "ghi chu") item.ghiChu = v;
+                                else if (kn === "ten loai" || kn.includes("ten loai")) item.tenLoai = v;
+                                else if (kn === "ma benh" || kn.includes("ma benh") || kn.includes("ma icd") || kn === "ma") item.maBenh = formatCode(v);
+                                else if (kn === "ma benh khong dau" || kn.includes("khong dau")) item.maBenhKhongDau = formatCode(v);
+                                else if (kn === "disease name" || kn.includes("tieng anh") || kn === "description") item.diseaseName = v;
+                                else if (kn === "ten benh" || kn.includes("ten benh") || kn.includes("chan doan") || kn.includes("tieng viet") || kn === "ten") item.tenBenh = v;
+                                else if (kn === "ghi chu" || kn.includes("ghi chu")) item.ghiChu = v;
                             }
                             else {
                                 if (kn.includes("ma ky thuat") || kn.includes("ma ki thuat") || kn === "ma") item.ma = formatCode(v); 
@@ -497,6 +497,7 @@ window.importFromExcel = async function() {
     }, 50); 
 }
 
+// 🟢 CẬP NHẬT TÍNH NĂNG XUẤT EXCEL CHUẨN WYSIWYG
 window.exportToExcel = function() { 
     if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
 
@@ -611,6 +612,10 @@ window.exportToExcel = function() {
         const cleanData = [];
         let checkedBoxesGiaDV = [...selectedGiaDV]; 
 
+        // 🟢 CƠ CHẾ XUẤT EXCEL CHÍNH XÁC THEO TÙY CHỌN CỘT TRÊN MÀN HÌNH
+        let isDynamic = (currentTab === 'PL1' || currentTab === 'PL2' || currentTab === 'ICD10' || isDeptTab || isSuperTab);
+        let cols = isDynamic ? window.currentSelectedColumns : [];
+
         currentFilteredData.forEach(function(item, index) {
             if(!item) return;
             
@@ -638,61 +643,87 @@ window.exportToExcel = function() {
                 row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
                 cleanData.push(row);
             } 
-            else if (currentTab === 'ICD10') {
-                let row = { "STT": cleanData.length + 1 };
-                row["STT CHƯƠNG"] = item.sttChuong || "";
-                row["MÃ CHƯƠNG"] = item.maChuong || "";
-                row["CHAPTER NAME"] = item.chapterName || "";
-                row["TÊN CHƯƠNG"] = item.tenChuong || "";
-                row["MÃ NHÓM CHÍNH"] = item.maNhomChinh || "";
-                row["MAIN GROUP NAME I"] = item.mainGroupNameI || "";
-                row["TÊN NHÓM CHÍNH"] = item.tenNhomChinh || "";
-                row["MÃ NHÓM PHỤ 1"] = item.maNhomPhu1 || "";
-                row["SUB GROUP NAME I"] = item.subGroupNameI || "";
-                row["TÊN NHÓM PHỤ 1"] = item.tenNhomPhu1 || "";
-                row["MÃ NHÓM PHỤ 2"] = item.maNhomPhu2 || "";
-                row["SUB GROUP NAME II"] = item.subGroupNameII || "";
-                row["TÊN NHÓM PHỤ 2"] = item.tenNhomPhu2 || "";
-                row["MÃ LOẠI"] = item.maLoai || "";
-                row["TYPE NAME"] = item.typeName || "";
-                row["TÊN LOẠI"] = item.tenLoai || "";
-                row["MÃ BỆNH"] = item.maBenh || "";
-                row["MÃ BỆNH KHÔNG DẤU"] = item.maBenhKhongDau || "";
-                row["DISEASE NAME"] = item.diseaseName || "";
-                row["TÊN BỆNH"] = item.tenBenh || "";
-                row["GHI CHÚ"] = item.ghiChu || "";
-                cleanData.push(row);
-            }
-            else {
-                let row = { "STT": cleanData.length + 1 };
-                if (isSuperTab) {
-                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
-                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
-                    row["TÊN KỸ THUẬT"] = item.ten || "";
-                    row["PHÂN LOẠI"] = item.phanLoai || "";
-                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
-                    
-                    let ttRaw = item.trangThai || 'CHUA_NOP';
-                    let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw;
-                    if(tt === 'CHO_DUYET') row["TRẠNG THÁI"] = "Chờ KHTH duyệt";
-                    else if(tt === 'KHONG_DUYET') row["TRẠNG THÁI"] = "Bị KHTH từ chối";
-                    else if(tt === 'DA_PHE_DUYET') row["TRẠNG THÁI"] = "Đã phê duyệt chính thức";
-                    else row["TRẠNG THÁI"] = "Chưa nộp";
+            else if (isDynamic) {
+                let row = {};
+                
+                let maHienThi = item.ma || item.maLienKet || '';
+                let safeTen = item.ten ? String(item.ten) : "";
+                
+                let matchedGiaDVSet = new Set(); 
+                let matchedMaDVBVSet = new Set();
+                let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
+                let normCheckTen = window.robustNormalize(safeTen);
 
-                } else if (currentTab === 'PL1' || isDeptTab) {
-                    row["MÃ KỸ THUẬT"] = item.ma || item.maLienKet || "";
-                    row["TÊN CHƯƠNG"] = item.chuong || "";
-                    row["TÊN KỸ THUẬT"] = item.ten || "";
-                    row["PHÂN LOẠI"] = item.phanLoai || "";
-                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
-                } else { 
-                    row["STT CỦA CHƯƠNG"] = item.maChuong || "";
-                    row["TÊN CHƯƠNG"] = item.chuong || "";
-                    row["MÃ LIÊN KẾT"] = item.maLienKet || "";
-                    row["TÊN KỸ THUẬT"] = item.ten || "";
-                    row["PHÂN LOẠI"] = item.phanLoai || "";
-                    row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                arrSearch.forEach(m => {
+                    if (window.giaDvMapByCode.has(m)) window.giaDvMapByCode.get(m).forEach(g => matchedGiaDVSet.add(g));
+                    if (window.maDvbvMapByCode.has(m)) window.maDvbvMapByCode.get(m).forEach(b => matchedMaDVBVSet.add(b));
+                });
+                if (normCheckTen && window.giaDvMapByName.has(normCheckTen)) {
+                    window.giaDvMapByName.get(normCheckTen).forEach(g => matchedGiaDVSet.add(g));
                 }
+
+                let matchedGiaDV = Array.from(matchedGiaDVSet);
+                let matchedMaDVBV = Array.from(matchedMaDVBVSet);
+
+                let formatTien = function(val) { return val ? Number(val) : ""; };
+
+                let val_matd = matchedGiaDV.length > 0 ? matchedGiaDV.map(g => g.maTuongDuong||'').join('\n') : '-';
+                let val_giabhyt = matchedGiaDV.length > 0 ? matchedGiaDV.map(g => formatTien(g.giaMax)).join('\n') : '-';
+                let val_madv = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => b.maDichVu||'').join('\n') : '-';
+                let val_giavp = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => formatTien(b.giaVienPhi)).join('\n') : '-';
+                let val_giayc = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => formatTien(b.giaYeuCau)).join('\n') : '-';
+                let val_giann = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => formatTien(b.giaNuocNgoai)).join('\n') : '-';
+
+                let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
+                let textTrangThai = "Chưa nộp";
+                if(tt === 'CHO_DUYET') textTrangThai = "Chờ KHTH duyệt";
+                else if(tt === 'KHONG_DUYET') textTrangThai = "Bị KHTH từ chối";
+                else if(tt === 'DA_PHE_DUYET') textTrangThai = "Đã phê duyệt";
+
+                // Mapping theo cột hiển thị hiện tại
+                cols.forEach(function(col) {
+                    if (col === 'col_stt') row["STT"] = cleanData.length + 1;
+                    else if (col === 'col_ma') row["MÃ KỸ THUẬT/MÃ LK"] = maHienThi;
+                    else if (col === 'col_chuong') row["TÊN CHƯƠNG"] = item.chuong || "";
+                    else if (col === 'col_ten') row["TÊN KỸ THUẬT"] = safeTen;
+                    else if (col === 'col_phanloai') row["PHÂN LOẠI"] = item.phanLoai || "";
+                    else if (col === 'col_quyetdinh') row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
+                    else if (col === 'col_matd') row["MÃ TĐ (TT23)"] = val_matd;
+                    else if (col === 'col_madv') row["MÃ DV BỆNH VIỆN"] = val_madv;
+                    else if (col === 'col_giabhyt') row["GIÁ BHYT"] = val_giabhyt;
+                    else if (col === 'col_giavp') row["GIÁ VIỆN PHÍ"] = val_giavp;
+                    else if (col === 'col_giayc') row["GIÁ YÊU CẦU"] = val_giayc;
+                    else if (col === 'col_giann') row["GIÁ NƯỚC NGOÀI"] = val_giann;
+                    else if (col === 'col_file') row["TRẠNG THÁI"] = textTrangThai;
+                    
+                    // Cột của ICD-10
+                    else if (col === 'col_sttChuong') row["STT CHƯƠNG"] = item.sttChuong || "";
+                    else if (col === 'col_maChuong') row["MÃ CHƯƠNG"] = item.maChuong || "";
+                    else if (col === 'col_chapterName') row["CHAPTER NAME"] = item.chapterName || "";
+                    else if (col === 'col_tenChuong') row["TÊN CHƯƠNG"] = item.tenChuong || "";
+                    else if (col === 'col_maNhomChinh') row["MÃ NHÓM CHÍNH"] = item.maNhomChinh || "";
+                    else if (col === 'col_mainGroupNameI') row["MAIN GROUP NAME I"] = item.mainGroupNameI || "";
+                    else if (col === 'col_tenNhomChinh') row["TÊN NHÓM CHÍNH"] = item.tenNhomChinh || "";
+                    else if (col === 'col_maNhomPhu1') row["MÃ NHÓM PHỤ 1"] = item.maNhomPhu1 || "";
+                    else if (col === 'col_subGroupNameI') row["SUB GROUP NAME I"] = item.subGroupNameI || "";
+                    else if (col === 'col_tenNhomPhu1') row["TÊN NHÓM PHỤ 1"] = item.tenNhomPhu1 || "";
+                    else if (col === 'col_maNhomPhu2') row["MÃ NHÓM PHỤ 2"] = item.maNhomPhu2 || "";
+                    else if (col === 'col_subGroupNameII') row["SUB GROUP NAME II"] = item.subGroupNameII || "";
+                    else if (col === 'col_tenNhomPhu2') row["TÊN NHÓM PHỤ 2"] = item.tenNhomPhu2 || "";
+                    else if (col === 'col_maLoai') row["MÃ LOẠI"] = item.maLoai || "";
+                    else if (col === 'col_typeName') row["TYPE NAME"] = item.typeName || "";
+                    else if (col === 'col_tenLoai') row["TÊN LOẠI"] = item.tenLoai || "";
+                    else if (col === 'col_maBenh') row["MÃ BỆNH"] = item.maBenh || "";
+                    else if (col === 'col_maBenhKhongDau') row["MÃ BỆNH KHÔNG DẤU"] = item.maBenhKhongDau || "";
+                    else if (col === 'col_diseaseName') row["DISEASE NAME"] = item.diseaseName || "";
+                    else if (col === 'col_tenBenh') row["TÊN BỆNH / CHẨN ĐOÁN"] = item.tenBenh || "";
+                    else if (col === 'col_ghiChu') row["GHI CHÚ"] = item.ghiChu || "";
+                });
+                
+                if (isSuperTab && !row["TÊN KHOA"]) {
+                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
+                }
+                
                 cleanData.push(row);
             }
         });
