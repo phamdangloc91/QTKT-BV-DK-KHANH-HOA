@@ -166,7 +166,6 @@ window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action, type='QTKT'
     window.showLoading(false);
 }
 
-// 🟢 THÊM KỸ THUẬT VÀO GIỎ HÀNG
 window.bocQuyTrinh = async function(encodedMa, encodedTen) {
     if(!currentUser || currentUser.role !== 'khoa') return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -210,7 +209,6 @@ window.bocQuyTrinh = async function(encodedMa, encodedTen) {
     window.showLoading(false);
 }
 
-// 🟢 XÓA KỸ THUẬT KHỎI GIỎ HÀNG
 window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
     if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -228,14 +226,20 @@ window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
             let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
             if (targetDept && Array.isArray(targetDept.danhMucQTKT)) {
                 targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) { 
-                    let qtMa = qt.ma ? String(qt.ma).trim() : "";
-                    let qtMaLK = qt.maLienKet ? String(qt.maLienKet).trim() : "";
-                    let targetMa = ma ? String(ma).trim() : "";
-                    if (targetMa !== "") return !(qtMa === targetMa || qtMaLK === targetMa);
-                    
-                    let qtTen = qt.ten ? String(qt.ten).trim().toLowerCase() : "";
+                    let targetMa = ma ? String(ma).trim().toLowerCase() : "";
                     let targetTen = ten ? String(ten).trim().toLowerCase() : "";
-                    return qtTen !== targetTen;
+
+                    let qtMa = qt.ma ? String(qt.ma).trim().toLowerCase() : "";
+                    let qtMaLK = qt.maLienKet ? String(qt.maLienKet).trim().toLowerCase() : "";
+                    let qtTen = qt.ten ? String(qt.ten).trim().toLowerCase() : "";
+
+                    if (targetMa !== "") {
+                        if (qtMa === targetMa || qtMaLK === targetMa) return false;
+                    }
+                    if (targetTen !== "") {
+                        if (qtTen === targetTen) return false;
+                    }
+                    return true;
                 });
             }
             window.apDungLoc(); 
@@ -247,7 +251,7 @@ window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
     window.showLoading(false);
 }
 
-// 🟢 THÊM PHÁC ĐỒ VÀO GIỎ HÀNG
+// 🟢 ĐỒNG BỘ: TÌM KIẾM THEO CHUẨN KÉP CHO BỐC PHÁC ĐỒ
 window.bocPhacDo = async function(encodedMa, encodedTen) {
     if(!currentUser || currentUser.role !== 'khoa') return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -255,10 +259,10 @@ window.bocPhacDo = async function(encodedMa, encodedTen) {
     let pdInfo = null;
     
     if (ma && Array.isArray(database.ICD10)) {
-        pdInfo = database.ICD10.find(function(x) { return x && x.maBenh === ma; });
+        pdInfo = database.ICD10.find(function(x) { return x && (x.maBenh === ma || x.maBenhKhongDau === ma); });
     }
     if (!pdInfo && ten && Array.isArray(database.ICD10)) {
-        pdInfo = database.ICD10.find(function(x) { return x && window.robustNormalize(x.tenBenh) === window.robustNormalize(ten); });
+        pdInfo = database.ICD10.find(function(x) { return x && (window.robustNormalize(x.tenBenh) === window.robustNormalize(ten) || window.robustNormalize(x.diseaseName) === window.robustNormalize(ten)); });
     }
 
     if(!pdInfo) return alert("Không tìm thấy thông tin Mã bệnh!");
@@ -287,7 +291,7 @@ window.bocPhacDo = async function(encodedMa, encodedTen) {
     window.showLoading(false);
 }
 
-// 🟢 XÓA PHÁC ĐỒ KHỎI GIỎ HÀNG
+// 🟢 ĐỒNG BỘ: XÓA THEO CHUẨN KÉP CHO PHÁC ĐỒ
 window.xoaPhacDo = async function(encodedMa, tenKhoa, encodedTen) {
     if(!confirm("Xác nhận xóa Phác đồ này khỏi danh sách khoa?")) return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -305,13 +309,21 @@ window.xoaPhacDo = async function(encodedMa, tenKhoa, encodedTen) {
             let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
             if (targetDept && Array.isArray(targetDept.danhMucPhacDo)) {
                 targetDept.danhMucPhacDo = targetDept.danhMucPhacDo.filter(function(pd) { 
-                    let pdMa = pd.maBenh ? String(pd.maBenh).trim() : "";
-                    let targetMa = ma ? String(ma).trim() : "";
-                    if (targetMa !== "") return pdMa !== targetMa;
-                    
-                    let pdTen = pd.tenBenh ? String(pd.tenBenh).trim().toLowerCase() : "";
+                    let targetMa = ma ? String(ma).trim().toLowerCase() : "";
                     let targetTen = ten ? String(ten).trim().toLowerCase() : "";
-                    return pdTen !== targetTen;
+
+                    let pdMa = pd.maBenh ? String(pd.maBenh).trim().toLowerCase() : "";
+                    let pdMaKD = pd.maBenhKhongDau ? String(pd.maBenhKhongDau).trim().toLowerCase() : "";
+                    let pdTen = pd.tenBenh ? String(pd.tenBenh).trim().toLowerCase() : "";
+                    let pdEn = pd.diseaseName ? String(pd.diseaseName).trim().toLowerCase() : "";
+
+                    if (targetMa !== "") {
+                        if (pdMa === targetMa || pdMaKD === targetMa) return false;
+                    }
+                    if (targetTen !== "") {
+                        if (pdTen === targetTen || pdEn === targetTen) return false;
+                    }
+                    return true;
                 });
             }
             window.apDungLoc(); 
@@ -323,7 +335,6 @@ window.xoaPhacDo = async function(encodedMa, tenKhoa, encodedTen) {
     window.showLoading(false);
 }
 
-// 🟢 LƯU BẢNG ĐÀO TẠO NGẮN HẠN
 window.saveDTNH = async function() {
     let selectNamDT = document.getElementById('filterNamDT'); const selectedYear = selectNamDT ? selectNamDT.value : "";
     if (!selectedYear) return alert("Vui lòng chọn Năm đào tạo!");
@@ -358,7 +369,6 @@ window.saveDTNH = async function() {
     } catch (error) { alert("Lỗi lưu dữ liệu."); console.error(error); } finally { window.showLoading(false); }
 }
 
-// 🟢 NHẬP EXCEL
 window.importFromExcel = async function() { 
     const fileInput = document.getElementById('fileExcel'); 
     const file = fileInput.files[0]; 
@@ -616,7 +626,6 @@ window.importFromExcel = async function() {
     }, 50); 
 }
 
-// 🟢 XUẤT EXCEL CHUẨN WYSIWYG
 window.exportToExcel = function() { 
     if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
     window.showLoading(true);
