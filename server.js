@@ -48,7 +48,8 @@ const UserModel = mongoose.model('User', UserSchema);
 const DeptDataSchema = new mongoose.Schema({
     tenKhoa: { type: String, required: true, unique: true }, 
     danhMucQTKT: { type: Array, default: [] },
-    daoTaoNganHan: { type: Array, default: [] }
+    daoTaoNganHan: { type: Array, default: [] },
+    danhMucPhacDo: { type: Array, default: [] }
 });
 const DeptDataModel = mongoose.model('DeptData', DeptDataSchema);
 
@@ -57,7 +58,7 @@ async function khoiTaoDuLieuGoc() {
     for (let ten of DANH_SACH_KHOA) {
         await DeptDataModel.findOneAndUpdate(
             { tenKhoa: ten }, 
-            { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [], daoTaoNganHan: [] } }, 
+            { $setOnInsert: { tenKhoa: ten, danhMucQTKT: [], daoTaoNganHan: [], danhMucPhacDo: [] } }, 
             { upsert: true, returnDocument: 'after' }
         );
     }
@@ -79,7 +80,6 @@ const upload = multer({ dest: 'uploads/', limits: { fieldSize: 100 * 1024 * 1024
 app.use(express.json({ limit: '100mb' }));
 app.use(express.static(path.join(__dirname)));
 
-// 🟢 TÁI CẤU TRÚC: Nạp dữ liệu từ 2 kho Độc lập (Main và ICD10)
 app.get('/api/data', async (req, res) => {
     try { 
         const result = await DataModel.findOne({ id: "hospital_main_db" }); 
@@ -94,7 +94,6 @@ app.get('/api/data', async (req, res) => {
         
         finalData.ICD10 = (resultICD && resultICD.currentData && resultICD.currentData.ICD10) ? resultICD.currentData.ICD10 : [];
 
-        // Nếu DB rỗng, thử nạp dự phòng từ local file
         if (finalData.ICD10.length === 0) {
             const icdPath = path.join(__dirname, 'icd10.json');
             if (fs.existsSync(icdPath)) {
@@ -104,13 +103,9 @@ app.get('/api/data', async (req, res) => {
 
         res.json(finalData); 
     } 
-    catch (error) { 
-        console.error("Lỗi get data:", error);
-        res.status(500).json({ message: "Lỗi tải dữ liệu" }); 
-    }
+    catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
 });
 
-// 🟢 GIẢI PHÁP VƯỢT RÀO 16MB: Cấp phát phòng lưu trữ riêng cho bộ ICD-10
 app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) => {
     try {
         const tabName = req.body.tabName;
@@ -131,13 +126,10 @@ app.post('/api/upload-and-save', upload.single('fileExcel'), async (req, res) =>
                 const media = { mimeType: req.file.mimetype, body: fs.createReadStream(req.file.path) };
                 await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id' });
                 fs.unlinkSync(req.file.path);
-            } catch (e) { console.log("Lỗi up backup lên Drive."); }
+            } catch (e) {}
         }
         res.json({ message: `Lưu dữ liệu cho bảng [${tabName}] thành công!` });
-    } catch (error) { 
-        console.error("Lỗi save:", error);
-        res.status(500).json({ message: "Lỗi hệ thống khi lưu. File vượt giới hạn dung lượng!" }); 
-    }
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi lưu. File vượt giới hạn dung lượng!" }); }
 });
 
 app.post('/api/upload-dtnh', async (req, res) => {
@@ -156,9 +148,238 @@ app.post('/api/upload-dtnh', async (req, res) => {
             }
         }
         res.json({ message: `Đã cập nhật Kế hoạch Đào tạo (Năm ${year}) thành công!` });
-    } catch (error) {
-        res.status(500).json({ message: "Lỗi lưu dữ liệu đào tạo." });
+    } catch (error) { res.status(500).json({ message: "Lỗi lưu dữ liệu đào tạo." }); }
+});
+
+// 🟢 THUẬT TOÁN ĐỊNH VỊ (Chuẩn hóa giống QTKT)
+function findItemIndex(danhMuc, targetMa, targetTen, type) {
+    let tMa = targetMa ? String(targetMa).trim().toLowerCase() : "";
+    let tTen = targetTen ? String(targetTen).trim().toLowerCase() : "";
+
+    return danhMuc.findIndex(item => {
+        let iMa = "";
+        let iMaLK = "";
+        let iTen = "";
+
+        if (type === 'PHAC_DO') {
+            iMa = item.maBenh ? String(item.maBenh).trim().toLowerCase() : "";
+            iMaLK = item.maBenhKhongDau ? String(item.maBenhKhongDau).trim().toLowerCase() : "";
+            iTen = item.tenBenh ? String(item.tenBenh).trim().toLowerCase() : (item.diseaseName ? String(item.diseaseName).trim().toLowerCase() : "");
+        } else {
+            iMa = item.ma ? String(item.ma).trim().toLowerCase() : "";
+            iMaLK = item.maLienKet ? String(item.maLienKet).trim().toLowerCase() : "";
+            iTen = item.ten ? String(item.ten).trim().toLowerCase() : "";
+        }
+
+        if (tMa !== "" && (iMa === tMa || iMaLK === tMa)) return true;
+        if (tTen !== "" && iTen === tTen) return true;
+        return false;
+    });
+}
+
+app.get('/api/dept-data', async (req, res) => {
+    try { const allDepts = await DeptDataModel.find({}); res.json(allDepts); } 
+    catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
+});
+
+app.post('/api/dept-data/add', async (req, res) => {
+    try {
+        const { tenKhoa, quyTrinh, type } = req.body; 
+        const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
+        if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
+
+        let targetArray = type === 'PHAC_DO' ? dept.danhMucPhacDo : dept.danhMucQTKT;
+        let maCheck = type === 'PHAC_DO' ? quyTrinh.maBenh : (quyTrinh.ma || quyTrinh.maLienKet);
+        let tenCheck = type === 'PHAC_DO' ? quyTrinh.tenBenh : quyTrinh.ten;
+
+        const qtIndex = findItemIndex(targetArray, maCheck, tenCheck, type);
+        
+        if (qtIndex !== -1) {
+            return res.status(400).json({ message: "Dữ liệu này đã có trong danh mục của Khoa!" });
+        }
+
+        quyTrinh.trangThai = "CHUA_NOP";
+        targetArray.push(quyTrinh); 
+        
+        if (type === 'PHAC_DO') dept.markModified('danhMucPhacDo');
+        else dept.markModified('danhMucQTKT');
+        
+        await dept.save();
+        res.json({ message: "Đã thêm vào danh sách khoa thành công!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
+
+app.post('/api/dept-data/remove', async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh, tenQuyTrinh, type } = req.body;
+        const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
+        if (!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
+        
+        let targetArray = type === 'PHAC_DO' ? dept.danhMucPhacDo : dept.danhMucQTKT;
+        const qtIndex = findItemIndex(targetArray, maQuyTrinh, tenQuyTrinh, type);
+
+        if (qtIndex !== -1) {
+            const qt = targetArray[qtIndex];
+            await deleteFromDrive(qt.fileKhoa); await deleteFromDrive(qt.fileAdmin); await deleteFromDrive(qt.fileQuyetDinh); await deleteFromDrive(qt.fileBienBan); await deleteFromDrive(qt.filePdfChinhThuc);
+            targetArray.splice(qtIndex, 1); 
+            
+            if (type === 'PHAC_DO') dept.markModified('danhMucPhacDo');
+            else dept.markModified('danhMucQTKT');
+            
+            await dept.save();
+            res.json({ message: "Đã xóa dữ liệu khỏi hệ thống!" });
+        } else {
+            res.status(404).json({ message: "Không tìm thấy dữ liệu để xóa." });
+        }
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
+
+app.post('/api/dept-data/status', async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh, tenQuyTrinh, action, type } = req.body;
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        if (!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
+        
+        let targetArray = type === 'PHAC_DO' ? dept.danhMucPhacDo : dept.danhMucQTKT;
+        let qtIndex = findItemIndex(targetArray, maQuyTrinh, tenQuyTrinh, type);
+
+        if (qtIndex === -1) return res.status(404).json({ message: "Lỗi trạng thái: Không tìm thấy dữ liệu!" });
+
+        const qt = targetArray[qtIndex];
+        if (action === 'REJECT_KHOA') qt.trangThai = 'KHONG_DUYET';
+        else if (action === 'RESUBMIT') qt.trangThai = 'CHUA_NOP'; 
+        else if (action === 'REVERT_FINAL') { qt.trangThai = 'CHO_DUYET'; qt.filePdfChinhThuc = null; }
+
+        if (type === 'PHAC_DO') dept.markModified('danhMucPhacDo');
+        else dept.markModified('danhMucQTKT');
+        
+        await dept.save();
+        res.json({ message: "Đã cập nhật trạng thái thành công!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
+});
+
+function extractDriveId(link) {
+    if (!link) return null;
+    const match = link.match(/\/d\/(.+?)\//);
+    return match ? match[1] : null;
+}
+
+async function deleteFromDrive(link) {
+    const fileId = extractDriveId(link);
+    if (fileId && driveService) {
+        try { await driveService.files.delete({ fileId: fileId }); } catch (e) {}
     }
+}
+
+async function uploadToDrive(fileObj, prefixName) {
+    if (!fileObj) return null;
+    const fileMetadata = { name: `${prefixName}_${fileObj.originalname}`, parents: [DRIVE_FOLDER_ID] };
+    const media = { mimeType: fileObj.mimetype, body: fs.createReadStream(fileObj.path) };
+    const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
+    await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
+    fs.unlinkSync(fileObj.path); return driveRes.data.webViewLink;
+}
+
+app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh, tenQuyTrinh, type } = req.body;
+        if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
+        
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        if(!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
+
+        let targetArray = type === 'PHAC_DO' ? dept.danhMucPhacDo : dept.danhMucQTKT;
+        let qtIndex = findItemIndex(targetArray, maQuyTrinh, tenQuyTrinh, type);
+
+        if (qtIndex === -1) return res.status(404).json({ message: "Chưa Thêm dữ liệu này vào giỏ hàng!" });
+
+        let prefix = type === 'PHAC_DO' ? '[PHAC_DO]' : '[NHÁP]';
+        const link = await uploadToDrive(req.file, `${prefix}_${tenKhoa}_${maQuyTrinh || tenQuyTrinh}`);
+        
+        targetArray[qtIndex].trangThai = 'CHO_DUYET'; 
+        targetArray[qtIndex].fileKhoa = link;
+        
+        if (type === 'PHAC_DO') dept.markModified('danhMucPhacDo');
+        else dept.markModified('danhMucQTKT');
+        
+        await dept.save();
+        res.json({ message: "Nộp file thành công! Đang chờ P.KHTH duyệt." });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
+});
+
+app.post('/api/upload/delete-khoa', async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh, tenQuyTrinh, type } = req.body;
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        if (!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
+
+        let targetArray = type === 'PHAC_DO' ? dept.danhMucPhacDo : dept.danhMucQTKT;
+        let qtIndex = findItemIndex(targetArray, maQuyTrinh, tenQuyTrinh, type);
+
+        if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy dữ liệu!" });
+
+        const qt = targetArray[qtIndex];
+        if (qt.fileKhoa) await deleteFromDrive(qt.fileKhoa); 
+
+        qt.fileKhoa = null; qt.tenFileKhoa = null; qt.trangThai = 'CHUA_NOP';
+        
+        if (type === 'PHAC_DO') dept.markModified('danhMucPhacDo');
+        else dept.markModified('danhMucQTKT');
+        
+        await dept.save();
+        res.json({ message: "Đã xóa file vĩnh viễn thành công!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi xóa file" }); }
+});
+
+app.post('/api/upload/final-pdf', upload.single('fPdf'), async (req, res) => {
+    try {
+        const { tenKhoa, maQuyTrinh, tenQuyTrinh, type } = req.body;
+        if (!req.file) return res.status(400).json({ message: "Chưa chọn file PDF!" });
+        
+        const dept = await DeptDataModel.findOne({ tenKhoa });
+        let targetArray = type === 'PHAC_DO' ? dept.danhMucPhacDo : dept.danhMucQTKT;
+        let qtIndex = findItemIndex(targetArray, maQuyTrinh, tenQuyTrinh, type);
+
+        if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy dữ liệu!" });
+
+        let prefix = type === 'PHAC_DO' ? '[FINAL_PHACDO]' : '[FINAL_QTKT]';
+        const linkPDF = await uploadToDrive(req.file, `${prefix}_${maQuyTrinh || tenQuyTrinh}`);
+        
+        targetArray[qtIndex].trangThai = 'DA_PHE_DUYET';
+        targetArray[qtIndex].filePdfChinhThuc = linkPDF;
+        
+        if (type === 'PHAC_DO') dept.markModified('danhMucPhacDo');
+        else dept.markModified('danhMucQTKT');
+        
+        await dept.save();
+        res.json({ message: "Đã tải file PDF chính thức thành công! Hoàn tất." });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
+});
+
+app.post('/api/upload/batch-qdbb', upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }]), async (req, res) => {
+    try {
+        const items = JSON.parse(req.body.items); const files = req.files || {};
+        let linkQD = files['fQuyetDinh'] ? await uploadToDrive(files['fQuyetDinh'][0], `[QĐ]_${Date.now()}`) : null;
+        let linkBB = files['fBienBan'] ? await uploadToDrive(files['fBienBan'][0], `[BB]_${Date.now()}`) : null;
+
+        if (!linkQD && !linkBB) return res.status(400).json({ message: "Chưa chọn file nào!" });
+
+        const deptsToSave = {};
+        for (let item of items) {
+            if (!deptsToSave[item.tenKhoa]) deptsToSave[item.tenKhoa] = await DeptDataModel.findOne({ tenKhoa: item.tenKhoa });
+            const dept = deptsToSave[item.tenKhoa];
+            if (dept) {
+                const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(item.maQuyTrinh) || String(qt.maLienKet) === String(item.maQuyTrinh)));
+                if (qtIndex !== -1) {
+                    if (linkQD) dept.danhMucQTKT[qtIndex].fileQuyetDinh = linkQD;
+                    if (linkBB) dept.danhMucQTKT[qtIndex].fileBienBan = linkBB;
+                    dept.markModified('danhMucQTKT');
+                }
+            }
+        }
+        for (let k in deptsToSave) await deptsToSave[k].save();
+        res.json({ message: "Đã đính kèm Quyết định & Biên bản thành công!" });
+    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
 });
 
 app.post('/api/login', async (req, res) => {
@@ -211,161 +432,12 @@ app.delete('/api/users/:id', async (req, res) => {
     catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
 });
 
-app.get('/api/dept-data', async (req, res) => {
-    try { const allDepts = await DeptDataModel.find({}); res.json(allDepts); } 
-    catch (error) { res.status(500).json({ message: "Lỗi tải dữ liệu" }); }
-});
-
-app.post('/api/dept-data/add', async (req, res) => {
+app.get('/api/icd10', (req, res) => {
     try {
-        const { tenKhoa, quyTrinh } = req.body; 
-        const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
-        if(!dept) return res.status(404).json({ message: "Không tìm thấy dữ liệu khoa" });
-
-        const daCo = dept.danhMucQTKT.find(qt => (quyTrinh.ma && String(qt.ma) === String(quyTrinh.ma)) || (quyTrinh.maLienKet && String(qt.maLienKet) === String(quyTrinh.maLienKet)));
-        if (daCo) return res.status(400).json({ message: "Quy trình này đã có trong danh mục của Khoa!" });
-
-        quyTrinh.trangThai = "CHUA_NOP";
-        dept.danhMucQTKT.push(quyTrinh); await dept.save();
-        res.json({ message: "Đã thêm quy trình về khoa thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
-});
-
-function extractDriveId(link) {
-    if (!link) return null;
-    const match = link.match(/\/d\/(.+?)\//);
-    return match ? match[1] : null;
-}
-
-async function deleteFromDrive(link) {
-    const fileId = extractDriveId(link);
-    if (fileId && driveService) {
-        try { await driveService.files.delete({ fileId: fileId }); console.log("🗑️ Đã dọn dẹp file: " + fileId); } 
-        catch (e) { console.log("⚠️ Bỏ qua file lỗi/đã xóa: " + fileId); }
-    }
-}
-
-app.post('/api/dept-data/remove', async (req, res) => {
-    try {
-        const { tenKhoa, maQuyTrinh } = req.body;
-        const dept = await DeptDataModel.findOne({ tenKhoa: tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh));
-        
-        if (qtIndex !== -1) {
-            const qt = dept.danhMucQTKT[qtIndex];
-            await deleteFromDrive(qt.fileKhoa); await deleteFromDrive(qt.fileAdmin); await deleteFromDrive(qt.fileQuyetDinh); await deleteFromDrive(qt.fileBienBan); await deleteFromDrive(qt.filePdfChinhThuc);
-            dept.danhMucQTKT.splice(qtIndex, 1); await dept.save();
-            res.json({ message: "Đã xóa toàn bộ dữ liệu và file đính kèm của quy trình này khỏi hệ thống!" });
-        } else {
-            res.status(404).json({ message: "Không tìm thấy kỹ thuật này trong giỏ hàng." });
-        }
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
-});
-
-async function uploadToDrive(fileObj, prefixName) {
-    if (!fileObj) return null;
-    const fileMetadata = { name: `${prefixName}_${fileObj.originalname}`, parents: [DRIVE_FOLDER_ID] };
-    const media = { mimeType: fileObj.mimetype, body: fs.createReadStream(fileObj.path) };
-    const driveRes = await driveService.files.create({ resource: fileMetadata, media: media, fields: 'id, webViewLink' });
-    await driveService.permissions.create({ fileId: driveRes.data.id, requestBody: { role: 'reader', type: 'anyone' } });
-    fs.unlinkSync(fileObj.path); return driveRes.data.webViewLink;
-}
-
-app.post('/api/upload/khoa', upload.single('fileQuyTrinh'), async (req, res) => {
-    try {
-        const { tenKhoa, maQuyTrinh } = req.body;
-        if (!req.file) return res.status(400).json({ message: "Chưa chọn file!" });
-        
-        const dept = await DeptDataModel.findOne({ tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
-        if (qtIndex === -1) return res.status(404).json({ message: "Chưa Thêm kỹ thuật này vào giỏ hàng!" });
-
-        const link = await uploadToDrive(req.file, `[NHÁP]_${tenKhoa}_${maQuyTrinh}`);
-        dept.danhMucQTKT[qtIndex].trangThai = 'CHO_DUYET'; 
-        dept.danhMucQTKT[qtIndex].fileKhoa = link;
-        dept.markModified('danhMucQTKT'); await dept.save();
-        res.json({ message: "Nộp quy trình thành công! Đang chờ P.KHTH duyệt." });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
-});
-
-app.post('/api/upload/batch-qdbb', upload.fields([{ name: 'fQuyetDinh', maxCount: 1 }, { name: 'fBienBan', maxCount: 1 }]), async (req, res) => {
-    try {
-        const items = JSON.parse(req.body.items); const files = req.files || {};
-        let linkQD = files['fQuyetDinh'] ? await uploadToDrive(files['fQuyetDinh'][0], `[QĐ]_${Date.now()}`) : null;
-        let linkBB = files['fBienBan'] ? await uploadToDrive(files['fBienBan'][0], `[BB]_${Date.now()}`) : null;
-
-        if (!linkQD && !linkBB) return res.status(400).json({ message: "Chưa chọn file nào!" });
-
-        const deptsToSave = {};
-        for (let item of items) {
-            if (!deptsToSave[item.tenKhoa]) deptsToSave[item.tenKhoa] = await DeptDataModel.findOne({ tenKhoa: item.tenKhoa });
-            const dept = deptsToSave[item.tenKhoa];
-            if (dept) {
-                const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(item.maQuyTrinh) || String(qt.maLienKet) === String(item.maQuyTrinh)));
-                if (qtIndex !== -1) {
-                    if (linkQD) dept.danhMucQTKT[qtIndex].fileQuyetDinh = linkQD;
-                    if (linkBB) dept.danhMucQTKT[qtIndex].fileBienBan = linkBB;
-                    dept.markModified('danhMucQTKT');
-                }
-            }
-        }
-        for (let k in deptsToSave) await deptsToSave[k].save();
-        res.json({ message: "Đã đính kèm Quyết định & Biên bản thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
-});
-
-app.post('/api/upload/final-pdf', upload.single('fPdf'), async (req, res) => {
-    try {
-        const { tenKhoa, maQuyTrinh } = req.body;
-        if (!req.file) return res.status(400).json({ message: "Chưa chọn file PDF!" });
-        
-        const dept = await DeptDataModel.findOne({ tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
-        if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy quy trình!" });
-
-        const linkPDF = await uploadToDrive(req.file, `[FINAL]_${maQuyTrinh}`);
-        dept.danhMucQTKT[qtIndex].trangThai = 'DA_PHE_DUYET';
-        dept.danhMucQTKT[qtIndex].filePdfChinhThuc = linkPDF;
-        dept.markModified('danhMucQTKT'); await dept.save();
-        res.json({ message: "Đã tải file PDF chính thức thành công! Quy trình hoàn tất." });
-    } catch (error) { res.status(500).json({ message: "Lỗi upload Drive" }); }
-});
-
-app.post('/api/dept-data/status', async (req, res) => {
-    try {
-        const { tenKhoa, maQuyTrinh, action } = req.body;
-        const dept = await DeptDataModel.findOne({ tenKhoa });
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
-        if (qtIndex === -1) return res.status(404).json({ message: "Lỗi trạng thái: Không tìm thấy dữ liệu!" });
-
-        const qt = dept.danhMucQTKT[qtIndex];
-        if (action === 'REJECT_KHOA') qt.trangThai = 'KHONG_DUYET';
-        else if (action === 'RESUBMIT') qt.trangThai = 'CHUA_NOP'; 
-        else if (action === 'REVERT_FINAL') {
-            qt.trangThai = 'CHO_DUYET'; qt.filePdfChinhThuc = null; 
-        }
-
-        dept.markModified('danhMucQTKT'); await dept.save();
-        res.json({ message: "Đã cập nhật trạng thái thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống" }); }
-});
-
-app.post('/api/upload/delete-khoa', async (req, res) => {
-    try {
-        const { tenKhoa, maQuyTrinh } = req.body;
-        const dept = await DeptDataModel.findOne({ tenKhoa });
-        if (!dept) return res.status(404).json({ message: "Không tìm thấy khoa!" });
-
-        const qtIndex = dept.danhMucQTKT.findIndex(qt => (String(qt.ma) === String(maQuyTrinh) || String(qt.maLienKet) === String(maQuyTrinh)));
-        if (qtIndex === -1) return res.status(404).json({ message: "Không tìm thấy quy trình này!" });
-
-        const qt = dept.danhMucQTKT[qtIndex];
-        if (qt.fileKhoa) await deleteFromDrive(qt.fileKhoa); 
-
-        qt.fileKhoa = null; qt.tenFileKhoa = null; qt.trangThai = 'CHUA_NOP';
-        dept.markModified('danhMucQTKT'); await dept.save();
-        res.json({ message: "Đã xóa file vĩnh viễn và thiết lập lại trạng thái thành công!" });
-    } catch (error) { res.status(500).json({ message: "Lỗi hệ thống khi xóa file" }); }
+        const icdPath = path.join(__dirname, 'icd10.json');
+        if (fs.existsSync(icdPath)) { res.json(JSON.parse(fs.readFileSync(icdPath, 'utf8'))); } 
+        else { res.json([]); }
+    } catch (e) { res.status(500).json({message: "Lỗi hệ thống khi tải danh mục ICD"}); }
 });
 
 app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
