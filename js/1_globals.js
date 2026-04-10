@@ -3,13 +3,13 @@ var currentTabType = 'QTKT';
 var database = { PL1: [], PL2: [], GiaDV: [], MaDVBV: [], depts: [], ICD10: [] };
 var currentFilteredData = [];
 var currentUser = null;
-var targetUpload = { ma: null, tenKhoa: null }; 
+var targetUpload = { ma: null, tenKhoa: null, type: 'QTKT' }; 
 var isMultiSelectMode = false; 
 var selectedTechniques = []; 
 var plKeywords = [];
 var selectedGiaDV = []; 
 
-// 🟢 KHUNG CỘT ĐỘNG (Phục vụ kéo thả)
+// 🟢 KHUNG CỘT ĐỘNG
 window.danhSachCotFull_QTKT = [
     { id: 'col_stt', ten: 'STT' },
     { id: 'col_ma', ten: 'Mã kỹ thuật' },
@@ -50,13 +50,24 @@ window.danhSachCotFull_ICD10 = [
     { id: 'col_diseaseName', ten: 'Disease Name' },
     { id: 'col_tenBenh', ten: 'Tên Bệnh / Chẩn đoán' },
     { id: 'col_ghiChu', ten: 'Ghi chú' },
-    { id: 'col_action', ten: 'Phác đồ Khoa' }
+    { id: 'col_action', ten: 'Thao tác Khoa' }
+];
+
+// 🟢 KHUNG CỘT RIÊNG CHO GIỎ HÀNG PHÁC ĐỒ CỦA KHOA
+window.danhSachCotFull_PHAC_DO_CART = [
+    { id: 'col_stt', ten: 'STT' },
+    { id: 'col_maBenh', ten: 'Mã ICD-10' },
+    { id: 'col_tenBenh', ten: 'Tên Bệnh / Chẩn đoán' },
+    { id: 'col_quyetdinh', ten: 'Quyết định' },
+    { id: 'col_file', ten: 'Trạng thái & File' },
+    { id: 'col_action', ten: 'Thao tác Khoa' }
 ];
 
 var defaultColumns = ['col_stt', 'col_ma', 'col_chuong', 'col_ten', 'col_phanloai', 'col_quyetdinh', 'col_file', 'col_action'];
 var defaultIcdColumns = ['col_stt', 'col_maBenh', 'col_maBenhKhongDau', 'col_tenBenh', 'col_diseaseName', 'col_action'];
+var defaultPhacDoCartColumns = ['col_stt', 'col_maBenh', 'col_tenBenh', 'col_quyetdinh', 'col_file', 'col_action'];
 var currentSelectedColumns = [...defaultColumns];
-var MAX_COLUMNS = 20;
+var MAX_COLUMNS = 22;
 
 var DANH_SACH_KHOA = [
     "Khoa Cấp cứu", "Khoa Hồi sức Tích cực và Chống độc", "Khoa Nội Tổng hợp Thần kinh",
@@ -346,15 +357,19 @@ window.addEventListener('DOMContentLoaded', function() {
             const title = document.createElement('div'); title.className = 'dept-title'; title.innerHTML = `${khoa} <span style="font-size:10px; color:#888;">▶</span>`;
             const submenu = document.createElement('div'); submenu.className = 'dept-submenu';
             const linkQTKT = document.createElement('a'); linkQTKT.href = "#"; linkQTKT.innerText = "Quy trình kỹ thuật"; linkQTKT.onclick = function(e) { e.preventDefault(); window.switchTab(khoa, 'QTKT'); };
+            const linkPhacDo = document.createElement('a'); linkPhacDo.href = "#"; linkPhacDo.innerText = "Phác đồ điều trị"; linkPhacDo.onclick = function(e) { e.preventDefault(); window.switchTab(khoa, 'PHAC_DO'); };
+            
             const linkNhanLuc = document.createElement('a'); linkNhanLuc.href = "#"; linkNhanLuc.innerText = "Nhân lực"; linkNhanLuc.onclick = function(e) { e.preventDefault(); alert("Chức năng [Nhân lực] đang được phát triển!"); };
             const linkVatTu = document.createElement('a'); linkVatTu.href = "#"; linkVatTu.innerText = "Vật tư - Trang thiết bị"; linkVatTu.onclick = function(e) { e.preventDefault(); alert("Chức năng [Vật tư - Trang thiết bị] đang được phát triển!"); };
+            
             const trainWrapper = document.createElement('div'); trainWrapper.className = 'train-item';
             const trainTitle = document.createElement('div'); trainTitle.className = 'train-title'; trainTitle.innerHTML = `Kế hoạch đào tạo <span style="font-size:10px; color:#888;">▶</span>`;
             const trainSubmenu = document.createElement('div'); trainSubmenu.className = 'train-submenu';
             const linkDaiHan = document.createElement('a'); linkDaiHan.href = "#"; linkDaiHan.innerText = "Dài hạn"; linkDaiHan.onclick = function(e) { e.preventDefault(); alert("Chức năng [Đào tạo Dài hạn] đang được phát triển!"); };
             const linkNganHan = document.createElement('a'); linkNganHan.href = "#"; linkNganHan.innerText = "Ngắn hạn"; linkNganHan.onclick = function(e) { e.preventDefault(); window.switchTab(khoa, 'DTNH'); };
+            
             trainSubmenu.appendChild(linkDaiHan); trainSubmenu.appendChild(linkNganHan); trainWrapper.appendChild(trainTitle); trainWrapper.appendChild(trainSubmenu);
-            submenu.appendChild(linkQTKT); submenu.appendChild(linkNhanLuc); submenu.appendChild(linkVatTu); submenu.appendChild(trainWrapper);
+            submenu.appendChild(linkQTKT); submenu.appendChild(linkPhacDo); submenu.appendChild(linkNhanLuc); submenu.appendChild(linkVatTu); submenu.appendChild(trainWrapper);
             wrapper.appendChild(title); wrapper.appendChild(submenu); menuCacKhoa.appendChild(wrapper);
         }
     });

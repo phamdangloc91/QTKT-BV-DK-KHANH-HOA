@@ -237,7 +237,11 @@ window.handleDrop = function(e) {
     let targetIdx = parseInt(this.dataset.index);
     if (window.draggedColIndex === null || window.draggedColIndex === targetIdx) return false;
     
-    let dsCot = (currentTab === 'ICD10' || currentTabType === 'PHAC_DO') ? window.danhSachCotFull_ICD10 : window.danhSachCotFull_QTKT;
+    let dsCot = [];
+    if (currentTab === 'ICD10') dsCot = window.danhSachCotFull_ICD10;
+    else if (currentTabType === 'PHAC_DO') dsCot = window.danhSachCotFull_PHAC_DO_CART;
+    else dsCot = window.danhSachCotFull_QTKT;
+
     let item = dsCot.splice(window.draggedColIndex, 1)[0];
     dsCot.splice(targetIdx, 0, item);
     
@@ -249,7 +253,7 @@ window.handleDragEnd = function(e) { this.style.opacity = '1'; }
 
 window.toggleCot = function(checkbox, isFromDrop = false) {
     let checkedBoxes = document.querySelectorAll('.col-checkbox:checked');
-    let maxAllowed = (currentTab === 'ICD10' || currentTabType === 'PHAC_DO') ? 20 : MAX_COLUMNS;
+    let maxAllowed = (currentTab === 'ICD10' || currentTabType === 'PHAC_DO') ? 22 : MAX_COLUMNS;
     if (!isFromDrop && checkbox && checkedBoxes.length > maxAllowed) {
         alert(`⚠️ Bạn chỉ được phép chọn tối đa ${maxAllowed} cột hiển thị để bảng không bị tràn khung hình!`);
         checkbox.checked = false;
@@ -258,8 +262,11 @@ window.toggleCot = function(checkbox, isFromDrop = false) {
     
     let currentSelectedIds = Array.from(checkedBoxes).map(cb => cb.value);
     
-    let dsCot = (currentTab === 'ICD10' || currentTabType === 'PHAC_DO') ? window.danhSachCotFull_ICD10 : window.danhSachCotFull_QTKT;
-    
+    let dsCot = [];
+    if (currentTab === 'ICD10') dsCot = window.danhSachCotFull_ICD10;
+    else if (currentTabType === 'PHAC_DO') dsCot = window.danhSachCotFull_PHAC_DO_CART;
+    else dsCot = window.danhSachCotFull_QTKT;
+
     window.currentSelectedColumns = [];
     dsCot.forEach(c => {
         if (currentSelectedIds.includes(c.id)) {
@@ -277,7 +284,10 @@ window.capNhatDanhSachCot = function() {
     if (!optsContainer) return;
     optsContainer.innerHTML = '';
     
-    let dsCot = (currentTab === 'ICD10' || currentTabType === 'PHAC_DO') ? window.danhSachCotFull_ICD10 : window.danhSachCotFull_QTKT;
+    let dsCot = [];
+    if (currentTab === 'ICD10') dsCot = window.danhSachCotFull_ICD10;
+    else if (currentTabType === 'PHAC_DO') dsCot = window.danhSachCotFull_PHAC_DO_CART;
+    else dsCot = window.danhSachCotFull_QTKT;
 
     dsCot.forEach(function(c, index) {
         let div = document.createElement('div');
@@ -560,7 +570,7 @@ window.renderTable = function(data = null) {
                 'col_maLoai': `<th>Mã Loại</th>`,
                 'col_typeName': `<th>Type Name</th>`,
                 'col_tenLoai': `<th>Tên Loại</th>`,
-                'col_maBenh': `<th>Mã Bệnh</th>`,
+                'col_maBenh': `<th>Mã ICD-10</th>`,
                 'col_maBenhKhongDau': `<th>Mã Bệnh (K/Dấu)</th>`,
                 'col_diseaseName': `<th>Disease Name</th>`,
                 'col_tenBenh': `<th>Tên Bệnh / Chẩn đoán</th>`,
@@ -666,9 +676,9 @@ window.renderTable = function(data = null) {
                         if (!inCart && itemTenBenh) inCart = myDeptPDCartSet.has(window.robustNormalize(itemTenBenh));
 
                         if (inCart) {
-                            actionHtml = `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaPhacDo('${window.encodeForJS(itemIdentifier)}', '${currentUser.tenKhoa}', '${window.encodeForJS(itemTenBenh)}')">🗑️ Xóa Phác Đồ</button></td>`;
+                            actionHtml = `<td style="text-align:center;"><button class="btn btn-remove" onclick="window.xoaPhacDo('${window.encodeForJS(itemIdentifier)}', '${currentUser.tenKhoa}', '${window.encodeForJS(itemTenBenh)}')">🗑️ Xóa</button></td>`;
                         } else {
-                            actionHtml = `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocPhacDo('${window.encodeForJS(itemIdentifier)}', '${window.encodeForJS(itemTenBenh)}')">+ Thêm Phác Đồ</button></td>`;
+                            actionHtml = `<td style="text-align:center;"><button class="btn btn-add" onclick="window.bocPhacDo('${window.encodeForJS(itemIdentifier)}', '${window.encodeForJS(itemTenBenh)}')">+ Thêm</button></td>`;
                         }
                     } else if (currentTabType === 'PHAC_DO' && currentUser && currentUser.role === 'khoa') {
                         if(tt === 'DA_PHE_DUYET') { actionHtml = `<td style="text-align:center;"><span class="badge badge-locked">🔒 Đã chốt</span></td>`; } 
@@ -704,6 +714,7 @@ window.renderTable = function(data = null) {
                         'col_maBenhKhongDau': `<td>${c_maBenhKD}</td>`,
                         'col_diseaseName': `<td>${c_diseaseName}</td>`,
                         'col_tenBenh': `<td>${c_tenBenh}</td>`,
+                        'col_quyetdinh': `<td>${item.quyetDinh || 'Chưa phê duyệt'}</td>`,
                         'col_ghiChu': `<td>${item.ghiChu || ''}</td>`,
                         'col_file': `<td>${fileHtml}</td>`,
                         'col_action': actionHtml
