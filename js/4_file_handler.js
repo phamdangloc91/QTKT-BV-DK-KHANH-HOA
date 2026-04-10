@@ -1,5 +1,5 @@
 window.moModalBatch = function() {
-    if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 kỹ thuật trong bảng!");
+    if (selectedTechniques.length === 0) return alert("Vui lòng tick chọn ít nhất 1 dòng trong bảng!");
     document.getElementById('lblBatchCount').innerText = selectedTechniques.length;
     window.moModal('uploadBatchModal');
 }
@@ -34,9 +34,10 @@ window.xuLyUploadBatch = async function() {
     window.showLoading(false);
 }
 
-window.chuanBiNopKhoa = function(encodedMa) { 
+window.chuanBiNopKhoa = function(encodedMa, type='QTKT', encodedTen='') { 
     let ma = decodeURIComponent(encodedMa || "");
-    targetUpload = { ma: ma, tenKhoa: currentUser.tenKhoa }; 
+    let ten = decodeURIComponent(encodedTen || "");
+    targetUpload = { ma: ma, ten: ten, tenKhoa: currentUser.tenKhoa, type: type }; 
     document.getElementById('fileNopKhoa').click(); 
 }
 
@@ -56,7 +57,9 @@ window.xuLyNopFileKhoa = async function() {
         formData.append('fileQuyTrinh', fileInput.files[0]); 
         formData.append('tenKhoa', targetUpload.tenKhoa); 
         formData.append('maQuyTrinh', targetUpload.ma);
+        formData.append('tenQuyTrinh', targetUpload.ten);
         formData.append('tenFileKhoa', fileInput.files[0].name); 
+        formData.append('type', targetUpload.type);
         
         const res = await fetch('/api/upload/khoa', { method: 'POST', body: formData }); 
         const data = await res.json(); 
@@ -69,9 +72,10 @@ window.xuLyNopFileKhoa = async function() {
     window.showLoading(false);
 }
 
-window.xoaFileKhoa = async function(encodedMa) {
+window.xoaFileKhoa = async function(encodedMa, type='QTKT', encodedTen='') {
     if(!confirm("Xác nhận GỠ file đính kèm này để nộp lại file khác?")) return;
     let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
     
     window.showLoading(true);
     try {
@@ -84,7 +88,7 @@ window.xoaFileKhoa = async function(encodedMa) {
         const res = await fetch('/api/dept-data/status', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, maQuyTrinh: ma, action: 'RESUBMIT' }) 
+            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten, action: 'RESUBMIT', type: type }) 
         });
         
         if (res.ok) { 
@@ -99,12 +103,13 @@ window.xoaFileKhoa = async function(encodedMa) {
     window.showLoading(false);
 }
 
-window.chuanBiUpSinglePdf = function(encodedMa, tenKhoa, encodedTenQuyTrinh) {
+window.chuanBiUpSinglePdf = function(encodedMa, tenKhoa, encodedTenQuyTrinh, type='QTKT') {
     let ma = decodeURIComponent(encodedMa || "");
     let tenQuyTrinh = decodeURIComponent(encodedTenQuyTrinh || "");
     window.dongModal('detailModal'); 
     window.dongModal('detailDVModal');
-    targetUpload = { ma: ma, tenKhoa: tenKhoa };
+    window.dongModal('icdModal');
+    targetUpload = { ma: ma, ten: tenQuyTrinh, tenKhoa: tenKhoa, type: type };
     document.getElementById('lblTenQuyTrinhUpload').innerText = tenQuyTrinh; 
     window.moModal('uploadSinglePdfModal');
 }
@@ -118,7 +123,9 @@ window.xuLyUploadSinglePdf = async function() {
         const formData = new FormData(); 
         formData.append('tenKhoa', targetUpload.tenKhoa); 
         formData.append('maQuyTrinh', targetUpload.ma); 
+        formData.append('tenQuyTrinh', targetUpload.ten); 
         formData.append('fPdf', fPDF);
+        formData.append('type', targetUpload.type);
         
         const res = await fetch('/api/upload/final-pdf', { method: 'POST', body: formData }); 
         const data = await res.json(); 
@@ -135,8 +142,9 @@ window.xuLyUploadSinglePdf = async function() {
     window.showLoading(false);
 }
 
-window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
+window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action, type='QTKT', encodedTen='') {
     let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
     let msg = "Xác nhận thao tác này?";
     if (action === 'REJECT_KHOA') msg = "Xác nhận HỦY bài nộp này và trả về cho Khoa sửa lại?";
     if (action === 'REVERT_FINAL') msg = "Xác nhận HỦY PHÊ DUYỆT? File PDF chính thức sẽ bị gỡ bỏ khỏi hệ thống!";
@@ -148,7 +156,7 @@ window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
         const res = await fetch('/api/dept-data/status', { 
             method: 'POST', 
             headers: { 'Content-Type': 'application/json' }, 
-            body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, action: action }) 
+            body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten, action: action, type: type }) 
         });
         if (res.ok) await window.layDuLieu(); 
         else alert("Có lỗi xảy ra!"); 
@@ -158,6 +166,7 @@ window.thayDoiTrangThai = async function(tenKhoa, encodedMa, action) {
     window.showLoading(false);
 }
 
+// 🟢 THÊM KỸ THUẬT VÀO GIỎ HÀNG
 window.bocQuyTrinh = async function(encodedMa, encodedTen) {
     if(!currentUser || currentUser.role !== 'khoa') return;
     let ma = decodeURIComponent(encodedMa || "");
@@ -177,36 +186,144 @@ window.bocQuyTrinh = async function(encodedMa, encodedTen) {
 
     if(!qtInfo) return alert("Không tìm thấy thông tin kỹ thuật!");
     
-    let myDept = database.depts.find(function(d) { return d && d.tenKhoa === currentUser.tenKhoa; });
-    if (myDept) {
-        let newQt = JSON.parse(JSON.stringify(qtInfo)); newQt.trangThai = "CHUA_NOP";
-        if (!Array.isArray(myDept.danhMucQTKT)) myDept.danhMucQTKT = [];
-        myDept.danhMucQTKT.push(newQt);
-    }
-    window.apDungLoc(); 
-
-    try { fetch('/api/dept-data/add', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo }) }); } catch(e) { console.error(e); }
+    window.showLoading(true);
+    try { 
+        const res = await fetch('/api/dept-data/add', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: qtInfo, type: 'QTKT' }) 
+        }); 
+        
+        if (res.ok) {
+            let myDept = database.depts.find(function(d) { return d && d.tenKhoa === currentUser.tenKhoa; });
+            if (myDept) {
+                let newQt = JSON.parse(JSON.stringify(qtInfo)); newQt.trangThai = "CHUA_NOP";
+                if (!Array.isArray(myDept.danhMucQTKT)) myDept.danhMucQTKT = [];
+                myDept.danhMucQTKT.push(newQt);
+            }
+            window.apDungLoc();
+        } else {
+            const data = await res.json();
+            alert("Lỗi: " + (data.message || "Không thể thêm"));
+        }
+    } catch(e) { alert("Lỗi kết nối!"); }
+    window.showLoading(false);
 }
 
+// 🟢 XÓA KỸ THUẬT KHỎI GIỎ HÀNG
 window.xoaQuyTrinh = async function(encodedMa, tenKhoa, encodedTen) {
     if(!confirm("Xác nhận xóa kỹ thuật này khỏi danh sách khoa?")) return;
     let ma = decodeURIComponent(encodedMa || "");
     let ten = decodeURIComponent(encodedTen || "");
-    let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
     
-    if (targetDept && Array.isArray(targetDept.danhMucQTKT)) {
-        targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) { 
-            if (!qt) return false;
-            if (ma) return !(window.isCodeMatch(qt.ma, ma) || window.isCodeMatch(qt.maLienKet, ma));
-            if (ten) return window.robustNormalize(qt.ten) !== window.robustNormalize(ten);
-            return true;
-        });
-    }
-    window.apDungLoc(); 
-
-    try { fetch('/api/dept-data/remove', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten }) }); } catch(e) { console.error(e); }
+    window.showLoading(true);
+    try { 
+        const res = await fetch('/api/dept-data/remove', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten, type: 'QTKT' }) 
+        }); 
+        
+        if(res.ok) {
+            let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
+            if (targetDept && Array.isArray(targetDept.danhMucQTKT)) {
+                targetDept.danhMucQTKT = targetDept.danhMucQTKT.filter(function(qt) { 
+                    let qtMa = qt.ma ? String(qt.ma).trim() : "";
+                    let qtMaLK = qt.maLienKet ? String(qt.maLienKet).trim() : "";
+                    let targetMa = ma ? String(ma).trim() : "";
+                    if (targetMa !== "") return !(qtMa === targetMa || qtMaLK === targetMa);
+                    
+                    let qtTen = qt.ten ? String(qt.ten).trim().toLowerCase() : "";
+                    let targetTen = ten ? String(ten).trim().toLowerCase() : "";
+                    return qtTen !== targetTen;
+                });
+            }
+            window.apDungLoc(); 
+        } else {
+            const data = await res.json();
+            alert("Lỗi: " + (data.message || "Không thể xóa"));
+        }
+    } catch(e) { alert("Lỗi kết nối mạng!"); }
+    window.showLoading(false);
 }
 
+// 🟢 THÊM PHÁC ĐỒ VÀO GIỎ HÀNG
+window.bocPhacDo = async function(encodedMa, encodedTen) {
+    if(!currentUser || currentUser.role !== 'khoa') return;
+    let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
+    let pdInfo = null;
+    
+    if (ma && Array.isArray(database.ICD10)) {
+        pdInfo = database.ICD10.find(function(x) { return x && x.maBenh === ma; });
+    }
+    if (!pdInfo && ten && Array.isArray(database.ICD10)) {
+        pdInfo = database.ICD10.find(function(x) { return x && window.robustNormalize(x.tenBenh) === window.robustNormalize(ten); });
+    }
+
+    if(!pdInfo) return alert("Không tìm thấy thông tin Mã bệnh!");
+    
+    window.showLoading(true);
+    try { 
+        const res = await fetch('/api/dept-data/add', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ tenKhoa: currentUser.tenKhoa, quyTrinh: pdInfo, type: 'PHAC_DO' }) 
+        }); 
+        
+        if (res.ok) {
+            let myDept = database.depts.find(function(d) { return d && d.tenKhoa === currentUser.tenKhoa; });
+            if (myDept) {
+                let newPd = JSON.parse(JSON.stringify(pdInfo)); newPd.trangThai = "CHUA_NOP";
+                if (!Array.isArray(myDept.danhMucPhacDo)) myDept.danhMucPhacDo = [];
+                myDept.danhMucPhacDo.push(newPd);
+            }
+            window.apDungLoc(); 
+        } else {
+            const data = await res.json();
+            alert("Lỗi: " + (data.message || "Không thể thêm"));
+        }
+    } catch(e) { alert("Lỗi kết nối!"); }
+    window.showLoading(false);
+}
+
+// 🟢 XÓA PHÁC ĐỒ KHỎI GIỎ HÀNG
+window.xoaPhacDo = async function(encodedMa, tenKhoa, encodedTen) {
+    if(!confirm("Xác nhận xóa Phác đồ này khỏi danh sách khoa?")) return;
+    let ma = decodeURIComponent(encodedMa || "");
+    let ten = decodeURIComponent(encodedTen || "");
+    
+    window.showLoading(true);
+    try { 
+        const res = await fetch('/api/dept-data/remove', { 
+            method: 'POST', 
+            headers: {'Content-Type': 'application/json'}, 
+            body: JSON.stringify({ tenKhoa: tenKhoa, maQuyTrinh: ma, tenQuyTrinh: ten, type: 'PHAC_DO' }) 
+        }); 
+        
+        if(res.ok) {
+            let targetDept = database.depts.find(function(d) { return d && d.tenKhoa === tenKhoa; });
+            if (targetDept && Array.isArray(targetDept.danhMucPhacDo)) {
+                targetDept.danhMucPhacDo = targetDept.danhMucPhacDo.filter(function(pd) { 
+                    let pdMa = pd.maBenh ? String(pd.maBenh).trim() : "";
+                    let targetMa = ma ? String(ma).trim() : "";
+                    if (targetMa !== "") return pdMa !== targetMa;
+                    
+                    let pdTen = pd.tenBenh ? String(pd.tenBenh).trim().toLowerCase() : "";
+                    let targetTen = ten ? String(ten).trim().toLowerCase() : "";
+                    return pdTen !== targetTen;
+                });
+            }
+            window.apDungLoc(); 
+        } else {
+            const data = await res.json();
+            alert("Lỗi: " + (data.message || "Không thể xóa"));
+        }
+    } catch(e) { alert("Lỗi kết nối mạng!"); }
+    window.showLoading(false);
+}
+
+// 🟢 LƯU BẢNG ĐÀO TẠO NGẮN HẠN
 window.saveDTNH = async function() {
     let selectNamDT = document.getElementById('filterNamDT'); const selectedYear = selectNamDT ? selectNamDT.value : "";
     if (!selectedYear) return alert("Vui lòng chọn Năm đào tạo!");
@@ -241,12 +358,12 @@ window.saveDTNH = async function() {
     } catch (error) { alert("Lỗi lưu dữ liệu."); console.error(error); } finally { window.showLoading(false); }
 }
 
+// 🟢 NHẬP EXCEL
 window.importFromExcel = async function() { 
     const fileInput = document.getElementById('fileExcel'); 
     const file = fileInput.files[0]; 
     if (!file) return; 
     
-    // Gợi ý cho người dùng nếu dùng CSV
     if (file.name.toLowerCase().endsWith('.csv') && currentTab === 'ICD10') {
         let isOK = confirm("Lưu ý: File CSV có thể bị lỗi font Tiếng Việt nếu không lưu chuẩn UTF-8. Nên dùng file Excel (.xlsx) để dữ liệu hiển thị tốt nhất. Bạn vẫn muốn tiếp tục?");
         if (!isOK) { fileInput.value = ''; return; }
@@ -391,7 +508,6 @@ window.importFromExcel = async function() {
                     for (let i = 0; i < Math.min(20, rawData.length); i++) {
                         let rowStr = window.robustNormalize(rawData[i].join(" "));
                         
-                        // 🟢 CẬP NHẬT TỪ KHÓA NHẬN DIỆN CỘT
                         if (rowStr.includes("ma dich vu") || rowStr.includes("ma ky thuat") || rowStr.includes("ma tuong duong") || 
                             rowStr.includes("ten ky thuat") || rowStr.includes("ma benh") || rowStr.includes("disease name") || 
                             rowStr.includes("ten benh") || rowStr.includes("ten chan doan") || rowStr.includes("ma icd") || 
@@ -442,36 +558,25 @@ window.importFromExcel = async function() {
                                 if (kn === "gia yeu cau" || kn.includes("gia yeu cau") || kn.includes("gia_yeucau")) item.giaYeuCau = v;
                                 if (kn === "gia nuoc ngoai" || kn.includes("gia nuoc ngoai") || kn.includes("gia_nuocngoai")) item.giaNuocNgoai = v;
                             } 
-                            // 🟢 MAP CHÍNH XÁC 21 CỘT (Khóa thứ tự quét chống nuốt cột)
                             else if (currentTab === 'ICD10') {
                                 if (kn === "stt chuong" || kn.includes("stt chuong")) item.sttChuong = v;
                                 else if (kn === "ma chuong" || kn.includes("ma chuong")) item.maChuong = v;
                                 else if (kn === "chapter name") item.chapterName = v;
                                 else if (kn === "ten chuong" || kn.includes("ten chuong")) item.tenChuong = v;
-                                
-                                // Quét Nhóm Phụ trước để không bị Nhóm chính đè
                                 else if (kn === "ma nhom phu 1" || kn.includes("ma nhom phu 1")) item.maNhomPhu1 = v;
                                 else if (kn === "sub group name i") item.subGroupNameI = v;
                                 else if (kn === "ten nhom phu 1" || kn.includes("ten nhom phu 1")) item.tenNhomPhu1 = v;
-                                
                                 else if (kn === "ma nhom phu 2" || kn.includes("ma nhom phu 2")) item.maNhomPhu2 = v;
                                 else if (kn === "sub group name ii") item.subGroupNameII = v;
                                 else if (kn === "ten nhom phu 2" || kn.includes("ten nhom phu 2")) item.tenNhomPhu2 = v;
-
-                                // Quét Nhóm Chính
                                 else if (kn === "ma nhom chinh" || kn.includes("ma nhom chinh") || kn.includes("ma nhom")) item.maNhomChinh = v;
                                 else if (kn === "main group name i") item.mainGroupNameI = v;
                                 else if (kn === "ten nhom chinh" || kn.includes("ten nhom chinh") || kn.includes("ten nhom")) item.tenNhomChinh = v;
-                                
-                                // Quét Loại
                                 else if (kn === "ma loai" || kn.includes("ma loai")) item.maLoai = v;
                                 else if (kn === "type name") item.typeName = v;
                                 else if (kn === "ten loai" || kn.includes("ten loai")) item.tenLoai = v;
-                                
-                                // Quét Mã Không Dấu trước khi quét Mã Bệnh
                                 else if (kn === "ma benh khong dau" || kn.includes("khong dau")) item.maBenhKhongDau = formatCode(v);
                                 else if (kn === "ma benh" || kn.includes("ma benh") || kn.includes("ma icd") || kn === "ma") item.maBenh = formatCode(v);
-                                
                                 else if (kn === "disease name" || kn.includes("tieng anh") || kn === "description") item.diseaseName = v;
                                 else if (kn === "ten benh" || kn.includes("ten benh") || kn.includes("chan doan") || kn.includes("tieng viet") || kn === "ten") item.tenBenh = v;
                                 else if (kn === "ghi chu" || kn.includes("ghi chu")) item.ghiChu = v;
@@ -503,247 +608,54 @@ window.importFromExcel = async function() {
                 }
             } catch (error) { 
                 alert("Lỗi xử lý file! Vui lòng kiểm tra định dạng."); 
-                console.error(error); 
             } finally { 
-                fileInput.value = ''; 
-                window.showLoading(false); 
+                fileInput.value = ''; window.showLoading(false); 
             } 
         }; 
         reader.readAsArrayBuffer(file); 
     }, 50); 
 }
 
-// 🟢 CẬP NHẬT TÍNH NĂNG XUẤT EXCEL CHUẨN WYSIWYG
+// 🟢 XUẤT EXCEL CHUẨN WYSIWYG
 window.exportToExcel = function() { 
     if (!currentFilteredData || currentFilteredData.length === 0) { alert("Không có dữ liệu để xuất!"); return; }
-
     window.showLoading(true);
 
     setTimeout(() => {
-        const isDeptTab = DANH_SACH_KHOA.includes(currentTab);
-        const isSuperTab = currentTab.startsWith('KHTH_');
-
         let wb = XLSX.utils.book_new();
-
-        if (currentTab === 'KHTH_CHUA_AP_GIA') {
-            let excelData = [
-                ["DANH SÁCH QUY TRÌNH KỸ THUẬT CHƯA ÁP MÃ DỊCH VỤ BỆNH VIỆN"],
-                ["(Trích xuất từ Hệ thống Quản lý QTKT - Bệnh viện Đa khoa Khánh Hòa)"],
-                [],
-                ["STT", "MÃ KỸ THUẬT", "TÊN CHƯƠNG", "TÊN KỸ THUẬT", "MÃ TƯƠNG ĐƯƠNG", "TÊN DỊCH VỤ BHYT"]
-            ];
-            
-            currentFilteredData.forEach(function(item, index) {
-                if(!item) return;
-                excelData.push([
-                    index + 1,
-                    item.ma || item.maLienKet || "",
-                    item.chuong || "",
-                    item.ten || "",
-                    item.tt23_ma || "",
-                    item.tt23_ten || "Chưa có trong TT23"
-                ]);
-            });
-
-            let wsChuaApGia = XLSX.utils.aoa_to_sheet(excelData);
-            wsChuaApGia['!merges'] = [
-                { s: {r:0, c:0}, e: {r:0, c:5} },
-                { s: {r:1, c:0}, e: {r:1, c:5} }
-            ];
-            wsChuaApGia['!cols'] = [{wch: 5}, {wch: 15}, {wch: 30}, {wch: 50}, {wch: 15}, {wch: 50}];
-            XLSX.utils.book_append_sheet(wb, wsChuaApGia, "ChuaApGia");
-            XLSX.writeFile(wb, `QTKT_ChuaApGia_${new Date().getTime()}.xlsx`);
-            window.showLoading(false);
-            return;
-        }
-        
-        if (currentTabType === 'DTNH') {
-            let filterNamEl = document.getElementById('filterNamDT');
-            const selectedYear = filterNamEl ? filterNamEl.value : "202X";
-            let excelData = [
-                [`KẾ HOẠCH ĐÀO TẠO PHÁT TRIỂN CHUYÊN MÔN KỸ THUẬT NĂM ${selectedYear}`],
-                [`Khoa: ${currentTab.toUpperCase()}`],
-                [],
-                ["STT", "Nội dung đào tạo", "Kỹ thuật cụ thể", "Thời gian", "CN.SH", "NHS", "KTV", "ĐD", "BS", "Đơn vị chủ trì", "Kinh phí (Tr)"]
-            ];
-
-            let merges = [
-                { s: { r: 0, c: 0 }, e: { r: 0, c: 10 } },
-                { s: { r: 1, c: 0 }, e: { r: 1, c: 10 } }
-            ];
-
-            let prevGroupId = null;
-            let sttCounterExport = 1;
-            let startRowIndex = -1;
-
-            currentFilteredData.forEach(function(item, idx) {
-                if(!item) return;
-                let isFirst = item.groupId !== prevGroupId;
-                let currentRowExcel = excelData.length;
-
-                if (isFirst) {
-                    if (prevGroupId !== null && (currentRowExcel - 1) > startRowIndex) {
-                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(function(colIdx) {
-                            merges.push({ s: { r: startRowIndex, c: colIdx }, e: { r: currentRowExcel - 1, c: colIdx } });
-                        });
-                    }
-                    prevGroupId = item.groupId;
-                    startRowIndex = currentRowExcel;
-
-                    excelData.push([
-                        sttCounterExport++,
-                        item.noiDung || "",
-                        item.kyThuat || "",
-                        item.thoiGian || "",
-                        item.cns || "",
-                        item.nhs || "",
-                        item.ktv || "",
-                        item.dd || "",
-                        item.bs || "",
-                        item.donVi || "",
-                        item.kinhPhi || ""
-                    ]);
-                } else {
-                    excelData.push(["", "", item.kyThuat || "", "", "", "", "", "", "", "", ""]);
-                }
-
-                if (idx === currentFilteredData.length - 1) {
-                    if (excelData.length - 1 > startRowIndex) {
-                        [0, 1, 3, 4, 5, 6, 7, 8, 9, 10].forEach(function(colIdx) {
-                            merges.push({ s: { r: startRowIndex, c: colIdx }, e: { r: excelData.length - 1, c: colIdx } });
-                        });
-                    }
-                }
-            });
-
-            let wsDtnh = XLSX.utils.aoa_to_sheet(excelData);
-            wsDtnh['!merges'] = merges;
-            wsDtnh['!cols'] = [{wch: 5}, {wch: 35}, {wch: 40}, {wch: 15}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 8}, {wch: 25}, {wch: 15}];
-            XLSX.utils.book_append_sheet(wb, wsDtnh, "DaoTaoNganHan");
-            XLSX.writeFile(wb, `KeHoachDaoTao_${currentTab.replace(/ /g, '_')}_${selectedYear}.xlsx`);
-            window.showLoading(false);
-            return;
-        }
-
         const cleanData = [];
-        let checkedBoxesGiaDV = [...selectedGiaDV]; 
 
-        let isDynamic = (currentTab === 'PL1' || currentTab === 'PL2' || currentTab === 'ICD10' || isDeptTab || isSuperTab);
-        let cols = isDynamic ? window.currentSelectedColumns : [];
-
-        currentFilteredData.forEach(function(item, index) {
-            if(!item) return;
-            
-            if (currentTab === 'GiaDV') {
-                let uniqueId = String(item.maTuongDuong || item.tenKyThuat || index);
-                if (checkedBoxesGiaDV.length > 0 && !checkedBoxesGiaDV.includes(uniqueId)) return;
-                
-                let row = { "STT": cleanData.length + 1 };
-                row["TÊN KỸ THUẬT"] = item.qt_ten || item.tenKyThuat || "";
-                row["TÊN DỊCH VỤ BHYT"] = item.tenDichVu || "";
-                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
-                row["QUYẾT ĐỊNH"] = item.qt_quyetDinh || "";
-                row["MỨC GIÁ (VNĐ)"] = item.giaMax ? Number(item.giaMax) : ""; 
-                row["GHI CHÚ"] = item.ghiChu || "";
-                cleanData.push(row);
-                
-            } else if (currentTab === 'MaDVBV') {
-                let row = { "STT": cleanData.length + 1 };
-                row["MÃ DỊCH VỤ"] = item.maDichVu || "";
-                row["MÃ TƯƠNG ĐƯƠNG"] = item.maTuongDuong || "";
-                row["TÊN DỊCH VỤ"] = item.tenDichVu || "";
-                row["GIÁ BHYT"] = item.giaBHYT ? Number(item.giaBHYT) : "";
-                row["GIÁ VIỆN PHÍ"] = item.giaVienPhi ? Number(item.giaVienPhi) : "";
-                row["GIÁ YÊU CẦU"] = item.giaYeuCau ? Number(item.giaYeuCau) : "";
-                row["GIÁ NƯỚC NGOÀI"] = item.giaNuocNgoai ? Number(item.giaNuocNgoai) : "";
-                cleanData.push(row);
-            } 
-            else if (isDynamic) {
-                let row = {};
-                
-                let maHienThi = item.ma || item.maLienKet || '';
-                let safeTen = item.ten ? String(item.ten) : "";
-                
-                let matchedGiaDVSet = new Set(); 
-                let matchedMaDVBVSet = new Set();
-                let arrSearch = window.normalizeCodeFast(maHienThi).split(';').filter(Boolean);
-                let normCheckTen = window.robustNormalize(safeTen);
-
-                arrSearch.forEach(m => {
-                    if (window.giaDvMapByCode.has(m)) window.giaDvMapByCode.get(m).forEach(g => matchedGiaDVSet.add(g));
-                    if (window.maDvbvMapByCode.has(m)) window.maDvbvMapByCode.get(m).forEach(b => matchedMaDVBVSet.add(b));
-                });
-                if (normCheckTen && window.giaDvMapByName.has(normCheckTen)) {
-                    window.giaDvMapByName.get(normCheckTen).forEach(g => matchedGiaDVSet.add(g));
-                }
-
-                let matchedGiaDV = Array.from(matchedGiaDVSet);
-                let matchedMaDVBV = Array.from(matchedMaDVBVSet);
-
-                let formatTien = function(val) { return val ? Number(val) : ""; };
-
-                let val_matd = matchedGiaDV.length > 0 ? matchedGiaDV.map(g => g.maTuongDuong||'').join('\n') : '-';
-                let val_giabhyt = matchedGiaDV.length > 0 ? matchedGiaDV.map(g => formatTien(g.giaMax)).join('\n') : '-';
-                let val_madv = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => b.maDichVu||'').join('\n') : '-';
-                let val_giavp = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => formatTien(b.giaVienPhi)).join('\n') : '-';
-                let val_giayc = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => formatTien(b.giaYeuCau)).join('\n') : '-';
-                let val_giann = matchedMaDVBV.length > 0 ? matchedMaDVBV.map(b => formatTien(b.giaNuocNgoai)).join('\n') : '-';
-
-                let ttRaw = item.trangThai || 'CHUA_NOP'; let tt = (ttRaw === 'DA_DUYET' || ttRaw === 'CHO_HDKHKT') ? 'CHO_DUYET' : ttRaw; 
-                let textTrangThai = "Chưa nộp";
-                if(tt === 'CHO_DUYET') textTrangThai = "Chờ KHTH duyệt";
-                else if(tt === 'KHONG_DUYET') textTrangThai = "Bị KHTH từ chối";
-                else if(tt === 'DA_PHE_DUYET') textTrangThai = "Đã phê duyệt";
-
-                // Mapping theo cột hiển thị hiện tại
-                cols.forEach(function(col) {
-                    if (col === 'col_stt') row["STT"] = cleanData.length + 1;
-                    else if (col === 'col_ma') row["MÃ KỸ THUẬT/MÃ LK"] = maHienThi;
-                    else if (col === 'col_chuong') row["TÊN CHƯƠNG"] = item.chuong || "";
-                    else if (col === 'col_ten') row["TÊN KỸ THUẬT"] = safeTen;
-                    else if (col === 'col_phanloai') row["PHÂN LOẠI"] = item.phanLoai || "";
-                    else if (col === 'col_quyetdinh') row["QUYẾT ĐỊNH"] = item.quyetDinh || "";
-                    else if (col === 'col_matd') row["MÃ TĐ (TT23)"] = val_matd;
-                    else if (col === 'col_madv') row["MÃ DV BỆNH VIỆN"] = val_madv;
-                    else if (col === 'col_giabhyt') row["GIÁ BHYT"] = val_giabhyt;
-                    else if (col === 'col_giavp') row["GIÁ VIỆN PHÍ"] = val_giavp;
-                    else if (col === 'col_giayc') row["GIÁ YÊU CẦU"] = val_giayc;
-                    else if (col === 'col_giann') row["GIÁ NƯỚC NGOÀI"] = val_giann;
-                    else if (col === 'col_file') row["TRẠNG THÁI"] = textTrangThai;
-                    
-                    // Cột của ICD-10
-                    else if (col === 'col_sttChuong') row["STT CHƯƠNG"] = item.sttChuong || "";
-                    else if (col === 'col_maChuong') row["MÃ CHƯƠNG"] = item.maChuong || "";
-                    else if (col === 'col_chapterName') row["CHAPTER NAME"] = item.chapterName || "";
-                    else if (col === 'col_tenChuong') row["TÊN CHƯƠNG"] = item.tenChuong || "";
-                    else if (col === 'col_maNhomChinh') row["MÃ NHÓM CHÍNH"] = item.maNhomChinh || "";
-                    else if (col === 'col_mainGroupNameI') row["MAIN GROUP NAME I"] = item.mainGroupNameI || "";
-                    else if (col === 'col_tenNhomChinh') row["TÊN NHÓM CHÍNH"] = item.tenNhomChinh || "";
-                    else if (col === 'col_maNhomPhu1') row["MÃ NHÓM PHỤ 1"] = item.maNhomPhu1 || "";
-                    else if (col === 'col_subGroupNameI') row["SUB GROUP NAME I"] = item.subGroupNameI || "";
-                    else if (col === 'col_tenNhomPhu1') row["TÊN NHÓM PHỤ 1"] = item.tenNhomPhu1 || "";
-                    else if (col === 'col_maNhomPhu2') row["MÃ NHÓM PHỤ 2"] = item.maNhomPhu2 || "";
-                    else if (col === 'col_subGroupNameII') row["SUB GROUP NAME II"] = item.subGroupNameII || "";
-                    else if (col === 'col_tenNhomPhu2') row["TÊN NHÓM PHỤ 2"] = item.tenNhomPhu2 || "";
-                    else if (col === 'col_maLoai') row["MÃ LOẠI"] = item.maLoai || "";
-                    else if (col === 'col_typeName') row["TYPE NAME"] = item.typeName || "";
-                    else if (col === 'col_tenLoai') row["TÊN LOẠI"] = item.tenLoai || "";
-                    else if (col === 'col_maBenh') row["MÃ BỆNH"] = item.maBenh || "";
-                    else if (col === 'col_maBenhKhongDau') row["MÃ BỆNH KHÔNG DẤU"] = item.maBenhKhongDau || "";
-                    else if (col === 'col_diseaseName') row["DISEASE NAME"] = item.diseaseName || "";
-                    else if (col === 'col_tenBenh') row["TÊN BỆNH / CHẨN ĐOÁN"] = item.tenBenh || "";
-                    else if (col === 'col_ghiChu') row["GHI CHÚ"] = item.ghiChu || "";
-                });
-                
-                if (isSuperTab && !row["TÊN KHOA"]) {
-                    row["TÊN KHOA"] = item.tenKhoaChuQuan || "";
-                }
-                
-                cleanData.push(row);
+        let tableHeaderCells = document.querySelectorAll('#tableHead th');
+        let tableRows = document.querySelectorAll('#dataBody tr');
+        
+        let headerNames = [];
+        tableHeaderCells.forEach(th => {
+            let name = th.innerText.replace(' (Click xem chi tiết)', '').replace(' (Click)', '').trim();
+            if(name !== 'Chọn' && name !== 'Thao tác Thêm/Xóa' && name !== 'Khoa Thêm/Xóa Phác Đồ' && name !== 'Thao tác Khoa') {
+                headerNames.push(name);
             }
         });
 
-        if (cleanData.length === 0) { alert("Không có dữ liệu để xuất!"); window.showLoading(false); return; }
+        tableRows.forEach(tr => {
+            let rowObj = {};
+            let tdCells = tr.querySelectorAll('td');
+            
+            if(tdCells.length === 1) { return; } 
+            
+            let skipOffset = isMultiSelectMode ? 1 : 0; 
+            
+            for (let i = 0; i < headerNames.length; i++) {
+                let cell = tdCells[i + skipOffset];
+                if(cell) {
+                    let cellText = cell.innerText.trim();
+                    if(cellText === '-' || cellText === 'Chưa có' || cellText === 'Chưa nộp') cellText = "";
+                    rowObj[headerNames[i]] = cellText;
+                }
+            }
+            if(Object.keys(rowObj).length > 0) cleanData.push(rowObj);
+        });
+
+        if (cleanData.length === 0) { alert("Lỗi khi trích xuất dữ liệu!"); window.showLoading(false); return; }
 
         let wsMain = XLSX.utils.json_to_sheet(cleanData); 
         const colWidths = [];
@@ -755,7 +667,6 @@ window.exportToExcel = function() {
                 if (val !== null && val !== undefined) {
                     let len = val.toString().length;
                     if (val.toString().includes('\n')) len = Math.max.apply(null, val.toString().split('\n').map(function(l){ return l.length; }));
-                    if (typeof val === 'number') len += 4; 
                     if (len > maxLen) maxLen = len;
                 }
             });
@@ -763,9 +674,8 @@ window.exportToExcel = function() {
         });
         wsMain['!cols'] = colWidths; 
 
-        XLSX.utils.book_append_sheet(wb, wsMain, "Danh_Muc"); 
-        let fileName = isDeptTab ? `DanhMuc_${currentTab.replace(/ /g, '_')}.xlsx` : `DanhMuc_${currentTab}.xlsx`; 
-        XLSX.writeFile(wb, fileName); 
+        XLSX.utils.book_append_sheet(wb, wsMain, "Danh_Muc_Trích_Xuất"); 
+        XLSX.writeFile(wb, `Danh_Muc_${currentTab}_${new Date().getTime()}.xlsx`); 
         window.showLoading(false);
     }, 50);
 }
